@@ -1,0 +1,25 @@
+# ---- Your own writing and settings: never tracked ----
+/Notes/
+/Recordings/
+/Images/
+/config.json
+/config.json.*
+/cache/
+/logs/
+/fonts/
+
+# ---- Big files, or files rebuilt when Nobu starts ----
+/runtime/
+/models/
+/setup/
+/NobuNotes.exe
+/app/fonts/lib/
+/app/data/
+__pycache__/
+*.pyc
+
+# ---- Test and tool leftovers ----
+/tests/last-run/
+/tests/samples/
+*.new
+*.tmp

@@ -1,0 +1,20 @@
+1 ICON "nobu.ico"
+1 VERSIONINFO
+FILEVERSION 4,1,0,0
+PRODUCTVERSION 4,1,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "FileDescription", "Nobu Notes"
+      VALUE "ProductName", "Nobu Notes"
+      VALUE "FileVersion", "4.1"
+      VALUE "ProductVersion", "4.1"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

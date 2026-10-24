@@ -1,0 +1,7 @@
+# Keep the code exactly as it is on disk (Unix line endings); .bat files need Windows line endings.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.ico binary
+*.ttf binary
+*.syso binary
