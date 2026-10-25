@@ -6,6 +6,7 @@ Storage (a note's "items") keeps text runs with tag lists. Tags:
   paragraph:  st:<style>  al:left|center|right|justify  ls:<multiple>  sb:<pt>  sa:<pt>
               ind:<inches>  fi:<inches>  li:bullet:<level> | li:num:<level>
   blocks:     {"table": {"rows": [[...]]}}   {"pb": 1}  (page break)   {"i": image, "w": px, "h": px}
+              a picture placed anywhere on the page also has "float": {"wrap", "text", "x", "y"} (see nobu_float)
               (a picture's "h" is only there when it was stretched; without it the picture keeps its shape)
 "lm" marks list-marker text ("•\\t", "3.\\t") that the editor draws; exporters skip it.
 
@@ -165,7 +166,8 @@ def items_to_paras(items):
             skip_nl = True
             continue
         if "i" in it:
-            cur_runs.append({"img": it["i"], "w": it.get("w"), "h": it.get("h")})
+            cur_runs.append(dict({"img": it["i"], "w": it.get("w"), "h": it.get("h")},
+                                 **({"float": dict(it["float"])} if it.get("float") else {})))
             last_tags = tags
             skip_nl = False
             continue
@@ -243,7 +245,12 @@ def paras_to_items(paras):
             num.clear()
         for r in p.get("runs", []):
             if "img" in r:
-                items.append(dict({"i": r["img"], "w": r.get("w"), "g": sorted(pt)}, **({"h": r["h"]} if r.get("h") else {})))
+                it = {"i": r["img"], "w": r.get("w"), "g": [] if r.get("float") else sorted(pt)}
+                if r.get("h"):
+                    it["h"] = r["h"]
+                if r.get("float"):
+                    it["float"] = dict(r["float"])
+                items.append(it)
             elif r.get("t"):
                 items.append({"t": r["t"], "g": sorted(set(pt + _char_tags(r)))})
         items.append({"t": "\n", "g": sorted(pt)})
@@ -393,6 +400,37 @@ def to_html(paras, ctx, img_src=image_data_uri, full_page=False, title="", fonts
             % (html.escape(title), fonts_css, _css_font(ctx.body), _fmt(ctx.size), frag))
 
 
+FLOAT_TEXT_W = 624         # page pixels: the width of the text (6.5"), as in nobu_float
+
+
+def float_side(f, w):
+    """Which side of the text a floating picture sits on in a flowing layout (web page, e-book, PDF):
+    "left" or "right" (a picture with the text on its right sits on the left), or None (on its own lines)."""
+    if f.get("wrap") != "square":
+        return None
+    if f.get("text") == "right":
+        return "left"
+    if f.get("text") == "left":
+        return "right"
+    x = f.get("x", 0)
+    return "left" if FLOAT_TEXT_W - (x + w) >= x else "right"
+
+
+def _float_html(src, r):
+    f = r["float"]
+    w = int(r.get("w") or 400)
+    size = "width:%dpx;height:%dpx" % (w, int(r["h"])) if r.get("h") else "width:%dpx;max-width:60%%" % w
+    side = float_side(f, w)
+    x, y = int(f.get("x", 0)), int(f.get("y", 0))
+    if side == "left":
+        pos = "float:left;margin:%dpx 12px 8px %dpx" % (y, x)
+    elif side == "right":
+        pos = "float:right;margin:%dpx %dpx 8px 12px" % (y, max(0, FLOAT_TEXT_W - x - w))
+    else:
+        pos = "display:block;clear:both;margin:%dpx 0 8px %dpx" % (y, x)
+    return "<img src='%s' style='%s;%s' width='%d'>" % (src, size, pos, w)
+
+
 def _fmt(v):
     return ("%.2f" % float(v)).rstrip("0").rstrip(".")
 
@@ -404,6 +442,8 @@ def _run_html(r, pstyle, ctx, img_src):
         except Exception:
             return "[missing picture]"
         w = r.get("w") or 400
+        if r.get("float"):
+            return _float_html(src, r)
         if r.get("h"):                    # stretched: both sizes, so it isn't put back into shape
             return "<img src='%s' style='width:%dpx;height:%dpx' width='%d' height='%d'>" % (
                 src, int(w), int(r["h"]), int(w), int(r["h"]))

@@ -252,6 +252,38 @@ def _docx_hyperlink(par, url, runs):
         h.append(run._r)          # (moves the run inside the link)
 
 
+def _docx_float(run, f, w_in, h_in):
+    """Turn a picture just added to run into a floating one, with Word's own text wrapping."""
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls, qn
+    inline = run._r.find(".//" + qn("wp:inline"))
+    if inline is None:
+        return
+    emu = lambda px: int(round(px / 96.0 * 914400))        # noqa: E731  (page pixels -> Word's units)
+    wrap = f.get("wrap")
+    if wrap == "square":
+        wrap_xml = '<wp:wrapSquare %s wrapText="%s"/>' % (nsdecls("wp"), {"right": "right", "left": "left"}.get(
+            f.get("text"), "largest"))
+    elif wrap == "topbottom":
+        wrap_xml = "<wp:wrapTopAndBottom %s/>" % nsdecls("wp")
+    else:
+        wrap_xml = "<wp:wrapNone %s/>" % nsdecls("wp")
+    anchor = parse_xml(
+        '<wp:anchor %s distT="0" distB="76200" distL="114300" distR="114300" simplePos="0" relativeHeight="251659264" '
+        'behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/>'
+        '<wp:positionH relativeFrom="column"><wp:posOffset>%d</wp:posOffset></wp:positionH>'
+        '<wp:positionV relativeFrom="paragraph"><wp:posOffset>%d</wp:posOffset></wp:positionV></wp:anchor>'
+        % (nsdecls("wp"), emu(f.get("x", 0)), emu(f.get("y", 0))))
+    anchor.append(inline.find(qn("wp:extent")))
+    anchor.append(parse_xml('<wp:effectExtent %s l="0" t="0" r="0" b="0"/>' % nsdecls("wp")))
+    anchor.append(parse_xml(wrap_xml))
+    for tag in ("wp:docPr", "wp:cNvGraphicFramePr", "a:graphic"):
+        el = inline.find(qn(tag))
+        if el is not None:
+            anchor.append(el)
+    inline.getparent().replace(inline, anchor)
+
+
 def _docx_run(par, r, pstyle, ctx, style_defaults):
     from docx.shared import Pt, RGBColor
     from docx.enum.text import WD_COLOR_INDEX
@@ -419,7 +451,10 @@ def to_docx(paras, ctx, out_path, title="", opts=None):
             if "img" in r:
                 try:
                     w, h = image_size_in(r["img"], r.get("w"), r.get("h"))
-                    par.add_run().add_picture(abs_from_home(r["img"]), width=Inches(w), height=Inches(h))
+                    run = par.add_run()
+                    run.add_picture(abs_from_home(r["img"]), width=Inches(w), height=Inches(h))
+                    if r.get("float"):
+                        _docx_float(run, r["float"], w, h)
                 except Exception:
                     log.exception("image skipped")
                     par.add_run("[missing picture]")
@@ -662,16 +697,21 @@ def to_pdf(paras, ctx, out_path, title="", opts=None):
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus.flowables import ImageAndFlowables
     _patch_reportlab_fake_bold()
     fonts = _PdfFonts()
     aligns = {"left": TA_LEFT, "center": TA_CENTER, "right": TA_RIGHT, "justify": TA_JUSTIFY}
     story = []
     marks = _list_numbers(paras)
     body_name = fonts.name(ctx.body)
+    wraps = []                    # (story position, picture, side): text to flow round a floating picture
     for i, p in enumerate(paras):
         if p["type"] == "pb":
             story.append(PageBreak())
             continue
+        floats = [r for r in p.get("runs", []) if r.get("float")] if p["type"] == "p" else []
+        if floats:
+            p = dict(p, runs=[r for r in p["runs"] if not r.get("float")])
         if p["type"] == "table":
             rows = p["rows"] or [[""]]
             ncol = max(len(r) for r in rows)
@@ -754,11 +794,33 @@ def to_pdf(paras, ctx, out_path, title="", opts=None):
                 txt = '<a href="%s">%s</a>' % (html.escape(r["link"], quote=True), txt)
             parts.append(txt)
         markup = "".join(parts) or "&nbsp;"
+        for r in floats:              # floating pictures: beside this paragraph (text flows round), or above it
+            try:
+                w, h = image_size_in(r["img"], r.get("w"), r.get("h"))
+                im = RLImage(abs_from_home(r["img"]), width=w * inch, height=h * inch)
+                side = R.float_side(r["float"], r.get("w") or w * 96)
+                if side:
+                    wraps.append((len(story), im, side))
+                else:
+                    x = r["float"].get("x", 0) / 96.0
+                    im.hAlign = "LEFT" if x < 0.5 else ("RIGHT" if x + w > TEXT_W_IN - 0.5 else "CENTER")
+                    story += [Spacer(1, r["float"].get("y", 0) * 0.75), im, Spacer(1, 6)]
+            except Exception:
+                log.exception("pdf floating picture")
         try:
             story.append(Paragraph(markup, st, bulletText=bullet))
         except Exception:
             log.exception("pdf paragraph fallback")
             story.append(Paragraph(html.escape("".join(r.get("t", "") for r in p["runs"])), st, bulletText=bullet))
+    for pos, im, side in reversed(wraps):     # the paragraphs after a floating picture flow round it
+        end = pos
+        while end < len(story) and end - pos < 30 and isinstance(story[end], Paragraph):
+            end += 1
+        if end > pos:
+            story[pos:end] = [ImageAndFlowables(im, story[pos:end], imageSide=side, imageLeftPadding=9,
+                                                imageRightPadding=9, imageBottomPadding=6)]
+        else:
+            story.insert(pos, im)
 
     page_no = opts.get("page_numbers", True)
 

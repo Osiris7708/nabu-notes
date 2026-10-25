@@ -640,6 +640,214 @@ def go():
               and step(lambda: ed.text.get("end-2c", "end-1c")) == "q" and step(lambda: len(ed.images)) == n_pics)
         nerr = clean_since(nerr, "move and resize pictures")
 
+        # ================================================================ pictures anywhere, text flowing round them (v4.9.3)
+        big = os.path.join(H, "big.png"); Image.new("RGB", (300, 220), (40, 120, 200)).save(big)
+        para = ("The ember-light crept across the old stones of the keep, and Kaelith counted the steps twice before "
+                "she trusted the third. Somewhere below, water dripped into a pool she could not see. ") * 2
+        f_items = [{"t": "Chapter One\n", "g": ["st:h1"]}] + [{"t": "%d. %s\n" % (i + 1, para), "g": []} for i in range(6)]
+        for _ in range(3):
+            f_items += [{"t": "•\t", "g": ["li:bullet:0", "lm"]}, {"t": para + "\n", "g": ["li:bullet:0"]}]
+        fnote = lib.create_note(book, "Float test", f_items)
+        step(app.refresh_library); step(lambda: app.open_note(fnote)); idle(0.6)
+        ed = step(lambda: app.editor); pt = ed.pictool; fl = ed.flow
+        def n_pars():
+            return sum(it.get("t", "").count("\n") for it in ed.serialize()["items"])
+        n_par0 = step(n_pars)
+        fp = step(lambda: (ed.text.mark_set("insert", "2.0"), ed.insert_image_file(big))[1]); idle(0.3)
+        def rclick_name(name):
+            ed.text.see(name); ed.text.update_idletasks(); x, y, w, h = ed.text.bbox(name)
+            ed.text.event_generate("<Button-3>", x=x + w // 2, y=y + h // 2, rootx=0, rooty=0)
+        MENUS.clear(); step(lambda: rclick_name(fp)); pm = last_menu()
+        wm = step(lambda: pm.nametowidget(pm.entrycget(entry(pm, "Text wrapping"), "menu")))
+        wl = step(lambda: [l.replace("✓", "").strip() for l in labels(wm)])
+        check("right-click a picture: Text wrapping, with 6 choices", len(wl) == 6 and wl[0].startswith("In line"), wl)
+        step(lambda: wm.invoke(1)); idle(0.4)              # Square - text on the right
+        fp = step(lambda: pt.sel)
+        info = lambda: ed.images[fp]                       # noqa: E731
+        check("Square: the picture floats on the page and stays selected",
+              step(lambda: bool(info().get("float")) and info()["label"].winfo_ismapped() == 1))
+        def layout():
+            """(picture x, y, w, h, [(x, right end) of text lines beside it], [x of text lines below it])"""
+            t = ed.text
+            t.update_idletasks(); fl.place_all(); t.update_idletasks()
+            lab = info()["label"]
+            lx, ly, lw, lh = lab.winfo_x(), lab.winfo_y(), lab.winfo_width(), lab.winfo_height()
+            beside, below, idx = [], [], "1.0"
+            for _ in range(400):
+                dl = t.dlineinfo(idx)
+                if dl is None:
+                    break
+                x, y, w, h, _b = dl
+                bb = t.bbox(idx)
+                if bb and t.get(idx).strip():
+                    if y + h > ly + 3 and y < ly + lh - 3:
+                        beside.append((bb[0], x + w))
+                    elif y >= ly + lh and len(below) < 3:
+                        below.append(bb[0])
+                nxt = t.index(idx + " +1 display lines display linestart")
+                if t.compare(nxt, "<=", idx):
+                    break
+                idx = nxt
+            return lx, ly, lw, lh, beside, below
+        step(lambda: (ed.text.see(fp), ed.text.update_idletasks())); idle(0.2)
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("text flows down the right side of the picture", len(beside) >= 3 and all(x >= lx + lw for x, _e in beside),
+              (lx, lw, beside[:5]))
+        check("...and goes back to the full width below it", below and all(x < lx + 30 for x in below), (lx, below))
+        check("...using invisible line breaks that are never saved", step(lambda: len(ed.text.tag_ranges("softnl"))) >= 2
+              and step(n_pars) == n_par0, (step(n_pars), n_par0))
+        saved = step(lambda: [it.get("float") for it in ed.serialize()["items"] if it.get("float")])
+        check("the note remembers the picture, its wrapping and place", len(saved) == 1 and saved[0]["wrap"] == "square"
+              and saved[0]["text"] == "right", saved)
+        # copying the text beside it: no stray line breaks
+        def copy_par():
+            t = ed.text
+            a_ = fl.par_start(t.index(fp))
+            b_ = t.search("2. The ember", a_)
+            t.tag_remove("sel", "1.0", "end"); t.tag_add("sel", a_, "%s -1c" % b_)
+            ed.copy(); t.tag_remove("sel", "1.0", "end")
+            return app.root.clipboard_get()
+        clip = step(copy_par)
+        check("copying the text beside a picture gives it without hidden breaks", "\n" not in clip and "steps twice" in clip, repr(clip[:120]))
+        # Backspace right after a hidden break deletes the letter you can see
+        def backspace_at_break():
+            t = ed.text
+            r = t.tag_ranges("softnl")
+            ps = fl.par_start(r[0])
+            pe = t.index("%s lineend" % r[1])
+            while "softnl" in t.tag_names(pe):
+                pe = t.index("%s +1c lineend" % pe)
+            before = fl.plain(ps, pe)
+            pos = len(fl.plain(ps, r[0]))
+            t.focus_force(); t.mark_set("insert", r[1]); t.event_generate("<BackSpace>"); t.update()
+            fl.reflow()
+            pe = t.index("%s lineend" % ps)
+            while "softnl" in t.tag_names(pe):
+                pe = t.index("%s +1c lineend" % pe)
+            return before[:pos - 1] + before[pos:], fl.plain(ps, pe)
+        want, got = step(backspace_at_break)
+        check("Backspace at a hidden break deletes the letter before it", want == got, (want[-80:], got[-80:]))
+        step(ed.undo); idle(0.2)
+        fp = step(lambda: next(n for n, i in ed.images.items() if i.get("float")))
+        # dragging it anywhere
+        sc = step(ed.img_scale)
+        x0, top0 = step(lambda: (info()["float"]["x"], info()["_doc_top"]))
+        def fdrag(dx, dy, esc=False):
+            pt._fpress(MEv(0, 0, 500, 500), fp)
+            pt._fdrag(MEv(0, 0, 500 + dx // 2, 500 + dy // 2)); pt._fdrag(MEv(0, 0, 500 + dx, 500 + dy))
+            if esc:
+                pt._escape(None)
+            pt._frelease(MEv(0, 0, 500 + dx, 500 + dy))
+            ed.text.update()
+            return info()["float"]["x"], info()["_doc_top"]
+        x1, top1 = step(lambda: fdrag(int(150 * sc), int(60 * sc)))
+        check("drag a floating picture anywhere: across", x1 == x0 + 150, (x0, x1))
+        check("...and down", abs(top1 - (top0 + int(60 * sc))) <= 2, (top0, top1))
+        step(ed.undo); idle(0.2)
+        fp = step(lambda: next(n for n, i in ed.images.items() if i.get("float")))
+        check("Ctrl+Z puts it back", step(lambda: info()["float"]["x"]) == x0)
+        x2, _t2 = step(lambda: fdrag(int(100 * sc), 0, esc=True))
+        check("Esc while dragging leaves it where it was", x2 == x0, (x0, x2))
+        class KEv:
+            def __init__(s, state=0): s.state = state
+        n_u = step(lambda: len(ed._undo))
+        step(lambda: (pt.select(fp), ed._nudge_picture(KEv(), 1, 0), ed._nudge_picture(KEv(), 1, 0), ed._nudge_picture(KEv(1), 1, 0)))
+        check("arrow keys nudge it (8 pixels, Shift 1)", step(lambda: info()["float"]["x"]) == x0 + 17)
+        check("...as one Ctrl+Z step", step(lambda: len(ed._undo)) == n_u + 1)
+        # resizing a floating picture
+        def fresize(edge, dx, dy=0):
+            pt.select(fp)
+            pt._resize_press(MEv(0, 0, 500, 500), edge)
+            pt._resize_drag(MEv(0, 0, 500 + dx, 500 + dy)); ed.text.update(); time.sleep(0.05); ed.text.update()
+            pt._resize_release()
+            return info()["w"], info()["float"]["x"]
+        w1, xa = step(lambda: fresize("r", int(60 * sc)))
+        check("drag the right side of a floating picture: wider", w1 == 360, w1)
+        w2, xb = step(lambda: fresize("l", int(-40 * sc)))
+        check("drag its left side: wider, growing to the left", w2 == 400 and xb == xa - 40, (w2, xa, xb))
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("the text makes room for the new size", all(x >= lx + lw for x, _e in beside) if beside else True, (lx, lw, beside[:3]))
+        step(lambda: fresize("l", int(100 * sc)))            # (back to 300 wide)
+        # the other wrapping styles
+        def wrap_to(wrap, side=None):
+            global_fp = ed.set_wrap(fp, wrap, side)
+            ed.text.update(); fl.reflow(); ed.text.update()
+            return global_fp
+        fp = step(lambda: wrap_to("square", "left"))
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("Square, text on the left: the text stops before the picture", beside and all(e <= lx + 2 for _x, e in beside),
+              (lx, beside[:3]))
+        step(lambda: fl.move_to(fp, 0, dy=0)); step(fl.reflow)
+        fp = step(lambda: wrap_to("square", "largest"))
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("Square, side with more room: picture on the left, text on its right", beside and all(x >= lx + lw for x, _e in beside))
+        fp = step(lambda: wrap_to("topbottom"))
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("Top and bottom: no text beside the picture", beside == [], beside[:3])
+        fp = step(lambda: wrap_to("front"))
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("In front of text: the text takes no notice of it", len(beside) >= 3 and not step(lambda: ed.text.tag_ranges("softnl")))
+        fp = step(lambda: wrap_to(None))
+        check("In line with text: back in the text", step(lambda: not ed.images[fp].get("float") and ed.text.index(fp) != "")
+              and not step(lambda: ed.text.tag_ranges("softnl")) and step(n_pars) == n_par0)
+        fp = step(lambda: wrap_to("square", "right"))
+        # it stays with its paragraph
+        top_a = step(lambda: info()["_doc_top"])
+        step(lambda: (ed.text.insert("2.0", "A new line typed above the picture's paragraph.\n"), ed._mark_changed())); idle(0.3)
+        check("typing above it: the picture moves down with its paragraph", step(lambda: info()["_doc_top"]) > top_a + 5)
+        n_par0 += 1
+        # a list beside a picture keeps its bullets
+        def to_list():
+            li = ed.text.search("•", "1.0")
+            fl.move_to(fp, 0, doc_top=fl.ydoc(li))
+            fl.reflow()
+            return fl.par_start(ed.text.index(fp)) == ed.text.index("%s linestart" % li), len(ed.text.tag_ranges("lm")) // 2
+        pinned, n_lm = step(to_list); idle(0.2)
+        step(ed._renumber)
+        check("a bulleted list beside a picture keeps exactly its bullets", pinned and step(lambda: len(ed.text.tag_ranges("lm")) // 2) == 3,
+              (pinned, n_lm, step(lambda: len(ed.text.tag_ranges("lm")) // 2)))
+        check("...and is saved as the same 3 items", sum(1 for it in step(lambda: ed.serialize()["items"])
+                                                          if it.get("t") == "•\t") == 3)
+        # copy and paste a floating picture with its text
+        def copy_paste():
+            t = ed.text
+            a_ = fl.par_start(t.index(fp))
+            t.tag_remove("sel", "1.0", "end"); t.tag_add("sel", a_, "%s lineend" % a_)
+            ed.copy(); t.tag_remove("sel", "1.0", "end")
+            t.mark_set("insert", "end-1c"); ed.paste(); t.update(); fl.reflow()
+            return len(fl.names())
+        check("copy + paste text with a floating picture copies the picture too", step(copy_paste) == 2)
+        step(ed.undo); idle(0.2)
+        fp = step(lambda: fl.names()[0])
+        # a picture hanging below the end of the note: the page grows to show it
+        def hang():
+            fl.move_to(fp, 0, doc_top=fl.ydoc("end-1c linestart") + 10)
+            fl.reflow()
+            return int(ed.text.tag_cget("docend", "spacing3"))
+        check("a picture below the last line makes the page longer", step(hang) > step(lambda: ed.px(0.88)))
+        step(ed.undo); idle(0.2)
+        fp = step(lambda: fl.names()[0])
+        # zoom, save, reopen, delete
+        step(lambda: ed.set_zoom("150%")); idle(0.4)
+        lx, ly, lw, lh, beside, below = step(layout)
+        check("zooming in keeps the text flowing round it", len(beside) >= 2 and all(x >= lx + lw for x, _e in beside), (lx, lw, beside[:3]))
+        step(lambda: ed.set_zoom("100%")); idle(0.3)
+        st_f = step(lambda: dict(info()["float"]))
+        step(ed.save)
+        step(lambda: ed.load(fnote)); idle(0.5)
+        fp = step(lambda: fl.names()[0] if fl.names() else None)
+        check("reopening the note puts the picture back, text flowing round it", fp is not None
+              and step(lambda: ed.images[fp]["float"]) == st_f and step(lambda: len(ed.text.tag_ranges("softnl"))) >= 2,
+              (st_f, fp and step(lambda: ed.images[fp]["float"])))
+        check("...with the same paragraphs as before", step(n_pars) == n_par0, (step(n_pars), n_par0))
+        step(lambda: (pt.select(fp), ed._on_delete(None))); idle(0.2)
+        check("Delete removes a floating picture (and its line breaks)", not step(fl.names) and not step(lambda: ed.text.tag_ranges("softnl")))
+        step(ed.undo); idle(0.2)
+        check("...Ctrl+Z brings it back", len(step(fl.names)) == 1)
+        nerr = clean_since(nerr, "pictures anywhere on the page")
+        step(lambda: app.open_note(a)); idle(0.5)
+        ed = step(lambda: app.editor); pt = ed.pictool
+
         # ================================================================ note header buttons
         def hdr(text):
             return btn(ed.head, text)

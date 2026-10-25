@@ -116,6 +116,12 @@ SECTIONS = [
               "shape undoes stretching."),
         ("b", "Delete removes the selected picture; Esc or a click elsewhere lets go of it. Ctrl+Z undoes any "
               "move or resize."),
+        ("b", "Place a picture anywhere on the page: right-click it > Text wrapping. Square = text beside it "
+              "(on the right, on the left, or whichever side has more room). Top and bottom = text above and "
+              "below only. In front of text = it sits over the words. In line with text = back to normal."),
+        ("b", "Then drag it anywhere - the text moves out of its way as you go. Arrow keys nudge it (Shift + "
+              "arrow: a tiny step). It stays with its paragraph when you write above it, and Word, PDF, e-book "
+              "and web page exports keep it in place."),
         ("b", "Right-click a picture to copy it (paste it into another note, Word, an email or a chat), pick a "
               "set size, or Crop… to keep only part of it: drag a box over the part you want (drag the box to "
               "move it, its edges to resize it), then Crop. Ctrl+Z undoes it."),

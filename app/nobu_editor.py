@@ -19,6 +19,7 @@ from PIL import Image, ImageOps
 
 import nobu_clip
 import nobu_doc as nd
+import nobu_float
 import nobu_pictool
 import nobu_library as lib
 import nobu_rich as R
@@ -319,6 +320,10 @@ class NoteEditor:
         self.ctx = R.Ctx(getattr(app, "body_family", "IM FELL English"), getattr(app, "heading_family", "Eagle Lake"),
                          float(cfg["font_size"]))
         self.pictool = None        # moving / resizing pictures with the mouse (nobu_pictool)
+        self._styled = set()       # colour / highlight / link tags already set up (and raised, once)
+        self._sel_up = False       # "sel" is above every raised tag (raising a tag makes Tk measure the whole note)
+        self._margins_up = False   # the page-margin tags have been raised (once is enough)
+        self.flow = None           # pictures placed anywhere, with the text flowing round them (nobu_float)
         self._build_ui()
 
     # ------------------------------------------------------------------ measurements
@@ -720,6 +725,9 @@ class NoteEditor:
         t.bind("<MouseWheel>", lambda e: T.later(self.frame, None, self._draw_gutters), add="+")
         t.bind("<Control-MouseWheel>", self._wheel_zoom)
         self.pictool = nobu_pictool.PictureTool(self)
+        self.flow = nobu_float.FloatLayer(self)
+        for seq, d in (("<Left>", (-1, 0)), ("<Right>", (1, 0)), ("<Up>", (0, -1)), ("<Down>", (0, 1))):
+            t.bind(seq, lambda e, d=d: self._nudge_picture(e, *d))
 
     def _watch_changes(self):
         """Count every change to the page's text (typing, Tk's own key handling, pictures, tables...).
@@ -807,14 +815,15 @@ class NoteEditor:
         for name, info in list(self.images.items()):
             try:
                 photo, _w, _h = self._make_photo(info["rel"], info["w"], info.get("h"))
-                self.text.image_configure(name, image=photo)
-                info["photo"] = photo
+                self._show_photo(name, photo)
             except Exception:
                 pass
         for b in self.blocks.values():
             b.rezoom()
         self.text.yview_moveto(top)
         self._schedule_pages()
+        if self.flow:
+            self.flow.schedule()
 
     # ------------------------------------------------------------------ composite formatting tags
     def _ftag(self, fam, size, bold, italic, vpos):
@@ -895,9 +904,11 @@ class NoteEditor:
             t.tag_add(self._ftag(fam, size, bold, italic, vpos), s, e)
         self._margins()
         for tg in t.tag_names():
-            if tg.startswith(("fg:", "hl:")):
+            if tg.startswith(("fg:", "hl:")) and tg not in self._styled:
                 self._color_tag(tg)
-        t.tag_raise("sel")
+        if not self._sel_up:         # (raising a tag makes Tk measure every line again: only when needed)
+            t.tag_raise("sel")
+            self._sel_up = True
 
     def _margins(self):
         """Top and bottom page margins live on the first/last line (the Text's own padding would stay on screen)."""
@@ -906,8 +917,10 @@ class NoteEditor:
         t.tag_remove("docend", "1.0", "end")
         t.tag_add("docstart", "1.0", "1.0 lineend +1c")
         t.tag_add("docend", "end -1c linestart", "end")
-        t.tag_raise("docstart")
-        t.tag_raise("docend")
+        if not self._margins_up:      # (paragraph tags are made at the bottom, so once keeps these above them)
+            t.tag_raise("docstart")
+            t.tag_raise("docend")
+            self._margins_up = True
 
     def _color_tag(self, tg):
         t = self.text
@@ -920,7 +933,10 @@ class NoteEditor:
             t.tag_configure(tg, foreground=shown)
         else:
             t.tag_configure(tg, background=col, foreground="#111111" if R.luminance(col) > 0.45 else "#ffffff")
-            t.tag_raise(tg)
+            if tg not in self._styled:
+                t.tag_raise(tg)
+                self._sel_up = False
+        self._styled.add(tg)
 
     # ------------------------------------------------------------------ selection helpers
     def _sel(self):
@@ -933,7 +949,20 @@ class NoteEditor:
         t = self.text
         s = self._sel()
         a, b = (s if s else (t.index("insert"), t.index("insert")))
-        return t.index("%s linestart" % a), t.index("%s lineend +1c" % b)
+        b = t.index("%s lineend" % b)
+        while "softnl" in t.tag_names(b):              # (a paragraph flowing round a picture goes on)
+            b = t.index("%s +1c lineend" % b)
+        return self._par_start(a), t.index("%s +1c" % b)
+
+    def _par_start(self, idx):
+        """Where the paragraph holding idx starts (a paragraph beside a floating picture is split into
+        several lines by invisible breaks)."""
+        return self.flow.par_start(idx) if self.flow else self.text.index("%s linestart" % idx)
+
+    def _is_cont(self, line):
+        """Is this line the rest of a paragraph (after an invisible break), not a paragraph of its own?"""
+        t = self.text
+        return t.compare(line, ">", "1.0") and "softnl" in t.tag_names("%s -1c" % line)
 
     def _remove_key(self, key, a, b, flag=False):
         t = self.text
@@ -1131,10 +1160,12 @@ class NoteEditor:
 
     # ------------------------------------------------------------------ lists
     def _line_iter(self, a, b):
+        """The start of each paragraph from a to b."""
         t = self.text
-        line = t.index("%s linestart" % a)
+        line = self._par_start(a)
         while t.compare(line, "<", b):
-            yield line
+            if not self._is_cont(line):
+                yield line
             nxt = t.index("%s +1 line linestart" % line)
             if nxt == line or t.compare(nxt, ">=", "end"):
                 break
@@ -1193,8 +1224,10 @@ class NoteEditor:
         counters = {}
         line = "1.0"
         while True:
-            li = R.tag_value(t.tag_names(line), "li")
-            if li:
+            li = R.tag_value(t.tag_names(line), "li") if not self._is_cont(line) else None
+            if li is None and self._is_cont(line):
+                pass                                   # (the rest of a list item beside a picture)
+            elif li:
                 kind, _, lvl = li.partition(":")
                 lvl = int(lvl)
                 for k in [k for k in counters if k > lvl]:
@@ -1335,6 +1368,8 @@ class NoteEditor:
         t = self.text
         if self._delete_selected_picture():
             return "break"
+        if not t.tag_ranges("sel") and t.compare("insert", ">", "1.0") and "softnl" in t.tag_names("insert -1c"):
+            t.mark_set("insert", "insert -1c")     # (skip the invisible break: delete the character you see)
         if not t.tag_ranges("sel"):
             line = t.index("insert linestart")
             me = self._marker_end(line)
@@ -1352,6 +1387,8 @@ class NoteEditor:
     def _on_delete(self, ev):
         if self._delete_selected_picture():
             return "break"
+        if not self.text.tag_ranges("sel") and "softnl" in self.text.tag_names("insert"):
+            self.text.mark_set("insert", "insert +1c")
         self._typing_undo("\n" if self.text.tag_ranges("sel") else "")
         T.later(self.frame, None, self._after_join)
         return None
@@ -1546,25 +1583,109 @@ class NoteEditor:
             return None, None, None
         return w[:m.end()], a, t.index("%s +%dc" % (a, m.end()))
 
+    WRAP_CHOICES = (("In line with text", None, None),
+                    ("Square - text on the right", "square", "right"),
+                    ("Square - text on the left", "square", "left"),
+                    ("Square - text on the side with more room", "square", "largest"),
+                    ("Top and bottom - text above and below only", "topbottom", None),
+                    ("In front of text - the text takes no notice", "front", None))
+
+    def picture_menu(self, name, x_root, y_root):
+        """The right-click menu of a picture (in the text or floating)."""
+        info = self.images[name]
+        m = T.menu(self.root)
+        m.add_command(label="Copy picture", font=T.UI_BOLD, command=lambda n=name: self.copy_image(n))
+        m.add_separator()
+        wm = T.menu(m)
+        f = info.get("float") or {}
+        for label, wrap, side in self.WRAP_CHOICES:
+            on = (wrap is None and not f) or (f and f.get("wrap") == wrap and (side is None or f.get("text") == side))
+            wm.add_command(label=("✓  " if on else "     ") + label,
+                           command=lambda n=name, w=wrap, s=side: self.set_wrap(n, w, s))
+        m.add_cascade(label="Text wrapping", menu=wm)
+        m.add_separator()
+        for label, w in (("Small", 200), ("Medium", 340), ("Large", 520), ("Full page width", 624)):
+            m.add_command(label=label, command=lambda w=w, n=name: self.resize_image(n, w))
+        m.add_command(label="Original size", command=lambda n=name: self.resize_image(n, 0))
+        if info.get("h"):
+            m.add_command(label="Original shape (undo stretching)", command=lambda n=name: self.resize_image(n, info["w"]))
+        m.add_separator()
+        m.add_command(label="Crop…", command=lambda n=name: self.crop_dialog(n))
+        m.add_command(label="Open in picture viewer", command=lambda: open_path(abs_from_home(info["rel"])))
+        m.add_command(label="Remove picture", command=lambda n=name: self.delete_image(n))
+        m.tk_popup(x_root, y_root)
+        return m
+
+    def set_wrap(self, name, wrap, side=None):
+        """Change how the text goes round a picture: wrap None = in line with the text (like a big letter),
+        or a floating picture: "square" (side: "right" / "left" / "largest" = where the text goes),
+        "topbottom" or "front". Returns the picture's (new) name."""
+        info = self.images.get(name)
+        if not info:
+            return None
+        t, fl = self.text, self.flow
+        f = info.get("float")
+        if wrap is None and not f:
+            return name
+        self._push_undo()
+        if f and wrap:                                  # floating -> floating: just the style
+            f["wrap"] = wrap
+            if side:
+                f["text"] = side
+            self._mark_changed()
+            fl.reflow()
+            new = name
+        elif wrap:                                      # in the text -> floating, right where it is now
+            idx = t.index(name)
+            anchor = fl.par_start(idx)
+            k = self.img_scale()
+            ix, iy = self._text_inset()
+            g = self.pictool.geometry(name) if self.pictool else None
+            if g:
+                x = g[0] / k
+                y = (g[1] + iy + fl.view_offset() - fl.ydoc(anchor)) / k
+            else:
+                x, y = 0, 0
+            t.delete(idx, "%s +1c" % idx)
+            self.images.pop(name, None)
+            x = max(0, min(nobu_float.TEXT_W - info["w"], x))
+            new = fl.add(info["rel"], info["w"], info.get("h"),
+                         {"wrap": wrap, "text": side or "largest", "x": x, "y": max(0, y)}, anchor)
+            self._mark_changed()
+            fl.reflow()
+        else:                                           # floating -> back in the text, at its paragraph
+            idx = fl.par_start(t.index(name))
+            fl.remove(name)
+            new = self._add_image(info["rel"], idx, info["w"], info.get("h"))
+            self._restyle(idx, idx)
+            fl.reflow()
+        if self.pictool:
+            self.pictool.select(new)
+        return new
+
+    def _nudge_picture(self, ev, dx, dy):
+        """Arrow keys move a selected floating picture (8 pixels; with Shift, 1)."""
+        name = self.pictool.sel if self.pictool else None
+        if not name or not self.images.get(name, {}).get("float"):
+            if name:
+                self.pictool.deselect()
+            return None
+        step = 1 if ev.state & 0x0001 else 8
+        f = self.images[name]["float"]
+        if not self.pictool.nudging:
+            self._push_undo()
+        self.pictool.nudging = True
+        self.flow.move_to(name, f["x"] + dx * step, None, dy * step)
+        self._mark_changed()
+        return "break"
+
     def _on_right_click(self, ev):
         t = self.text
         name, _ix = self._image_at(ev.x, ev.y)
-        m = T.menu(self.root)
         if name and name in self.images:
-            info = self.images[name]
-            m.add_command(label="Copy picture", font=T.UI_BOLD, command=lambda n=name: self.copy_image(n))
-            m.add_separator()
-            for label, w in (("Small", 200), ("Medium", 340), ("Large", 520), ("Full page width", 624)):
-                m.add_command(label=label, command=lambda w=w, n=name: self.resize_image(n, w))
-            m.add_command(label="Original size", command=lambda n=name: self.resize_image(n, 0))
-            if info.get("h"):
-                m.add_command(label="Original shape (undo stretching)", command=lambda n=name: self.resize_image(n, info["w"]))
-            m.add_separator()
-            m.add_command(label="Crop…", command=lambda n=name: self.crop_dialog(n))
-            m.add_command(label="Open in picture viewer", command=lambda: open_path(abs_from_home(info["rel"])))
-            m.add_command(label="Remove picture", command=lambda n=name: self.delete_image(n))
-            m.tk_popup(ev.x_root, ev.y_root)
+            self.picture_menu(name, ev.x_root, ev.y_root)
             return "break"
+        m = T.menu(self.root)
         idx = t.index("@%d,%d" % (ev.x, ev.y))
         if not self._sel() or not (t.compare("sel.first", "<=", idx) and t.compare(idx, "<", "sel.last")):
             t.mark_set("insert", idx)
@@ -1795,11 +1916,21 @@ class NoteEditor:
     def _range_items(self, a, b):
         t = self.text
         items, active = [], set(x for x in t.tag_names(a) if R.persistent(x))
-        for key, val, _ix in t.dump(a, b, text=True, tag=True, image=True, window=True):
+        soft = "softnl" in t.tag_names(a)          # (invisible line breaks round floating pictures: never kept)
+        for key, val, _ix in t.dump(a, b, text=True, tag=True, image=True, window=True, mark=True):
             if key == "tagon":
                 active.add(val)
+                soft = soft or val == "softnl"
             elif key == "tagoff":
                 active.discard(val)
+                if val == "softnl":
+                    soft = False
+            elif key == "mark" and self.images.get(val, {}).get("float"):
+                info = self.images[val]
+                items.append(dict({"i": info["rel"], "w": info["w"], "float": dict(info["float"]), "g": []},
+                                  **({"h": info["h"]} if info.get("h") else {})))
+            elif key == "text" and soft:
+                continue
             elif key == "text":
                 g = sorted(x for x in active if R.persistent(x))
                 if items and "t" in items[-1] and items[-1]["g"] == g:
@@ -1824,7 +1955,7 @@ class NoteEditor:
             return
         items = self._range_items(*s)
         paras = R.items_to_paras(items)
-        text = self.text.get(*s)
+        text = self.flow.plain(*s) if self.flow else self.text.get(*s)
         self.app.clip_items = (text, items)
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
@@ -1838,7 +1969,11 @@ class NoteEditor:
             log.exception("rich copy failed")
         if cut:
             self._push_undo()
+            gone = [n for n in (self.flow.names() if self.flow else [])      # floating pictures go with the text
+                    if self.text.compare(s[0], "<=", n) and self.text.compare(n, "<", s[1])]
             self.text.delete(*s)
+            for n in gone:
+                self.flow.remove(n)
             self._after_join()
             self._mark_changed()
 
@@ -1912,6 +2047,23 @@ class NoteEditor:
     def _next_img_name(self):
         self._img_counter += 1
         return "nobuimg%d" % self._img_counter
+
+    def _text_inset(self):
+        """place() inside the Text counts from inside its border and padding (the page margins); bbox() and
+        dlineinfo() count from its corner. Returns (x, y) to subtract."""
+        t = self.text
+        px = lambda v: int(round(t.winfo_fpixels(v)))     # noqa: E731
+        bd = px(t.cget("borderwidth")) + px(t.cget("highlightthickness"))
+        return bd + px(t.cget("padx")), bd + px(t.cget("pady"))
+
+    def _show_photo(self, name, photo):
+        """Show a new picture image, in the text or (for a floating picture) on its own."""
+        info = self.images[name]
+        if info.get("float"):
+            info["label"].configure(image=photo)
+        else:
+            self.text.image_configure(name, image=photo)
+        info["photo"] = photo
 
     def img_scale(self):
         """Screen pixels per page pixel (pictures are measured in page pixels, 96 to the inch)."""
@@ -2016,9 +2168,15 @@ class NoteEditor:
     def _on_double_click(self, ev):
         name, _ = self._image_at(ev.x, ev.y)
         if name and name in self.images:
-            open_path(abs_from_home(self.images[name]["rel"]))
+            self._open_picture(name)
             return "break"
         return None
+
+    def _open_picture(self, name):
+        """Open a picture in Windows' picture viewer."""
+        info = self.images.get(name)
+        if info:
+            open_path(abs_from_home(info["rel"]))
 
     def move_image(self, name, dest):
         """Move a picture to dest (a place between two characters). It takes on the alignment etc. of the
@@ -2052,10 +2210,12 @@ class NoteEditor:
             with Image.open(abs_from_home(info["rel"])) as im:
                 width = im.size[0]
         photo, w, h = self._make_photo(info["rel"], width, height)
-        self.text.image_configure(name, image=photo)
-        info.update(photo=photo, w=w, h=h)
+        self._show_photo(name, photo)
+        info.update(w=w, h=h)
         self._mark_changed()
         self._schedule_pages()
+        if info.get("float"):
+            self.flow.reflow()
         if self.pictool and self.pictool.sel == name:
             self.pictool.sync()
 
@@ -2086,8 +2246,10 @@ class NoteEditor:
         self._push_undo()
         h = info["h"] * (b - t) / H if info.get("h") else None          # the kept part stays the same scale
         photo, w, h = self._make_photo(rel, info["w"] * (r - l) / W, h)
-        self.text.image_configure(name, image=photo)
-        info.update(rel=rel, w=w, h=h, photo=photo)
+        self._show_photo(name, photo)
+        info.update(rel=rel, w=w, h=h)
+        if info.get("float"):
+            self.flow.schedule()
         self._mark_changed()
         self._schedule_pages()
         return True
@@ -2117,6 +2279,10 @@ class NoteEditor:
 
     def delete_image(self, name):
         self._push_undo()
+        if self.images.get(name, {}).get("float"):
+            self.flow.remove(name)
+            self._mark_changed()
+            return
         t = self.text
         try:
             ix = t.index(name)
@@ -2328,6 +2494,8 @@ class NoteEditor:
 
     def _on_yscroll(self, a, b):
         self.vsb.set(a, b)
+        if self.flow:                                  # floating pictures scroll with the page
+            self.flow.place_all()
         if self.pictool and self.pictool.sel:          # the selected picture's frame scrolls with it
             self.pictool.sync_soon()
         if self._gut_job is None:
@@ -2375,6 +2543,10 @@ class NoteEditor:
     # ------------------------------------------------------------------ web links
     def _ensure_link_tag(self, tag):
         t = self.text
+        if tag in self._styled:
+            return
+        self._styled.add(tag)
+        self._sel_up = False
         t.tag_configure(tag, foreground=T.ACCENT, underline=True)
         t.tag_raise(tag)
         t.tag_bind(tag, "<Control-Button-1>", lambda e, u=tag[5:]: self.open_link(u))
@@ -2443,6 +2615,7 @@ class NoteEditor:
         t = self.text
         t.mark_set("nobu_ins", index)
         t.mark_gravity("nobu_ins", "right")
+        floats = []
         for it in items:
             tags = tuple(R.upgrade_tags(it.get("g", [])))
             for tg in tags:
@@ -2454,6 +2627,11 @@ class NoteEditor:
                     self._ensure_link_tag(tg)
             if "t" in it:
                 t.insert("nobu_ins", it["t"], tags)
+            elif "i" in it and it.get("float") and self.flow:
+                try:
+                    floats.append(self.flow.add(it["i"], it.get("w"), it.get("h"), it["float"], "nobu_ins", "left"))
+                except Exception:
+                    log.warning("missing image %s", it.get("i"))
             elif "i" in it:
                 try:
                     name = self.place_image(it["i"], it.get("w"), "nobu_ins", it.get("h"))
@@ -2472,12 +2650,16 @@ class NoteEditor:
                 self.blocks[str(blk.frame)] = blk
         t.mark_set("insert", "nobu_ins")
         t.mark_unset("nobu_ins")
+        for n in floats:                   # (pinned now; from here on they move down with their paragraph)
+            t.mark_gravity(n, "right")
 
     def _load_items(self, items):
         t = self.text
         self._loading = True
         if self.pictool:
             self.pictool.deselect()
+        if self.flow:
+            self.flow.clear()
         try:
             t.delete("1.0", "end")
             for b in list(self.blocks.values()):
@@ -2494,6 +2676,8 @@ class NoteEditor:
             self._ver += 1
             self._snap = None
             self.words_lbl.configure(text="")
+        if self.flow:
+            self.flow.schedule()
 
     def add_title(self, title):
         """Put a centred Title line at the top of the note (above the recording's date line)."""
@@ -2575,6 +2759,8 @@ class NoteEditor:
             self.app.set_status("SAVE FAILED: %s" % e)
 
     def _on_modified(self, ev=None):
+        if self.flow and self.flow.flowing:            # (text flowing round a picture is not an edit)
+            return
         if self.text.edit_modified() and self.path and not self._loading:
             self._mark_changed()
             self.text.edit_modified(False)
@@ -2594,6 +2780,8 @@ class NoteEditor:
             self.frame.after_cancel(self._save_job)
         self._save_job = T.later(self.frame, 3000, self._autosave)
         self._schedule_pages()
+        if self.flow and (self.flow.names() or self.text.tag_ranges("softnl")):
+            self.flow.edited(self.text.index("insert"))    # the text round floating pictures, right away
 
     def _idle_work(self):
         """While you pause: refresh the word count and keep a fresh copy of the note for undo/save."""

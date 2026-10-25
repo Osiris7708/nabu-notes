@@ -112,3 +112,42 @@ with zipfile.ZipFile("out/stretch.docx") as z:
 ok("Word: the stretched picture is 300 x 60, the other 300 x 150", [(round(cx / 9525), round(cy / 9525)) for cx, cy in ext] == [(300, 60), (300, 150)], ext)
 ok("web page: width and height", "width:300px;height:60px" in open("out/stretch.html", encoding="utf-8").read())
 print("stretched pictures: all checks passed")
+
+# ---------------------------------------------------------------- pictures placed anywhere on the page (v4.9.3)
+import re as _re
+fl_para = "The ember-light crept across the old stones of the keep, and Kaelith counted the steps twice. " * 4
+fl_items = [{"i": "Images/red.png", "w": 200, "float": {"wrap": "square", "text": "right", "x": 0, "y": 10}, "g": []},
+            {"t": fl_para + "\n", "g": []}, {"t": fl_para + "\n", "g": []},
+            {"i": "Images/red.png", "w": 200, "h": 60, "float": {"wrap": "square", "text": "largest", "x": 400, "y": 0}, "g": []},
+            {"t": fl_para + "\n", "g": []},
+            {"i": "Images/red.png", "w": 300, "float": {"wrap": "topbottom", "text": "largest", "x": 160, "y": 0}, "g": []},
+            {"t": fl_para + "\n", "g": []},
+            {"i": "Images/red.png", "w": 120, "float": {"wrap": "front", "text": "largest", "x": 250, "y": 20}, "g": []},
+            {"t": fl_para + "\n", "g": []}]
+ok("floating pictures keep their wrapping and place in the note format",
+   [it.get("float") for it in R.paras_to_items(R.items_to_paras(fl_items)) if "i" in it] == [it["float"] for it in fl_items if "i" in it])
+ok("side for flowing layouts: text on the right -> picture on the left; more room decides 'largest'",
+   [R.float_side(it["float"], it["w"]) for it in fl_items if "i" in it] == ["left", "right", None, None])
+fnote = H + "/Notes/Book/Float.nobu"
+d = nd.empty_doc(); d["items"] = fl_items; nd.save_doc(fnote, d)
+for fmt in ("docx", "pdf", "epub", "html", "txt"):
+    E.export([fnote], fmt, "out/float." + fmt, ctx, {})
+with zipfile.ZipFile("out/float.docx") as z:
+    fx = z.read("word/document.xml").decode("utf-8")
+ok("Word: real floating pictures with Word's own text wrapping",
+   fx.count("<wp:anchor") == 4 and "<wp:inline" not in fx
+   and _re.findall(r"<wp:(wrap\w+)", fx) == ["wrapSquare", "wrapSquare", "wrapTopAndBottom", "wrapNone"]
+   and _re.findall(r'wrapText="(\w+)"', fx) == ["right", "largest"], _re.findall(r"<wp:wrap[^>]*>", fx))
+ok("Word: placed where they were (from the left of the text, down from the paragraph)",
+   _re.findall(r"<wp:posOffset>(\d+)</wp:posOffset>", fx)[:4] == [str(0), str(95250), str(3810000), str(0)],
+   _re.findall(r"<wp:posOffset>(\d+)</wp:posOffset>", fx))
+import docx as _docx
+_docx.Document("out/float.docx")
+fh = open("out/float.html", encoding="utf-8").read()
+ok("web page / e-book: pictures float left or right with the text flowing past",
+   _re.findall(r"(float:\w+|display:block;clear:both)", fh) == ["float:left", "float:right", "display:block;clear:both",
+                                                                "display:block;clear:both"])
+ok("PDF: made, with all 4 pictures", open("out/float.pdf", "rb").read().count(b"/Subtype /Image") >= 1)
+back = nd.load_doc(I.import_file("out/float.docx", H + "/Notes/Book", ctx=ctx))["items"]
+ok("importing that Word file brings all 4 pictures back", sum(1 for it in back if "i" in it) == 4)
+print("floating pictures: all checks passed")

@@ -8,6 +8,20 @@ campaign whenever you like. Everything runs on this computer - no cloud, no acco
 
 NEW IN VERSION 4.9.3
 --------------------
+- Place pictures anywhere on the page, with the text flowing round them line by line (like
+  Word's text wrapping). Right-click a picture > Text wrapping:
+    In line with text ............ as before: the picture sits in a line of text
+    Square - text on the right ... the picture on the left, the text running down its right side
+    Square - text on the left .... the other way round
+    Square - side with more room . Nobu picks the side with more space
+    Top and bottom ............... text above and below it only
+    In front of text ............. the picture sits over the words; the text ignores it
+  Then drag the picture anywhere: the text moves out of its way as you drag. Arrow keys nudge
+  it (Shift + arrow: one pixel). Its sides and corners resize it as before. It is pinned to the
+  paragraph next to it, so it moves down when you write above it. Word files get real floating
+  pictures with the same wrapping; PDFs, e-books and web pages flow the text round them too.
+  Copying text copies its floating pictures with it. Older versions of Nobu show these
+  pictures as ordinary in-line pictures.
 - Move and resize pictures with the mouse: click a picture to select it - a blue frame with
   squares on its corners and sides appears right around it (also on cropped pictures).
   * Move: drag the picture. A see-through copy follows the mouse and a blue line shows where

@@ -46,6 +46,7 @@ runtime\python.exe app\nobu_main.py
 - The tag vocabulary (character tags like `b`, `ff:`, `fs:`, paragraph tags like `st:`, `al:`, `li:`) is defined in `nobu_rich.py`. That module is the shared hub: the editor, importers, exporters and clipboard all convert through `items_to_paras()` / "paras" and `to_html()`. When you add a formatting feature, update `nobu_rich` first, then the editor (`nobu_editor.NoteEditor`, which maps tags to Tk text tags), `nobu_export` (docx/pdf/epub/html/txt) and `nobu_importers`.
 - `save_doc()` writes atomically through a `.tmp` file and keeps one backup per note in `Notes/.backups`.
 - Paths saved inside notes and config (images, audio links like `audio|Recordings/...`) are **relative to HOME**. Always use `rel_to_home` / `abs_from_home` from `nobu_config`.
+- Pictures: `nobu_pictool` (select, move, resize with the mouse) and `nobu_float` (pictures placed anywhere, text flowing round them). Floating pictures make the editor add invisible `"\n"` characters tagged `softnl` beside them. They are never saved, so any code that walks the Text by lines must skip them: use `flow.plain()` for text, and `_par_start`, `_is_cont` and `_line_iter` for paragraphs. Never call `count -update` straight after changing tags (it can crash Tk), and avoid `tag_raise` in anything that runs per keystroke (it makes Tk re-measure the whole note). `docs/design-notes.md` has the details.
 
 **Library on disk** (`nobu_library.py`).
 - `Notes/Unassigned` is the inbox. Each top-level folder is a book or campaign, and sub-folders can nest to any depth.

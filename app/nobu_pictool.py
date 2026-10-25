@@ -62,6 +62,8 @@ class PictureTool:
         self.ghost_photo = None
         self.resize = None           # while dragging a side or corner: what it started from
         self.over = False            # the mouse is over a picture (for the cursor)
+        self.fpress = None           # while dragging a floating picture: where it started
+        self.nudging = False         # arrow keys are moving the selected floating picture (one undo step)
         self._sync_job = None
         self._poll_job = None
         self._preview_job = None
@@ -94,16 +96,17 @@ class PictureTool:
 
     # ------------------------------------------------------------ where things are
     def _inset(self):
-        """place() inside a Text counts from inside its border and padding; bbox() counts from its corner."""
-        t = self.t
-        px = lambda v: int(round(t.winfo_fpixels(v)))     # noqa: E731
-        bd = px(t.cget("borderwidth")) + px(t.cget("highlightthickness"))
-        return bd + px(t.cget("padx")), bd + px(t.cget("pady"))
+        return self.ed._text_inset()
+
+    def _float(self, name=None):
+        return self.ed.images.get(name or self.sel, {}).get("float")
 
     def geometry(self, name=None):
         """The picture's box on screen, in place() terms: (x, y, width, height), or None if out of sight."""
         name = name or self.sel
         info = self.ed.images.get(name)
+        if info and info.get("float"):                 # a floating picture: where it was placed
+            return info["_px"], info["_py"], info["photo"].width(), info["photo"].height()
         try:
             bb = self.t.bbox(name)
         except tk.TclError:
@@ -125,6 +128,7 @@ class PictureTool:
         for e, (fx, fy, fw, fh) in (("t", (x - B, y - B, w + 2 * B, B)), ("b", (x - B, y + h, w + 2 * B, B)),
                                     ("l", (x - B, y, B, h)), ("r", (x + w, y, B, h))):
             self.bars[e].place(x=fx, y=fy, width=fw, height=fh)
+            self.bars[e].lift()
         cx, cy = {"l": x - B / 2, "m": x + w / 2, "r": x + w + B / 2}, {"t": y - B / 2, "m": y + h / 2, "b": y + h + B / 2}
         for e, (hx, hy) in (("tl", ("l", "t")), ("t", ("m", "t")), ("tr", ("r", "t")), ("r", ("r", "m")),
                             ("br", ("r", "b")), ("b", ("m", "b")), ("bl", ("l", "b")), ("l", ("l", "m"))):
@@ -140,17 +144,25 @@ class PictureTool:
     def select(self, name):
         if name not in self.ed.images:
             return
+        if name != self.sel:
+            self.nudging = False
         self.sel = name
         self.t.tag_remove("sel", "1.0", "end")
         self.sync()
-        self.ed.app.set_status("Drag the picture to move it. Drag a side to stretch it, or a corner to resize it "
-                               "(Shift: stretch freely). Right-click for more.")
+        if self._float(name):
+            self.ed.app.set_status("Drag the picture anywhere on the page (arrow keys nudge it). Drag a side to "
+                                   "stretch it, or a corner to resize it. Right-click > Text wrapping for more.")
+        else:
+            self.ed.app.set_status("Drag the picture to move it. Drag a side to stretch it, or a corner to resize it "
+                                   "(Shift: stretch freely). Right-click > Text wrapping to place it anywhere.")
 
     def deselect(self):
         self._end_drag()
         self.sel = None
         self.press = None
         self.resize = None
+        self.fpress = None
+        self.nudging = False
         self._hide_box()
 
     def sync_soon(self):
@@ -283,6 +295,17 @@ class PictureTool:
         return "break"
 
     def _escape(self, e):
+        if self.fpress is not None:      # stop moving a floating picture: back where it was
+            fp, self.fpress = self.fpress, None
+            info = self.ed.images.get(fp["name"])
+            if info and fp["moved"]:
+                info["float"]["x"], info["float"]["y"] = fp["fx"], fp["fy"]
+                self.t.mark_set(fp["name"], fp["anchor"])
+                if self.ed._undo:
+                    self.ed._undo.pop()
+                self.ed.flow.reflow()
+            self.t.config(cursor="xterm")
+            return "break"
         if self.dragging:                # stop the move; the picture stays where it was
             self.press = None
             self._end_drag()
@@ -303,6 +326,58 @@ class PictureTool:
             self.over = False
             self.t.config(cursor="xterm")
 
+    # ------------------------------------------------------------ floating pictures
+    def bind_float(self, name, lab):
+        lab.bind("<ButtonPress-1>", lambda e, n=name: self._fpress(e, n))
+        lab.bind("<B1-Motion>", self._fdrag)
+        lab.bind("<ButtonRelease-1>", self._frelease)
+        lab.bind("<Double-Button-1>", lambda e, n=name: self.ed._open_picture(n))
+        lab.bind("<Button-3>", lambda e, n=name: (self.select(n), self.ed.picture_menu(n, e.x_root, e.y_root)))
+        lab.bind("<Escape>", self._escape)
+
+    def _fpress(self, e, name):
+        info = self.ed.images.get(name)
+        if not info:
+            return "break"
+        self.t.focus_set()
+        self.select(name)
+        f = info["float"]
+        fl = self.ed.flow
+        self.fpress = {"name": name, "x": e.x_root, "y": e.y_root, "px": info["_px"], "fx": f["x"], "fy": f["y"],
+                       "top": info["_doc_top"] if info["_doc_top"] is not None else 0, "anchor": self.t.index(name),
+                       "off": fl.view_offset(), "moved": False}
+        return "break"
+
+    def _fdrag(self, e):
+        fp = self.fpress
+        if not fp or fp["name"] not in self.ed.images:
+            return "break"
+        dx, dy = e.x_root - fp["x"], e.y_root - fp["y"]
+        if not fp["moved"]:
+            if abs(dx) < DRAG_START and abs(dy) < DRAG_START:
+                return "break"
+            fp["moved"] = True
+            self.ed._push_undo()
+        fl = self.ed.flow
+        wy = e.y_root - self.t.winfo_rooty()
+        if wy < 24:                       # near the top or bottom edge: the page scrolls
+            self.t.yview_scroll(-1, "units")
+        elif wy > self.t.winfo_height() - 24:
+            self.t.yview_scroll(1, "units")
+        k = self.ed.img_scale()
+        scrolled = fl.view_offset() - fp["off"]
+        fl.move_to(fp["name"], (fp["px"] + dx) / k, doc_top=fp["top"] + dy + scrolled)
+        self.ed.app.set_status("Let go to put the picture here. Esc: leave it where it was.")
+        return "break"
+
+    def _frelease(self, e):
+        fp, self.fpress = self.fpress, None
+        if fp and fp["moved"] and fp["name"] in self.ed.images:
+            self.ed._mark_changed()
+            self.ed.flow.reflow()
+            self.select(fp["name"])
+        return "break"
+
     # ------------------------------------------------------------ resizing
     def _resize_press(self, e, edge):
         info = self.ed.images.get(self.sel)
@@ -318,8 +393,10 @@ class PictureTool:
         k = self.ed.img_scale()
         w0 = float(info["w"])
         h0 = float(info["h"]) if info.get("h") else info["photo"].height() / k
+        f = info.get("float")
         self.resize = {"edge": edge, "x": e.x_root, "y": e.y_root, "w0": w0, "h0": h0, "w": w0, "h": h0,
-                       "natural": natural, "img": img, "undo": False}
+                       "natural": natural, "img": img, "undo": False,
+                       "fx": f["x"] if f else 0, "top": info.get("_doc_top") or 0}
         return "break"
 
     def new_size(self, edge, dx, dy, free=False):
@@ -354,6 +431,10 @@ class PictureTool:
         if not r["undo"]:
             self.ed._push_undo()
             r["undo"] = True
+        if self._float():                # a floating picture grows from the side you drag (it moves to stay put)
+            fx = r["fx"] + (r["w0"] - r["w"] if "l" in r["edge"] else 0)
+            top = r["top"] + ((r["h0"] - r["h"]) * k if "t" in r["edge"] else 0)
+            self.ed.flow.move_to(self.sel, fx, doc_top=top, width=r["w"], place=False)
         if self._preview_job is None:
             self._preview_job = T.later(self.t, PREVIEW_MS, self._preview)
         return "break"
@@ -368,8 +449,9 @@ class PictureTool:
         k = self.ed.img_scale()
         img = r["img"]
         photo = tk_photo(img.resize((max(1, int(r["w"] * k)), max(1, int(r["h"] * k))), Image.BILINEAR))
-        self.t.image_configure(self.sel, image=photo)
-        info["photo"] = photo
+        self.ed._show_photo(self.sel, photo)
+        if info.get("float"):
+            self.ed.flow.reflow()
         self.ed.app.set_status("Picture: %.1f × %.1f in" % (r["w"] / 96.0, r["h"] / 96.0))
         self.sync()
 
