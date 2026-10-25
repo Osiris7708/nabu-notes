@@ -22,6 +22,9 @@ NEW IN VERSION 4.9.3
   pictures with the same wrapping; PDFs, e-books and web pages flow the text round them too.
   Copying text copies its floating pictures with it. Older versions of Nobu show these
   pictures as ordinary in-line pictures.
+- Opening a folder with thousands of notes in the sidebar is instant (it used to freeze for
+  several seconds the first time while Nobu read every note for its colour label; the labels
+  now appear a moment later).
 - Move and resize pictures with the mouse: click a picture to select it - a blue frame with
   squares on its corners and sides appears right around it (also on cropped pictures).
   * Move: drag the picture. A see-through copy follows the mouse and a blue line shows where

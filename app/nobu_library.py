@@ -681,6 +681,18 @@ def note_info(path, st=None):
     return info
 
 
+def cached_info(path, st=None):
+    """note_info() if it is already known (without opening the note), else None."""
+    if not _cache_state["loaded"]:
+        _load_cache()
+    try:
+        st = st or os.stat(path)
+    except OSError:
+        return None
+    c = _info_cache.get(path)
+    return c[2] if c and c[0] == st.st_mtime and c[1] == st.st_size else None
+
+
 def preview(path, n=110):
     txt = note_info(path)["preview"]
     return txt[:n] + ("…" if len(txt) > n else "")

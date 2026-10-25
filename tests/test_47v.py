@@ -161,7 +161,11 @@ def go():
             app.ws._drag_sash(Ev(x_root=a.winfo_rootx() + int(a.winfo_width() * 0.5)), 0); a.update()
             return [p.box.winfo_width() for p in app.ws.panes]
         w2 = step(drag_sash)
-        check("dragging the grab bar resizes", w2[0] > ws_[0] + 50, w2)
+        # (at 125% display scaling each page has a bigger minimum width, so the bar may stop sooner than on
+        # Linux: check that it moved and that the two pages beside it traded the width)
+        grew, shrank = w2[0] - ws_[0], ws_[1] - w2[1]
+        check("dragging the grab bar resizes", grew >= 20 and abs(grew - shrank) <= 4 and abs(w2[2] - ws_[2]) <= 4,
+              (ws_, w2))
         step(app.ws.even)
         # pop out by dragging the name out of the window
         def drag_out():

@@ -1498,11 +1498,29 @@ class App:
         subs, notes = lib.contents(folder)
         for sub in subs:
             self._tree_add_folder(folder, sub, depth + 1, opened)
+        unknown = []
         for p in notes:
-            ct = self._color_tag(tv, lib.note_info(p)["color"])
+            info = lib.cached_info(p)
+            ct = self._color_tag(tv, info["color"]) if info else None
             tv.insert(folder, "end", iid=p, text="  " + lib.title(p), tags=(ct,) if ct else ())
+            if info is None:
+                unknown.append(p)
         if not notes and not subs:
             tv.insert(folder, "end", iid="empty:" + folder, text="  (empty)", tags=("empty",))
+        if unknown:                    # names show at once; colour labels of notes not seen before follow
+            T.later(tv, 1, self._tree_colors_later, unknown)
+
+    def _tree_colors_later(self, paths):
+        """Colour labels for sidebar notes Nobu hasn't read before, a batch at a time (a folder of thousands
+        of notes opens at once instead of freezing while every note is opened)."""
+        tv = self.tree
+        for p in paths[:60]:
+            if tv.exists(p):
+                ct = self._color_tag(tv, lib.note_info(p)["color"])
+                if ct:
+                    tv.item(p, tags=(ct,))
+        if paths[60:]:
+            T.later(tv, 1, self._tree_colors_later, paths[60:])
 
     def _tree_selection(self):
         return [i for i in self.tree.selection() if not i.startswith(("empty:", "lazy:")) and os.path.exists(i)]

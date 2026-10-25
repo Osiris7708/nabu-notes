@@ -100,8 +100,10 @@ def main(argv):
     logs = os.path.join(HERE, "last-run")
     shutil.rmtree(logs, ignore_errors=True); os.makedirs(logs)
     scratch = tempfile.mkdtemp(prefix="nobu-tests-")
+    # PYTHONUNBUFFERED: several tests end with os._exit(), which skips writing out buffered output - through
+    # a pipe that lost every line they printed (their RESULT too), so they "passed" whatever they found.
     env = dict(os.environ, PYTHONNOUSERSITE="1", PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1",
-               TMP=scratch, TEMP=scratch, TMPDIR=scratch)
+               PYTHONUNBUFFERED="1", TMP=scratch, TEMP=scratch, TMPDIR=scratch)
     env.pop("NOBU_HOME", None)
 
     results, t_all = [], time.time()
