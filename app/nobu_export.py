@@ -235,6 +235,20 @@ def _docx_numbering(doc):
     return new_list
 
 
+def _docx_hyperlink(par, url, runs):
+    """Wrap runs already in the paragraph in a Word hyperlink (python-docx has no call for this)."""
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    rid = par.part.relate_to(url, RT.HYPERLINK, is_external=True)
+    h = OxmlElement("w:hyperlink")
+    h.set(qn("r:id"), rid)
+    h.set(qn("w:history"), "1")
+    runs[0]._r.addprevious(h)
+    for run in runs:
+        h.append(run._r)          # (moves the run inside the link)
+
+
 def _docx_run(par, r, pstyle, ctx, style_defaults):
     from docx.shared import Pt, RGBColor
     from docx.enum.text import WD_COLOR_INDEX
@@ -247,6 +261,10 @@ def _docx_run(par, r, pstyle, ctx, style_defaults):
         if k < len(pieces) - 1:
             run.add_tab()
         targets.append(run)
+    if r.get("link"):
+        _docx_hyperlink(par, r["link"], targets)
+        if not r.get("fg"):
+            r = dict(r, fg=R.LINK_COLOUR, u=True)
     fam, size, bold, italic = ctx.run_font(pstyle, r)
     s_fam, s_size, s_bold, s_italic = style_defaults
     for run in targets:
@@ -725,6 +743,12 @@ def to_pdf(paras, ctx, out_path, title="", opts=None):
                 txt = "<super>%s</super>" % txt
             if r.get("sub"):
                 txt = "<sub>%s</sub>" % txt
+            if r.get("link"):                 # links look like links (Word's own blue), and open when clicked
+                if not r.get("fg"):
+                    txt = '<font color="%s">%s</font>' % (R.LINK_COLOUR, txt)
+                if not r.get("u"):
+                    txt = "<u>%s</u>" % txt
+                txt = '<a href="%s">%s</a>' % (html.escape(r["link"], quote=True), txt)
             parts.append(txt)
         markup = "".join(parts) or "&nbsp;"
         try:
@@ -786,7 +810,7 @@ def to_html_file(paras, ctx, out_path, title="", opts=None):
 
 def to_txt(paras, ctx, out_path, title="", opts=None):
     with open(out_path, "w", encoding="utf-8-sig", newline="\r\n") as f:
-        f.write(R.plain_text(paras).replace("\f", "\n\n"))
+        f.write(R.plain_text(paras, links=True).replace("\f", "\n\n"))
     return out_path
 
 

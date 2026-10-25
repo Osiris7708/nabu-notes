@@ -274,6 +274,8 @@ def docx_to_paras(path, note_path, keep_fonts=True, ctx=None):
         our_fam, our_size, _ob, _oi = ctx.run_font(style, {})
         for item in par.iter_inner_content():
             runs = item.runs if hasattr(item, "runs") and not hasattr(item, "font") else [item]
+            link = getattr(item, "url", None) if runs and runs[0] is not item else None    # a Word hyperlink
+            link = R.clean_url(link) if R.is_web_link(link) else None
             for run in runs:
                 el = run._r
                 for br in el.findall(qn("w:br")):
@@ -288,6 +290,8 @@ def docx_to_paras(path, note_path, keep_fonts=True, ctx=None):
                     continue
                 f = run.font
                 r = {"t": text.replace("\n", " ")}
+                if link:
+                    r["link"] = link
                 b = f.bold if f.bold is not None else fonts.style_flag(st, "bold")
                 i = f.italic if f.italic is not None else fonts.style_flag(st, "italic")
                 if b and not s.get("bold"):

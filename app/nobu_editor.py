@@ -1010,7 +1010,7 @@ class NoteEditor:
         self._push_undo()
         t = self.text
         for tg in t.tag_names():
-            if (R.is_char_tag(tg) and tg not in ("lm",) and not tg.startswith(R.AUDIO) and tg != "meta"):
+            if (R.is_char_tag(tg) and tg not in ("lm",) and not tg.startswith((R.AUDIO, "link:")) and tg != "meta"):
                 t.tag_remove(tg, a, b)
         la, lb = t.index("%s linestart" % a), t.index("%s lineend +1c" % b)
         for tg in t.tag_names():
@@ -1231,7 +1231,9 @@ class NoteEditor:
                 src = t.tag_names(idx)
         else:
             src = t.tag_names(idx)
-        ch = [n for n in src if R.is_char_tag(n) and n not in ("lm", "meta") and not n.startswith(R.AUDIO)]
+        nxt = t.tag_names(idx)          # typing just after a link isn't part of it; typing inside one is
+        ch = [n for n in src if R.is_char_tag(n) and n not in ("lm", "meta") and not n.startswith(R.AUDIO)
+              and (not n.startswith("link:") or n in nxt)]
         for k, v in self.pending.items():
             if k in R.CHAR_FLAGS:
                 ch = [n for n in ch if n != k] + ([k] if v else [])
@@ -1532,6 +1534,8 @@ class NoteEditor:
         m = T.menu(self.root)
         if name and name in self.images:
             info = self.images[name]
+            m.add_command(label="Copy picture", font=T.UI_BOLD, command=lambda n=name: self.copy_image(n))
+            m.add_separator()
             for label, w in (("Small", 200), ("Medium", 340), ("Large", 520), ("Full page width", 624)):
                 m.add_command(label=label, command=lambda w=w, n=name: self.resize_image(n, w))
             m.add_command(label="Original size", command=lambda n=name: self.resize_image(n, 0))
@@ -1545,6 +1549,13 @@ class NoteEditor:
         if not self._sel() or not (t.compare("sel.first", "<=", idx) and t.compare(idx, "<", "sel.last")):
             t.mark_set("insert", idx)
             t.tag_remove("sel", "1.0", "end")
+        link = self._link_at(idx)
+        if link:
+            url = link[5:]
+            m.add_command(label="Open link", accelerator="Ctrl+click", font=T.UI_BOLD, command=lambda: self.open_link(url))
+            m.add_command(label="Copy link address", command=lambda: self.copy_link(url))
+            m.add_command(label="Remove link", command=lambda: self.remove_link(idx))
+            m.add_separator()
         word, wa, wb = self._word_at(idx)
         if word and "sp_err" in t.tag_names(idx):
             sugg = self.app.speller.suggestions(word)
@@ -1675,9 +1686,10 @@ class NoteEditor:
                     ln = line.split(".")[0]
                     me = self._marker_end(line)
                     skip = int(me.split(".")[1]) if me else 0     # list number / bullet
+                    urls = [(s, e) for s, e, _u in R.find_urls(txt)] if "." in txt else []   # web addresses aren't words
                     for m in nobu_spell_words(txt):
                         budget -= 0.01
-                        if m.start() < skip:
+                        if m.start() < skip or any(s <= m.start() < e for s, e in urls):
                             continue
                         if not sp.known(m.group(0)):
                             t.tag_add("sp_err", "%s.%d" % (ln, m.start()), "%s.%d" % (ln, m.end()))
@@ -1795,9 +1807,12 @@ class NoteEditor:
         self.app.clip_items = (text, items)
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
+        pics = [it["i"] for it in items if "i" in it]
+        alone = len(pics) == 1 and not any(it.get("t", "").strip() or "table" in it for it in items)
         try:
             src = (lambda rel: "file:///" + abs_from_home(rel).replace("\\", "/"))
-            nobu_clip.set_rich(text, R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx))
+            nobu_clip.set_rich(text, R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx),
+                               picture=abs_from_home(pics[0]) if alone else None)   # just a picture: copy it as one
         except Exception:
             log.exception("rich copy failed")
         if cut:
@@ -1843,6 +1858,8 @@ class NoteEditor:
                 t.delete("sel.first", "sel.last")
             start = t.index("insert")
             t.insert("insert", text.replace("\r\n", "\n"), self._typing_tags())
+            if not plain:
+                self._autolink(start, t.index("insert"))
             self._finish_insert(start, t.index("insert"))
             return
         self._push_undo()
@@ -1850,6 +1867,7 @@ class NoteEditor:
             t.delete("sel.first", "sel.last")
         start = t.index("insert")
         self._insert_items(items, "insert")
+        self._autolink(start, t.index("insert"))
         self._finish_insert(start, t.index("insert"))
 
     @staticmethod
@@ -2022,6 +2040,23 @@ class NoteEditor:
         self._mark_changed()
         self._schedule_pages()
         return True
+
+    def copy_image(self, name):
+        """Copy a picture so it can be pasted anywhere: into another note, Word, an email, Paint, a chat..."""
+        info = self.images.get(name)
+        if not info:
+            return False
+        items = [{"i": info["rel"], "w": info["w"], "g": []}]
+        paras = R.items_to_paras(items)
+        src = (lambda rel: "file:///" + abs_from_home(rel).replace("\\", "/"))
+        self.app.clip_items = None
+        try:
+            return nobu_clip.set_rich("", R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx),
+                                      picture=abs_from_home(info["rel"]))
+        except Exception:
+            log.exception("copy picture failed")
+            T.info(self.root, "Nobu Notes", "Could not copy that picture.")
+            return False
 
     def crop_dialog(self, name):
         if name not in self.images:
@@ -2284,6 +2319,59 @@ class NoteEditor:
         t.tag_bind(tag, "<Enter>", lambda e: t.config(cursor="hand2"))
         t.tag_bind(tag, "<Leave>", lambda e: t.config(cursor="xterm"))
 
+    # ------------------------------------------------------------------ web links
+    def _ensure_link_tag(self, tag):
+        t = self.text
+        t.tag_configure(tag, foreground=T.ACCENT, underline=True)
+        t.tag_raise(tag)
+        t.tag_bind(tag, "<Control-Button-1>", lambda e, u=tag[5:]: self.open_link(u))
+        t.tag_bind(tag, "<Enter>", lambda e, u=tag[5:]: (t.config(cursor="hand2"),
+                                                         self.app.set_status("Ctrl+click to open  %s" % u)))
+        t.tag_bind(tag, "<Leave>", lambda e: t.config(cursor="xterm"))
+
+    def open_link(self, url):
+        """Opens in your web browser (that's a separate program - Nobu itself stays offline)."""
+        if R.is_web_link(url):
+            open_path(url)
+
+    def _link_at(self, idx):
+        for tg in self.text.tag_names(idx):
+            if tg.startswith("link:"):
+                return tg
+        return None
+
+    def _link_range(self, tag, idx):
+        """Where the link at idx starts and ends."""
+        t = self.text
+        r = t.tag_prevrange(tag, "%s +1c" % idx)
+        return (r[0], r[1]) if r else (idx, t.index("%s +1c" % idx))
+
+    def remove_link(self, idx):
+        tag = self._link_at(idx)
+        if not tag:
+            return
+        self._push_undo()
+        self.text.tag_remove(tag, *self._link_range(tag, idx))
+        self._mark_changed()
+
+    def copy_link(self, url):
+        self.app.clip_items = None
+        self.root.clipboard_clear()
+        self.root.clipboard_append(url)
+
+    def _autolink(self, a, b):
+        """Make every web address written between a and b a link (unless it already is one)."""
+        t = self.text
+        text = "".join(v if k == "text" else "￼"          # (a picture or table counts as one character)
+                       for k, v, _i in t.dump(a, b, text=True, image=True, window=True))
+        for s, e, url in R.find_urls(text):
+            i, j = t.index("%s +%dc" % (a, s)), t.index("%s +%dc" % (a, e))
+            if any(self._link_at(t.index("%s +%dc" % (i, k))) for k in range(e - s)):
+                continue
+            tag = "link:" + url
+            self._ensure_link_tag(tag)
+            t.tag_add(tag, i, j)
+
     def _play(self, rel):
         p = abs_from_home(rel)
         if os.path.exists(p):
@@ -2309,6 +2397,8 @@ class NoteEditor:
                     self._ensure_audio_tag(tg)
                 elif tg.startswith(("fg:", "hl:")):
                     self._color_tag(tg)
+                elif tg.startswith("link:"):
+                    self._ensure_link_tag(tg)
             if "t" in it:
                 t.insert("nobu_ins", it["t"], tags)
             elif "i" in it:

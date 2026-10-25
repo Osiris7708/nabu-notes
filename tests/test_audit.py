@@ -390,6 +390,113 @@ def go():
         check("cropping a cropped picture works (Enter = Crop)", step(lambda: cw.done) is True and not step(crop_windows))
         nerr = clean_since(nerr, "pictures: paste and crop")
 
+        # ================================================================ copy a picture out of a note (v4.9.2)
+        pic = step(lambda: next(iter(ed.images)))
+        pic_path = os.path.join(H, step(lambda: ed.images[pic]["rel"]))
+        with Image.open(pic_path) as im:
+            pic_size = im.size
+        MENUS.clear(); step(rclick_pic); pm = last_menu()
+        check("picture right-click menu has Copy picture", pm is not None and "Copy picture" in step(lambda: labels(pm)))
+        if os.name == "nt":
+            step(lambda: invoke_label(pm, "Copy picture")); idle(0.2)
+            got = ImageGrab.grabclipboard()
+            check("Copy picture puts the picture on the clipboard (for Paint, chat apps...)",
+                  hasattr(got, "size") and got.size == pic_size, got)
+            n_img = step(lambda: len(ed.images))
+            step(lambda: (ed.text.mark_set("insert", "end-1c"), ed.paste()))
+            check("...and it pastes back into a note", step(lambda: len(ed.images)) == n_img + 1)
+            step(lambda: (ed.text.tag_remove("sel", "1.0", "end"), ed.text.tag_add("sel", pic, "%s +1c" % pic), ed.copy()))
+            got = ImageGrab.grabclipboard()
+            check("Ctrl+C on just a picture copies it as a picture too", hasattr(got, "size") and got.size == pic_size, got)
+            step(lambda: ed.text.tag_remove("sel", "1.0", "end"))
+        nerr = clean_since(nerr, "copy picture")
+
+        # ================================================================ web links (v4.9.2)
+        nobu_clip.get_html = lambda: CLIP["html"]
+        ImageGrab.grabclipboard = lambda *a, **k: None
+        def links_in(a_="1.0", b_="end"):
+            out = []
+            for tg in ed.text.tag_names():
+                if tg.startswith("link:"):
+                    rg = ed.text.tag_ranges(tg)
+                    for k in range(0, len(rg), 2):
+                        if ed.text.compare(rg[k], ">=", a_) and ed.text.compare(rg[k], "<", b_):
+                            out.append((tg[5:], ed.text.get(rg[k], rg[k + 1])))
+            return sorted(out)
+        def paste_text(text, html=None, plain=False):
+            CLIP["html"] = html
+            app.clip_items = None
+            app.root.clipboard_clear(); app.root.clipboard_append(text)
+            ed.text.insert("end-1c", "\n")
+            ed.text.mark_set("insert", "end-1c")
+            start = ed.text.index("insert")
+            ed.paste(plain=plain)
+            return links_in(start)
+        got = step(lambda: paste_text("See https://example.com/page, and www.nobu.test."))
+        check("pasted web addresses become links", got == [("https://example.com/page", "https://example.com/page"),
+                                                       ("https://www.nobu.test", "www.nobu.test")], got)
+        got = step(lambda: paste_text("Read the guide now",
+                                      '<p>Read <a href="https://example.org/guide">the guide</a> now</p>'))
+        check("pasted web text keeps its links", got == [("https://example.org/guide", "the guide")], got)
+        got = step(lambda: paste_text("Plain https://example.net/x", plain=True))
+        check("Paste as plain text doesn't make links", got == [], got)
+        # typing next to / inside a link
+        def type_at(idx, ch):
+            ed.text.mark_set("insert", idx)
+            class Ev: pass
+            e = Ev(); e.char = ch; e.state = 0
+            ed._on_key(e)
+        rng = step(lambda: ed.text.tag_ranges("link:https://example.org/guide"))
+        end_ix = step(lambda: str(rng[1]))
+        step(lambda: type_at(end_ix, "!"))
+        check("typing just after a link doesn't add to it", "link:https://example.org/guide" not in step(lambda: ed.text.tag_names(end_ix)))
+        mid = step(lambda: ed.text.index("%s +3c" % rng[0]))
+        step(lambda: type_at(mid, "Z"))
+        check("typing inside a link keeps it one link", "link:https://example.org/guide" in step(lambda: ed.text.tag_names(mid)))
+        # Ctrl+click opens it; right-click entries
+        def click_link(seq):
+            r0 = ed.text.tag_ranges("link:https://example.org/guide")[0]
+            ed.text.see(r0); ed.text.update_idletasks(); bb = ed.text.bbox("%s +1c" % r0)
+            ed.text.event_generate("<Motion>", x=bb[0] + 2, y=bb[1] + 2)      # (the mouse is over the link)
+            ed.text.event_generate(seq, x=bb[0] + 2, y=bb[1] + 2, rootx=0, rooty=0)
+        OPENED.clear(); step(lambda: click_link("<Control-Button-1>")); idle(0.2)
+        check("Ctrl+click opens the link in the web browser", OPENED == ["https://example.org/guide"], OPENED)
+        OPENED.clear(); step(lambda: (click_link("<ButtonPress-1>"), click_link("<ButtonRelease-1>"))); idle(0.2)
+        check("a plain click just puts the cursor there (for editing)", OPENED == [], OPENED)
+        MENUS.clear(); step(lambda: click_link("<Button-3>")); lm = last_menu()
+        labs = step(lambda: labels(lm))
+        check("right-click a link: Open / Copy address / Remove", all(x in labs for x in ("Open link", "Copy link address", "Remove link")), labs)
+        OPENED.clear(); step(lambda: invoke_label(lm, "Open link"))
+        check("...Open link", OPENED == ["https://example.org/guide"], OPENED)
+        step(lambda: invoke_label(lm, "Copy link address"))
+        check("...Copy link address", step(lambda: app.root.clipboard_get()) == "https://example.org/guide")
+        step(lambda: invoke_label(lm, "Remove link"))
+        check("...Remove link", not step(lambda: ed.text.tag_ranges("link:https://example.org/guide")))
+        step(ed.undo)
+        check("Ctrl+Z brings the link back", bool(step(lambda: ed.text.tag_ranges("link:https://example.org/guide"))))
+        # saved, spelling, clear formatting, copy out
+        step(ed.save)
+        with open(a, encoding="utf-8") as f:
+            saved = [it for it in json.load(f)["items"] if "link:https://example.com/page" in it.get("g", [])]
+        check("links are saved in the note", saved and saved[0]["t"] == "https://example.com/page", saved)
+        for _ in range(100):
+            if step(lambda: app.speller.ready):
+                break
+            time.sleep(0.2)
+        step(lambda: (ed.text.insert("end-1c", "\nthe zorbleflax at https://www.qwzxv.test/plorbk\n"), ed._spell_all()))
+        sp = step(lambda: [ed.text.get(*p) for p in zip(*[iter(ed.text.tag_ranges("sp_err"))] * 2)])
+        check("spell check leaves web addresses alone", "zorbleflax" in sp and not any(
+            w in ("https", "qwzxv", "plorbk", "www") for w in sp), sp)
+        r0 = step(lambda: str(ed.text.tag_ranges("link:https://example.com/page")[0]))
+        step(lambda: (ed.text.tag_remove("sel", "1.0", "end"), ed.text.tag_add("sel", r0, "%s +5c" % r0), ed.clear_formatting()))
+        check("Clear formatting keeps links (like Word)", "link:https://example.com/page" in step(lambda: ed.text.tag_names("%s +1c" % r0)))
+        ImageGrab.grabclipboard, nobu_clip.get_html = real_grab, real_html
+        step(lambda: (ed.text.tag_remove("sel", "1.0", "end"), ed.text.tag_add("sel", r0, "%s lineend" % r0), ed.copy(),
+                      ed.text.tag_remove("sel", "1.0", "end")))
+        if os.name == "nt":
+            check("Copy keeps the link (for Word, email...)", 'href="https://example.com/page"' in (nobu_clip.get_html() or ""))
+        nerr = clean_since(nerr, "web links")
+
         # ================================================================ note header buttons
         def hdr(text):
             return btn(ed.head, text)

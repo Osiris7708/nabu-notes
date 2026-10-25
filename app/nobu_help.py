@@ -108,8 +108,13 @@ SECTIONS = [
         ("b", "Pictures: use the Picture button, drag a file in, or paste with Ctrl+V - a screenshot, a picture "
               "copied from a web page (right-click it > Copy image) or from another program, or picture files "
               "copied in File Explorer."),
-        ("b", "Right-click a picture to resize it, or Crop… to keep only part of it: drag a box over the part "
-              "you want (drag the box to move it, its edges to resize it), then Crop. Ctrl+Z undoes it."),
+        ("b", "Right-click a picture to copy it (paste it into another note, Word, an email or a chat), resize "
+              "it, or Crop… to keep only part of it: drag a box over the part you want (drag the box to move it, "
+              "its edges to resize it), then Crop. Ctrl+Z undoes it."),
+        ("b", "Links: paste a web address and it becomes a link (blue, underlined). Ctrl+click it to open the "
+              "page in your web browser. Text copied from a web page keeps its links. Right-click a link to open "
+              "it, copy its address or remove the link. Links still work in Word, PDF, e-book and web page "
+              "exports."),
         ("b", "Spelling: a red wavy line marks a possible mistake. Right-click for suggestions, add the word, or "
               "ignore it. F7 jumps to the next one."),
         ("b", "Thesaurus: right-click a word > Synonyms, or Shift+F7."),

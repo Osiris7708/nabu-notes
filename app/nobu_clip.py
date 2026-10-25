@@ -27,6 +27,7 @@ if IS_WIN:
     k32.GlobalSize.argtypes = [ctypes.c_void_p]
     k32.GlobalSize.restype = ctypes.c_size_t
     CF_UNICODETEXT = 13
+    CF_DIB = 8
     GMEM_MOVEABLE = 0x0002
 
 
@@ -52,10 +53,37 @@ def _put(fmt, data):
         log.warning("SetClipboardData failed for format %s", fmt)
 
 
-def set_rich(text, html_fragment=None, rtf=None):
-    """Returns True if the rich clipboard was set (Windows only)."""
+def _picture_data(path):
+    """The picture as a Windows bitmap (DIB, which every program can paste) and as PNG (keeps see-through parts)."""
+    import io
+    from PIL import Image, ImageOps
+    with Image.open(path) as src:        # (closed straight away: never locks the file)
+        img = ImageOps.exif_transpose(src)
+        img.load()
+    png = io.BytesIO()
+    img.save(png, "PNG")
+    if img.mode in ("RGBA", "LA", "P"):
+        rgba = img.convert("RGBA")
+        flat = Image.new("RGB", rgba.size, (255, 255, 255))
+        flat.paste(rgba, mask=rgba.split()[3])
+    else:
+        flat = img.convert("RGB")
+    dib = io.BytesIO()
+    flat.save(dib, "DIB")
+    return dib.getvalue(), png.getvalue()
+
+
+def set_rich(text, html_fragment=None, rtf=None, picture=None):
+    """Returns True if the rich clipboard was set (Windows only). picture: a picture file to put on the
+    clipboard as a picture too, so programs that only take pictures (Paint, chat apps...) can paste it."""
     if not IS_WIN:
         return False
+    pic = None
+    if picture:
+        try:
+            pic = _picture_data(picture)
+        except Exception:
+            log.exception("could not read the picture for the clipboard")
     for _ in range(5):
         if u32.OpenClipboard(None):
             break
@@ -64,7 +92,11 @@ def set_rich(text, html_fragment=None, rtf=None):
         return False
     try:
         u32.EmptyClipboard()
-        _put(CF_UNICODETEXT, (text + "\0").encode("utf-16-le"))
+        if text:
+            _put(CF_UNICODETEXT, (text + "\0").encode("utf-16-le"))
+        if pic:
+            _put(CF_DIB, pic[0])
+            _put(u32.RegisterClipboardFormatW("PNG"), pic[1])
         if html_fragment:
             _put(u32.RegisterClipboardFormatW("HTML Format"), _cf_html(html_fragment) + b"\0")
         if rtf:

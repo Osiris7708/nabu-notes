@@ -1,10 +1,22 @@
-NOBU NOTES  (version 4.9.2)
+NOBU NOTES  (version 4.9.3)
 ===========================
 
 Say  "Nobu, record this"  and start talking.  ("Nobu" is said "no-boo".)
 Say  "Nobu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
+
+NEW IN VERSION 4.9.3
+--------------------
+- Copy a picture out of a note: right-click it > Copy picture (or select just the picture and
+  press Ctrl+C). Paste it into another note, Word, an email, Paint or a chat - no need to open
+  it in another program first.
+- Links: paste a web address (https://... or www...) and it becomes a link. Ctrl+click it to
+  open the page in your web browser (a plain click just puts the cursor there, so you can
+  edit it). Text copied from a web page keeps its links. Right-click a link to open it, copy
+  its address or remove the link. Links can be clicked in Word, PDF, e-book and web page
+  exports too; plain text exports write the address in brackets. Spell check ignores web
+  addresses, and Clear formatting keeps links.
 
 NEW IN VERSION 4.9.2
 --------------------

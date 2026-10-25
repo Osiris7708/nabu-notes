@@ -2,6 +2,7 @@
 
 Storage (a note's "items") keeps text runs with tag lists. Tags:
   character:  b i u s sup sub meta lm   ff:<family>  fs:<pt>  fg:#rrggbb  hl:#rrggbb  audio|<file>
+              link:<web address>  (made safe by clean_url: no spaces, quotes or braces)
   paragraph:  st:<style>  al:left|center|right|justify  ls:<multiple>  sb:<pt>  sa:<pt>
               ind:<inches>  fi:<inches>  li:bullet:<level> | li:num:<level>
   blocks:     {"table": {"rows": [[...]]}}   {"pb": 1}  (page break)   {"i": image, "w": px}
@@ -21,7 +22,7 @@ from html.parser import HTMLParser
 from nobu_config import abs_from_home
 
 CHAR_FLAGS = ("b", "i", "u", "s", "sup", "sub", "meta", "lm")
-CHAR_KEYS = ("ff", "fs", "fg", "hl")
+CHAR_KEYS = ("ff", "fs", "fg", "hl", "link")
 PAR_KEYS = ("st", "al", "ls", "sb", "sa", "ind", "fi", "li")
 AUDIO = "audio|"
 
@@ -68,6 +69,46 @@ def fnum(v, default=None):
 
 def upgrade_tags(tags):
     return [LEGACY.get(t, t) for t in tags]
+
+
+# ---------------------------------------------------------------- links
+LINK_COLOUR = "#0563c1"            # Word's hyperlink blue, used in exports
+URL_RE = re.compile(r"\b(?:https?://|www\.)[^\s<>\"]+", re.I)
+_URL_SAFE = ":/?#[]@!$&'()*+,;=%~-._"
+
+
+def clean_url(url):
+    """A web address ready to store in a tag and to open: 'www.x.com' gets https://, and spaces, quotes,
+    braces and backslashes are %-encoded (they would break the tag, or the link in Word / RTF)."""
+    from urllib.parse import quote
+    url = (url or "").strip()
+    if url.lower().startswith("www."):
+        url = "https://" + url
+    return quote(url, safe=_URL_SAFE)
+
+
+def is_web_link(url):
+    return bool(re.match(r"(https?://|mailto:)\S", url or "", re.I))
+
+
+def find_urls(text):
+    """(start, end, address) for every web address written in text. Full stops, commas, quotes and an
+    unmatched closing bracket at the end belong to the sentence, not the address."""
+    out = []
+    for m in URL_RE.finditer(text):
+        s = m.group()
+        while s:
+            if s[-1] in ".,;:!?'\"":
+                s = s[:-1]
+            elif s[-1] == ")" and s.count("(") < s.count(")"):
+                s = s[:-1]
+            elif s[-1] == "]" and s.count("[") < s.count("]"):
+                s = s[:-1]
+            else:
+                break
+        if len(s) > (4 if s.lower().startswith("www.") else 8) and "." in s:
+            out.append((m.start(), m.start() + len(s), clean_url(s)))
+    return out
 
 
 # ---------------------------------------------------------------- items <-> paras
@@ -208,7 +249,15 @@ def paras_to_items(paras):
     return items
 
 
-def plain_text(paras):
+def _plain_run(r, links):
+    t = r["t"]
+    url = r.get("link")
+    if links and url and t.strip() and url.rstrip("/") not in (t.strip().rstrip("/"), clean_url(t.strip()).rstrip("/")):
+        t += " (%s)" % url          # a link whose words aren't its address: keep the address in plain text
+    return t
+
+
+def plain_text(paras, links=False):
     out = []
     for p in paras:
         if p["type"] == "table":
@@ -218,7 +267,7 @@ def plain_text(paras):
         else:
             prefix = ("\u2022 " if p["list"] and p["list"][0] == "bullet" else "- " if p["list"] else "")
             out.append("    " * (p["list"][1] if p["list"] else 0) + prefix +
-                       "".join(r.get("t", "") for r in p["runs"] if "t" in r))
+                       "".join(_plain_run(r, links) for r in p["runs"] if "t" in r))
     return "\n".join(out)
 
 
@@ -364,7 +413,10 @@ def _run_html(r, pstyle, ctx, img_src):
     if r.get("hl"):
         css.append("background:" + r["hl"])
     t = html.escape(r["t"]).replace("\t", "&emsp;")
-    return "<span style=\"%s\">%s</span>" % (";".join(css), t)
+    span = "<span style=\"%s\">%s</span>" % (";".join(css), t)
+    if r.get("link"):
+        return "<a href=\"%s\">%s</a>" % (html.escape(r["link"], quote=True), span)
+    return span
 
 
 # ---------------------------------------------------------------- HTML in (paste from Word/web, .html import)
@@ -459,6 +511,8 @@ class _HTMLToParas(HTMLParser):
             f["sup"] = True
         if tag == "sub":
             f["sub"] = True
+        if tag == "a" and is_web_link(a.get("href")):    # (page anchors and relative links can't be followed)
+            f["link"] = clean_url(a["href"])
         if tag == "font":
             if a.get("face"):
                 f["ff"] = a["face"].split(",")[0].strip(" '\"")
@@ -673,7 +727,8 @@ def markdown_to_paras(md, image_cb=None):
             continue
         runs = []
         pos = 0
-        for mm in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)|\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|__(.+?)__|\*(.+?)\*|_(.+?)_|~~(.+?)~~", s):
+        for mm in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)|\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|__(.+?)__|\*(.+?)\*|_(.+?)_|~~(.+?)~~"
+                              r"|\[([^\]]+)\]\(((?:https?://|mailto:)[^)\s]+)\)", s):
             if mm.start() > pos:
                 runs.append({"t": s[pos:mm.start()]})
             if mm.group(1) is not None:
@@ -688,6 +743,8 @@ def markdown_to_paras(md, image_cb=None):
                 runs.append({"t": mm.group(5) or mm.group(6), "i": True})
             elif mm.group(7):
                 runs.append({"t": mm.group(7), "s": True})
+            elif mm.group(8):
+                runs.append({"t": mm.group(8), "link": clean_url(mm.group(9))})
             pos = mm.end()
         if pos < len(s):
             runs.append({"t": s[pos:]})
@@ -791,7 +848,13 @@ def to_rtf(paras, ctx):
                 codes += "\\cf%d" % ci(r["fg"])
             if r.get("hl"):
                 codes += "\\highlight%d\\chcbpat%d" % (ci(r["hl"]), ci(r["hl"]))
-            body.append("{%s %s}" % (codes, _rtf_escape(r["t"])))
+            if r.get("link"):
+                if not r.get("fg"):           # links look like links (Word's own blue)
+                    codes += "\\cf%d" % ci(LINK_COLOUR) + ("" if r.get("u") else "\\ul")
+                body.append("{\\field{\\*\\fldinst{HYPERLINK \"%s\"}}{\\fldrslt{%s %s}}}" % (
+                    _rtf_escape(r["link"]), codes, _rtf_escape(r["t"])))
+            else:
+                body.append("{%s %s}" % (codes, _rtf_escape(r["t"])))
         body.append("\\par\n")
     ftbl = "".join("{\\f%d\\fnil\\fcharset0 %s;}" % (k, _rtf_escape(f)) for k, f in enumerate(fonts or [ctx.body]))
     ctbl = ";" + "".join("\\red%d\\green%d\\blue%d;" % (int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16))
