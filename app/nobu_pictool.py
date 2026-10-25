@@ -1,8 +1,11 @@
 """Moving and resizing pictures right on the page.
 
   * click a picture ............. a blue frame appears around it, with a square on each corner and side
-  * drag the picture ............ a see-through copy follows the mouse and a blue line shows where it will
-                                  land; let go to move it there (Esc while dragging: leave it where it was)
+  * drag the picture ............ it comes loose from its line (a floating picture, text flowing round it -
+                                  see nobu_float) and follows the mouse anywhere on the page. Near the left
+                                  edge, the middle or the right edge it snaps there (hold Alt: no snapping).
+  * Ctrl + drag ................. move it within the text instead: a see-through copy follows the mouse and
+                                  a blue line shows where it will land (Esc while dragging: leave it)
   * drag a side (or its square) . stretch it: left / right side = wider or narrower, top / bottom = taller
                                   or shorter
   * drag a corner ............... bigger or smaller, keeping its shape (hold Shift to stretch freely)
@@ -13,16 +16,18 @@ import base64
 import io
 import tkinter as tk
 
-from PIL import Image, ImageOps
+from PIL import Image
 
+import nobu_doc as nd
+import nobu_rich as R
 import nobu_theme as T
-from nobu_config import abs_from_home
 
 DRAG_START = 5            # pixels the mouse must move before a press becomes a drag
+SNAP = 12                 # page pixels: this close to the left edge, the middle or the right edge, a picture snaps
 BAR = 4                   # thickness of the frame around a selected picture (screen pixels)
 SQ = 10                   # size of the squares on its corners and sides
 MIN_W, MIN_H = 30, 20     # smallest picture (page pixels)
-MAX_W, MAX_H = 624, 864   # the page's text area: 6.5" wide, 9" tall
+MAX_W, MAX_H = R.TEXT_W_PX, R.TEXT_H_PX   # the page's text area: 6.5" wide, 9" tall
 PREVIEW_MS = 16           # live resize redraws at most this often
 
 _CURSORS = {"l": ("sb_h_double_arrow",), "r": ("sb_h_double_arrow",), "t": ("sb_v_double_arrow",),
@@ -95,11 +100,8 @@ class PictureTool:
         return list(self.bars.values()) + list(self.squares.values())
 
     # ------------------------------------------------------------ where things are
-    def _inset(self):
-        return self.ed._text_inset()
-
     def _float(self, name=None):
-        return self.ed.images.get(name or self.sel, {}).get("float")
+        return self.ed.flow.is_float(name or self.sel)
 
     def geometry(self, name=None):
         """The picture's box on screen, in place() terms: (x, y, width, height), or None if out of sight."""
@@ -113,7 +115,7 @@ class PictureTool:
             return None
         if not bb or not info:
             return None
-        ix, iy = self._inset()
+        ix, iy = self.ed._text_inset()
         photo = info["photo"]
         w, h = photo.width(), photo.height()
         x, y = bb[0], bb[1]
@@ -202,7 +204,7 @@ class PictureTool:
             return None
         self.t.focus_set()
         self.select(name)
-        self.press = (e.x, e.y)
+        self.press = (e.x, e.y, e.x_root, e.y_root)
         self.dragging = False
         return "break"                   # (no text selection starts under a picture)
 
@@ -220,9 +222,7 @@ class PictureTool:
         self.t.config(cursor="fleur")
         info = self.ed.images.get(self.sel)
         try:
-            with Image.open(abs_from_home(info["rel"])) as src:
-                img = ImageOps.exif_transpose(src)
-                img.load()
+            img = nd.load_picture(info["rel"])
             k = info["photo"].width()
             img.thumbnail((min(220, k), min(220, info["photo"].height())))
             self.ghost = g = tk.Toplevel(self.t)
@@ -232,7 +232,7 @@ class PictureTool:
                 g.attributes("-topmost", True)
             except tk.TclError:
                 pass
-            self.ghost_photo = tk_photo(img.convert("RGBA") if img.mode not in ("RGB", "RGBA") else img)
+            self.ghost_photo = tk_photo(img)
             tk.Label(g, image=self.ghost_photo, bd=1, relief="solid", bg=T.ACCENT).pack()
         except Exception:
             self.ghost = None
@@ -240,11 +240,15 @@ class PictureTool:
     def _drag(self, e):
         if self.resize is not None:
             return "break"
+        if self.fpress is not None:      # (a picture that came loose when the drag began: it follows the mouse)
+            return self._fdrag(e)
         if not self.press or not self.sel:
             return None
         if not self.dragging:
             if abs(e.x - self.press[0]) < DRAG_START and abs(e.y - self.press[1]) < DRAG_START:
                 return "break"
+            if not getattr(e, "state", 0) & 0x0004:      # plain drag: anywhere on the page (Ctrl: within the text)
+                return self._come_loose(e)
             self._start_drag()
         if self.ghost is not None:
             self.ghost.geometry("+%d+%d" % (e.x_root + 14, e.y_root + 10))
@@ -257,7 +261,7 @@ class PictureTool:
         here, before = self.t.bbox(gap), self.t.bbox(gap + " -1c")
         bb = here or before
         if bb:
-            ix, iy = self._inset()
+            ix, iy = self.ed._text_inset()
             x = bb[0] if here else bb[0] + bb[2]
             self.caret.place(x=x - 1 - ix, y=bb[1] - iy, width=3, height=max(bb[3], 14))
             self.caret.lift()
@@ -280,6 +284,9 @@ class PictureTool:
     def _release(self, e):
         if self.resize is not None:
             return "break"
+        if self.fpress is not None:
+            self.press = None
+            return self._frelease(e)
         if not self.press:
             return None
         was = self.dragging
@@ -298,7 +305,9 @@ class PictureTool:
         if self.fpress is not None:      # stop moving a floating picture: back where it was
             fp, self.fpress = self.fpress, None
             info = self.ed.images.get(fp["name"])
-            if info and fp["moved"]:
+            if info and fp.get("undo_taken"):        # (it came loose from a line: undo that, put it back)
+                self.ed.undo()
+            elif info and fp["moved"]:
                 info["float"]["x"], info["float"]["y"] = fp["fx"], fp["fy"]
                 self.t.mark_set(fp["name"], fp["anchor"])
                 if self.ed._undo:
@@ -327,6 +336,30 @@ class PictureTool:
             self.t.config(cursor="xterm")
 
     # ------------------------------------------------------------ floating pictures
+    def _come_loose(self, e):
+        """A picture in a line of text, dragged: it becomes a floating picture right where it is (text on the
+        side with more room) and follows the mouse from here on."""
+        name = self.sel
+        self.press, press = None, self.press
+        new = self.ed.set_wrap(name, "square", "largest")      # (one Ctrl+Z step, taken here)
+        if not new or new not in self.ed.images:
+            return "break"
+        info = self.ed.images[new]
+        fl = self.ed.flow
+        self.fpress = {"name": new, "x": press[2], "y": press[3], "px": info["_px"], "fx": info["float"]["x"],
+                       "fy": info["float"]["y"], "top": info["_doc_top"] if info["_doc_top"] is not None else 0,
+                       "anchor": self.t.index(new), "off": fl.view_offset(), "moved": True, "undo_taken": True}
+        self.ed.app.set_status("The picture came loose: put it anywhere. Right-click > Text wrapping > In line "
+                               "with text puts it back in a line. (Ctrl + drag moves it within the text.)")
+        return self._fdrag(e)
+
+    def snap_x(self, x, w):
+        """x (page pixels) moved to the left edge, the middle or the right edge when it's close to one."""
+        for spot in (0, (MAX_W - w) / 2.0, MAX_W - w):
+            if abs(x - spot) <= SNAP:
+                return spot
+        return x
+
     def bind_float(self, name, lab):
         lab.bind("<ButtonPress-1>", lambda e, n=name: self._fpress(e, n))
         lab.bind("<B1-Motion>", self._fdrag)
@@ -366,7 +399,10 @@ class PictureTool:
             self.t.yview_scroll(1, "units")
         k = self.ed.img_scale()
         scrolled = fl.view_offset() - fp["off"]
-        fl.move_to(fp["name"], fp["fx"] + dx / k, doc_top=fp["top"] + dy + scrolled)
+        x = fp["fx"] + dx / k
+        if not getattr(e, "state", 0) & 0x20000:         # (Alt held: no snapping)
+            x = self.snap_x(x, self.ed.images[fp["name"]]["photo"].width() / k)
+        fl.move_to(fp["name"], x, doc_top=fp["top"] + dy + scrolled)
         self.ed.app.set_status("Let go to put the picture here. Esc: leave it where it was.")
         return "break"
 
@@ -383,11 +419,7 @@ class PictureTool:
         info = self.ed.images.get(self.sel)
         if not info:
             return "break"
-        with Image.open(abs_from_home(info["rel"])) as src:      # (closed at once: never locks the file)
-            img = ImageOps.exif_transpose(src)
-            img.load()
-        if img.mode not in ("RGB", "RGBA"):
-            img = img.convert("RGBA" if ("A" in img.mode or img.mode == "P") else "RGB")
+        img = nd.load_picture(info["rel"])
         natural = img.height / float(img.width)                  # the picture's own shape (height / width)
         img.thumbnail((1600, 1600))                               # (a smaller copy for the live preview)
         k = self.ed.img_scale()

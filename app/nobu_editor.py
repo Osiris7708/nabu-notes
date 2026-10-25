@@ -1,10 +1,8 @@
 """The note editor: a Word-style page (8.5\" wide, 1\" margins) with a full formatting ribbon,
 lists, tables, pictures, page breaks, pagination, zoom, spell check and thesaurus."""
-import base64
 import bisect
 import datetime
 import difflib
-import io
 import logging
 import os
 import re
@@ -15,7 +13,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import colorchooser, filedialog, ttk
 
-from PIL import Image, ImageOps
+from PIL import Image
 
 import nobu_clip
 import nobu_doc as nd
@@ -1603,8 +1601,12 @@ class NoteEditor:
             wm.add_command(label=("✓  " if on else "     ") + label,
                            command=lambda n=name, w=wrap, s=side: self.set_wrap(n, w, s))
         m.add_cascade(label="Text wrapping", menu=wm)
+        pm = T.menu(m)
+        for spot, label in nobu_float.FloatLayer.SPOTS:
+            pm.add_command(label=label, command=lambda n=name, s=spot: self.place_on_page(n, s))
+        m.add_cascade(label="Place on page", menu=pm)
         m.add_separator()
-        for label, w in (("Small", 200), ("Medium", 340), ("Large", 520), ("Full page width", 624)):
+        for label, w in (("Small", 200), ("Medium", 340), ("Large", 520), ("Full page width", R.TEXT_W_PX)):
             m.add_command(label=label, command=lambda w=w, n=name: self.resize_image(n, w))
         m.add_command(label="Original size", command=lambda n=name: self.resize_image(n, 0))
         if info.get("h"):
@@ -1663,10 +1665,25 @@ class NoteEditor:
             self.pictool.select(new)
         return new
 
+    def place_on_page(self, name, spot):
+        """Right-click > Place on page: a corner or the middle of a side of the page (a picture in a line of
+        text comes loose first, with the text flowing round it). Returns the picture's (new) name."""
+        if name not in self.images:
+            return None
+        if not self.images[name].get("float"):
+            name = self.set_wrap(name, "square", "largest")
+        else:
+            self._push_undo()
+        self.flow.place_on_page(name, spot)
+        self._mark_changed()
+        if self.pictool:
+            self.pictool.select(name)
+        return name
+
     def _nudge_picture(self, ev, dx, dy):
         """Arrow keys move a selected floating picture (8 pixels; with Shift, 1)."""
         name = self.pictool.sel if self.pictool else None
-        if not name or not self.images.get(name, {}).get("float"):
+        if not name or not self.flow.is_float(name):
             if name:
                 self.pictool.deselect()
             return None
@@ -1925,7 +1942,7 @@ class NoteEditor:
                 active.discard(val)
                 if val == "softnl":
                     soft = False
-            elif key == "mark" and self.images.get(val, {}).get("float"):
+            elif key == "mark" and self.flow.is_float(val):
                 info = self.images[val]
                 items.append(dict({"i": info["rel"], "w": info["w"], "float": dict(info["float"]), "g": []},
                                   **({"h": info["h"]} if info.get("h") else {})))
@@ -2072,11 +2089,7 @@ class NoteEditor:
     def _make_photo(self, rel, width, height=None):
         """The picture as shown on the page: width (and height, if it was stretched) in page pixels.
         Returns (photo, width, height); height is None when the picture keeps its own shape."""
-        with Image.open(abs_from_home(rel)) as src:      # (closed straight away: never locks the file)
-            img = ImageOps.exif_transpose(src)
-            img.load()
-        if img.mode not in ("RGB", "RGBA"):
-            img = img.convert("RGBA" if ("A" in img.mode or img.mode == "P") else "RGB")
+        img = nd.load_picture(rel)
         w0, h0 = img.size
         width = max(nobu_pictool.MIN_W, int(round(width or min(w0, 480))))
         height = max(nobu_pictool.MIN_H, int(round(height))) if height else None
@@ -2225,9 +2238,7 @@ class NoteEditor:
         info = self.images.get(name)
         if not info or not self.path:
             return False
-        with Image.open(abs_from_home(info["rel"])) as src:
-            img = ImageOps.exif_transpose(src)
-            img.load()
+        img = nd.load_picture(info["rel"])
         W, H = img.size
         l, t, r, b = (int(round(v)) for v in box)
         l, t = max(0, min(l, W - 1)), max(0, min(t, H - 1))
@@ -2279,7 +2290,7 @@ class NoteEditor:
 
     def delete_image(self, name):
         self._push_undo()
-        if self.images.get(name, {}).get("float"):
+        if self.flow.is_float(name):
             self.flow.remove(name)
             self._mark_changed()
             return

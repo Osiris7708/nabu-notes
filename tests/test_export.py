@@ -151,3 +151,20 @@ ok("PDF: made, with all 4 pictures", open("out/float.pdf", "rb").read().count(b"
 back = nd.load_doc(I.import_file("out/float.docx", H + "/Notes/Book", ctx=ctx))["items"]
 ok("importing that Word file brings all 4 pictures back", sum(1 for it in back if "i" in it) == 4)
 print("floating pictures: all checks passed")
+
+# ---------------------------------------------------------------- the app icon (tools\set_icon.py)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(R.__file__))), "tools"))
+import set_icon
+from PIL import ImageDraw
+src = Image.new("RGB", (600, 600), (0, 0, 0))                     # a rounded square on a black border
+ImageDraw.Draw(src).rounded_rectangle((50, 50, 549, 549), radius=90, fill=(20, 24, 60))
+src.save("out/icon_src.png")
+art = set_icon.cut_out("out/icon_src.png")
+ok("icon: the black border is cut away (square, corners see-through, middle solid)",
+   art.size[0] == art.size[1] and abs(art.size[0] - 500) <= 4 and art.getpixel((0, 0))[3] == 0
+   and art.getpixel((art.width // 2, art.height // 2))[3] == 255, art.size)
+sizes = [s for s, _png in set_icon.write_ico(art, "out/test.ico")]
+ok("icon: the .ico has every size Windows uses", sizes == [16, 24, 32, 48, 64, 128, 256])
+ok("icon: Nobu's own icon is 256 x 256 with see-through corners",
+   Image.open(os.path.join(os.path.dirname(os.path.abspath(R.__file__)), "nobu_icon.png")).getpixel((0, 0))[3] == 0)
+print("icon: all checks passed")

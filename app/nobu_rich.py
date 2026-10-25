@@ -400,7 +400,8 @@ def to_html(paras, ctx, img_src=image_data_uri, full_page=False, title="", fonts
             % (html.escape(title), fonts_css, _css_font(ctx.body), _fmt(ctx.size), frag))
 
 
-FLOAT_TEXT_W = 624         # page pixels: the width of the text (6.5"), as in nobu_float
+TEXT_W_PX = 624            # page pixels (96 to the inch): the width of the text on a page (6.5")
+TEXT_H_PX = 864            # ... and its height (9")
 
 
 def float_side(f, w):
@@ -413,7 +414,7 @@ def float_side(f, w):
     if f.get("text") == "left":
         return "right"
     x = f.get("x", 0)
-    return "left" if FLOAT_TEXT_W - (x + w) >= x else "right"
+    return "left" if TEXT_W_PX - (x + w) >= x else "right"
 
 
 def _float_html(src, r):
@@ -425,7 +426,7 @@ def _float_html(src, r):
     if side == "left":
         pos = "float:left;margin:%dpx 12px 8px %dpx" % (y, x)
     elif side == "right":
-        pos = "float:right;margin:%dpx %dpx 8px 12px" % (y, max(0, FLOAT_TEXT_W - x - w))
+        pos = "float:right;margin:%dpx %dpx 8px 12px" % (y, max(0, TEXT_W_PX - x - w))
     else:
         pos = "display:block;clear:both;margin:%dpx 0 8px %dpx" % (y, x)
     return "<img src='%s' style='%s;%s' width='%d'>" % (src, size, pos, w)

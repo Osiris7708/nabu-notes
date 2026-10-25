@@ -56,10 +56,9 @@ def _put(fmt, data):
 def _picture_data(path):
     """The picture as a Windows bitmap (DIB, which every program can paste) and as PNG (keeps see-through parts)."""
     import io
-    from PIL import Image, ImageOps
-    with Image.open(path) as src:        # (closed straight away: never locks the file)
-        img = ImageOps.exif_transpose(src)
-        img.load()
+    from PIL import Image
+    import nobu_doc
+    img = nobu_doc.load_picture(path)
     png = io.BytesIO()
     img.save(png, "PNG")
     if img.mode in ("RGBA", "LA", "P"):

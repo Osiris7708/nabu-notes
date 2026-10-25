@@ -25,7 +25,7 @@ log = logging.getLogger("nobu.float")
 WRAPS = ("square", "topbottom", "front")
 GAP = 12            # page pixels between a picture and the text round it
 MIN_TEXT = 72       # page pixels: a gap narrower than an inch beside a picture is left empty
-TEXT_W = R.FLOAT_TEXT_W   # page pixels: the width of the text (6.5")
+TEXT_W = R.TEXT_W_PX      # page pixels: the width of the text (6.5")
 
 
 class FloatLayer:
@@ -212,6 +212,45 @@ class FloatLayer:
         if place:
             self.place_all()
         self.schedule()
+
+    SPOTS = (("tl", "Top left"), ("tr", "Top right"), ("ml", "Middle left"), ("mr", "Middle right"),
+             ("bl", "Bottom left"), ("br", "Bottom right"))
+
+    def page_box(self, y):
+        """(top, bottom) in pixels from the top of the note, of the text area of the page holding y."""
+        ed = self.ed
+        tops = [ed.px(0.88)]               # (page 1's text starts below its top margin)
+        for m in ed.page_marks:
+            try:
+                tops.append(self.ydoc(m))
+            except tk.TclError:
+                pass
+        n = max(0, sum(1 for top in tops if top <= y) - 1)
+        top = tops[n]
+        bottom = tops[n + 1] if n + 1 < len(tops) else top + ed.px(9.0) - (ed.px(0.88) if n == 0 else 0)
+        return top, bottom
+
+    def place_on_page(self, name, spot):
+        """Put a floating picture in a corner or at the middle of a side of the page it is on:
+        spot = tl / tr / ml / mr / bl / br (top / middle / bottom, left / right)."""
+        ed, t = self.ed, self.t
+        info = ed.images.get(name)
+        if not info:
+            return
+        k = ed.img_scale()
+        w, h = info["photo"].width() / k, info["photo"].height()
+        cur = info["_doc_top"]
+        if cur is None:
+            cur = self.ydoc(self.par_start(t.index(name))) + info["float"]["y"] * k
+        page = self.page_box(cur)[0]
+        for _ in range(3):              # (moving it re-wraps the text above, which shifts the page: settle)
+            top, bottom = self.page_box(page)
+            y = max(top, {"t": top, "m": top + (bottom - top - h) / 2.0, "b": bottom - h}[spot[0]])
+            self.move_to(name, 0 if spot[1] == "l" else TEXT_W - w, doc_top=y)
+            self.reflow()
+            if abs(self.ydoc(self.par_start(t.index(name))) + info["float"]["y"] * k - y) < 2:
+                break
+            page = top
 
     # ------------------------------------------------------------ reflow
     def schedule(self, ms=None):

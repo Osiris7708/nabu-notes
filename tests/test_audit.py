@@ -544,12 +544,12 @@ def go():
             pt._press(MEv(x, y)); pt._drag(MEv(x + 2, y + 1)); pt._release(MEv(x + 2, y + 1))
         step(wobble)
         check("a tiny wobble doesn't move the picture", step(lambda: ed.text.index(mp)) == old_ix and step(lambda: pt.sel) == mp)
-        # drag it to the start of the note
+        # Ctrl + drag: to the start of the note, within the text
         def drag_to_top():
             x, y = centre(mp)
-            pt._press(MEv(x, y)); pt._drag(MEv(x + 20, y + 20))
+            pt._press(MEv(x, y)); pt._drag(MEv(x + 20, y + 20, state=0x0004))
             ed.text.see("1.0"); ed.text.update_idletasks(); bx, by, _bw, bh = ed.text.bbox("1.0")
-            pt._drag(MEv(bx + 1, by + bh // 2))
+            pt._drag(MEv(bx + 1, by + bh // 2, state=0x0004))
             seen = (pt.ghost is not None, pt.caret.winfo_ismapped() or bool(pt.caret.place_info()),
                     (pt.caret.update_idletasks(), abs(pt.caret.winfo_x() + 1 - bx) <= 2)[1] if pt.caret.place_info() else False)
             pt._release(MEv(bx + 1, by + bh // 2))
@@ -558,7 +558,7 @@ def go():
         check("while dragging, a see-through copy follows the mouse", ghost)
         check("...and a blue line shows where it will land", caret and caret_at)
         moved = step(lambda: [n for n, i in ed.images.items() if ed.text.index(n) == "1.0"])
-        check("drag a picture to move it", len(moved) == 1, step(lambda: {n: ed.text.index(n) for n in ed.images}))
+        check("Ctrl + drag moves a picture within the text", len(moved) == 1, step(lambda: {n: ed.text.index(n) for n in ed.images}))
         check("...it is still selected after the move", moved and step(lambda: pt.sel) == moved[0])
         check("...the copy is gone and the old spot is empty", step(lambda: pt.ghost is None and mp not in ed.images))
         step(ed.undo)
@@ -567,11 +567,70 @@ def go():
         mp = back[0] if back else mp
         def esc_drag():
             x, y = centre(mp)
-            pt._press(MEv(x, y)); pt._drag(MEv(x + 30, y + 30))
+            pt._press(MEv(x, y)); pt._drag(MEv(x + 30, y + 30, state=0x0004))
             ed.text.event_generate("<Escape>")
             pt._release(MEv(x + 30, y - 200))
         step(esc_drag); idle(0.1)
         check("Esc while dragging leaves the picture where it was", step(lambda: ed.text.index(mp)) == old_ix and step(lambda: pt.ghost) is None)
+        # a plain drag: the picture comes loose from its line and goes anywhere on the page (v4.9.3)
+        sc = step(ed.img_scale)
+        def loose_drag(dx, dy, alt=False, esc=False):
+            x, y = centre(mp)
+            rx, ry = ed.text.winfo_rootx(), ed.text.winfo_rooty()
+            st = 0x20000 if alt else 0
+            pt._press(MEv(x, y, rx + x, ry + y))
+            pt._drag(MEv(x + 10, y + 10, rx + x + 10, ry + y + 10, state=st))
+            loose = pt.fpress is not None and ed.flow.is_float(pt.fpress["name"])
+            pt._drag(MEv(x + dx, y + dy, rx + x + dx, ry + y + dy, state=st))
+            if esc:
+                ed.text.event_generate("<Escape>")
+            pt._release(MEv(x + dx, y + dy, rx + x + dx, ry + y + dy))
+            ed.text.update()
+            fl_ = ed.flow.names()
+            return loose, [(ed.images[n]["float"]["x"], ed.images[n]["float"]["wrap"]) for n in fl_]
+        x_was = step(lambda: round(pt.geometry(mp)[0] / sc))
+        loose, fl_now = step(lambda: loose_drag(round(150 * sc), round(40 * sc)))
+        check("a plain drag lets a picture loose: it follows the mouse anywhere", loose and len(fl_now) == 1
+              and fl_now[0][1] == "square" and abs(fl_now[0][0] - (x_was + 150)) <= 2, (x_was, fl_now))
+        step(ed.undo); idle(0.2)
+        mp = step(lambda: next(n for n, i in ed.images.items() if not i.get("float") and ed.text.index(n) == old_ix))
+        check("...Ctrl+Z puts it back in its line", not step(ed.flow.names))
+        loose, fl_now = step(lambda: loose_drag(round(150 * sc), 0, esc=True))
+        check("...Esc while dragging puts it back in its line", not fl_now and step(lambda: ed.text.index(mp)) == old_ix)
+        loose, fl_now = step(lambda: loose_drag(-round((x_was - 5) * sc), 0))
+        check("near the left edge it snaps to the edge", fl_now and fl_now[0][0] == 0, (x_was, fl_now))
+        step(ed.undo); idle(0.2)
+        mp = step(lambda: next(n for n, i in ed.images.items() if not i.get("float") and ed.text.index(n) == old_ix))
+        loose, fl_now = step(lambda: loose_drag(-round((x_was - 5) * sc), 0, alt=True))
+        check("...unless Alt is held", fl_now and 2 <= fl_now[0][0] <= 9, (x_was, fl_now))
+        step(ed.undo); idle(0.2)
+        mp = step(lambda: next(n for n, i in ed.images.items() if not i.get("float") and ed.text.index(n) == old_ix))
+        # Place on page: the 6 spots
+        def rclick_mp():
+            x, y = centre(mp)
+            ed.text.event_generate("<Button-3>", x=x, y=y, rootx=0, rooty=0)
+        MENUS.clear(); step(rclick_mp); pm = last_menu()
+        spots = step(lambda: [l for l in labels(pm.nametowidget(pm.entrycget(entry(pm, "Place on page"), "menu")))])
+        check("right-click a picture: Place on page, with 6 spots", spots == ["Top left", "Top right", "Middle left",
+                                                                           "Middle right", "Bottom left", "Bottom right"], spots)
+        placed = {}
+        for spot in ("tl", "tr", "ml", "mr", "bl", "br"):
+            def place(spot=spot):
+                n = next(iter(ed.flow.names()), mp)
+                n = ed.place_on_page(n, spot)
+                i = ed.images[n]
+                top, bottom = ed.flow.page_box(i["_doc_top"])
+                return i["float"]["x"], i["_doc_top"], i["_doc_top"] + i["photo"].height(), top, bottom, i["w"]
+            placed[spot] = step(place)
+        lefts = [placed[s][0] for s in ("tl", "ml", "bl")]
+        rights = [placed[s][0] + placed[s][5] for s in ("tr", "mr", "br")]
+        check("...left spots at the left edge, right spots at the right edge", lefts == [0, 0, 0] and rights == [624] * 3,
+              (lefts, rights))
+        t_, m_, b_ = placed["tl"], placed["ml"], placed["bl"]
+        check("...top at the top of the page, bottom at the bottom, middle between", abs(t_[1] - t_[3]) <= 2
+              and abs(b_[2] - b_[4]) <= 40 and t_[1] < m_[1] < b_[1], placed)
+        step(lambda: [ed.undo() for _ in range(6)]); idle(0.3)
+        mp = step(lambda: next(n for n, i in ed.images.items() if not i.get("float") and ed.text.index(n) == old_ix))
         # resize: sides stretch one way, corners keep the shape
         sc = step(ed.img_scale)
         def drag_edge(edge, dx, dy, shift=False):
@@ -1092,6 +1151,14 @@ def go():
         sd = app.settings_win; idle(0.3)
         scales = step(lambda: widgets(sd.win, (ttk.Scale,)))
         check("Settings has its 4 sliders", len(scales) == 4, len(scales))
+        texts = step(lambda: [str(b.cget("text")) for b in widgets(sd.win, (ttk.Button, tk.Button))])
+        check("no 'Re-learn room noise' button (the noise is learned all the time by itself)",
+              not any("Re-learn" in x for x in texts), texts)
+        notes = step(lambda: " ".join(str(w.cget("text")) for w in widgets(sd.win, (ttk.Label,))))
+        check("...and Settings says so", "keeps learning that sound by itself" in notes)
+        check("the window has the Nobu icon (256 x 256, see-through corners)",
+              step(lambda: (app.root._nobu_icon.width(), app.root._nobu_icon.height(),
+                            app.root._nobu_icon.transparency_get(0, 0))) == (256, 256, True))
         def move(sc_, v):
             sc_.set(v); sc_.update()
             row = sc_.master; return [w.cget("text") for w in row.winfo_children() if isinstance(w, ttk.Label)][-1]

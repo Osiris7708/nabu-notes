@@ -124,4 +124,6 @@ After that, the folder is a git repository with one branch, `main`. Only code, d
 
 ## Launcher
 
+The icon: `runtime\python.exe tools\set_icon.py picture.png` makes `app/nobu_icon.png`, `launcher/nobu.ico` and `launcher/nobu_icon_source.png`, and swaps the icon inside `NobuNotes.exe` directly (no Go needed). `rsrc_windows_amd64.syso` keeps the old icon until it is remade from nobu.ico.
+
 `launcher/main.go` is the source of `NobuNotes.exe`. It unpacks `setup/runtime.zip.00*` on first start, then runs `runtime\pythonw.exe app\nobu_main.py`. The `.syso` file holds the icon. Rebuild it only if the launcher must change: `cd launcher && go build -ldflags "-H windowsgui -s -w" -o ..\NobuNotes.exe` (from Linux, add `GOOS=windows GOARCH=amd64`). Go may not be installed on the user's computer.

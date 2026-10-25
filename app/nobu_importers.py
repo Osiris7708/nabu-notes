@@ -54,7 +54,7 @@ def _img_width_css(data, emu_width=None):
         return max(20, int(round(emu_width / 914400.0 * 96)))
     try:
         from PIL import Image
-        return min(Image.open(io.BytesIO(data)).size[0], 624)
+        return min(Image.open(io.BytesIO(data)).size[0], R.TEXT_W_PX)
     except Exception:
         return 400
 

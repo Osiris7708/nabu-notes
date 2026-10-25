@@ -197,9 +197,10 @@ class SettingsDialog:
         self.nr = tk.DoubleVar(value=float(cfg["noise_reduction"]))
         self._slider(outer, "Noise filter", self.nr, 0, 1, self._nr_text, self._live)
         ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
-            "The noise filter learns the steady sound of your room (fan, AC, hum) and removes it. "
-            "Raise it until the background is quiet in the test playback; too high can make your voice sound "
-            "thin.")).pack(anchor="w")
+            "The noise filter removes the steady sound of your room (fan, AC, hum). It keeps learning that "
+            "sound by itself, every moment you're not talking, so a fan switched on or off is picked up within "
+            "a second or two. Raise it until the background is quiet in the test playback; too high can make "
+            "your voice sound thin.")).pack(anchor="w")
         self.orig_sound = tk.BooleanVar(value=cfg.get("transcribe_original", True) is not False)
         ttk.Checkbutton(outer, text="Transcribe from the natural sound (recommended: the speech model recognises "
                                     "words more accurately without the noise filter)",
@@ -214,8 +215,6 @@ class SettingsDialog:
         self.meters.frame.pack(fill="x", pady=(8, 4))
         r = row()
         ttk.Button(r, text="●  Record a 6-second test", command=self._test).pack(side="left")
-        ttk.Button(r, text="Re-learn room noise", command=lambda: app.engine.command("relearn_noise")).pack(
-            side="left", padx=8)
         self.test_lbl = ttk.Label(r, text="", style="Muted.TLabel")
         self.test_lbl.pack(side="left", padx=6)
 

@@ -116,6 +116,18 @@ def append_items_to_file(path, new_items):
     save_doc(path, doc)
 
 
+def load_picture(path):
+    """A picture file (path relative to HOME, or absolute) as an RGB / RGBA image, turned the right way up
+    (phone photos), with the file closed again straight away (so Windows never keeps it locked)."""
+    from PIL import Image, ImageOps
+    with Image.open(abs_from_home(path)) as src:
+        img = ImageOps.exif_transpose(src)
+        img.load()
+    if img.mode not in ("RGB", "RGBA"):
+        img = img.convert("RGBA" if ("A" in img.mode or img.mode == "P") else "RGB")
+    return img
+
+
 def import_image(src, note_path):
     """Copy an image into Images/<note>/ and return its path relative to HOME."""
     stem = os.path.splitext(os.path.basename(note_path or "Notes"))[0]

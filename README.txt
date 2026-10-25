@@ -8,6 +8,17 @@ campaign whenever you like. Everything runs on this computer - no cloud, no acco
 
 NEW IN VERSION 4.9.3
 --------------------
+- New icon (the window, the taskbar, the tray and NobuNotes.exe itself). If Explorer still
+  shows the old icon for a while, that's Windows' icon memory - it updates on its own.
+- Drag a picture anywhere on the page: as soon as you drag it, it comes loose from its line
+  and follows the mouse, with the text flowing round it. Near the left edge, the middle or the
+  right edge of the page it snaps there (hold Alt to place it freely). Esc while dragging puts
+  it back. Ctrl + drag still moves a picture within the text (between words).
+- Right-click a picture > Place on page: Top left, Top right, Middle left, Middle right,
+  Bottom left or Bottom right of the page it's on.
+- Settings: the "Re-learn room noise" button is gone. It did nothing you could see, because
+  the noise filter already learns your room's sound by itself whenever you're not talking
+  (Settings now says so). "Teach Nobu my voice" still starts by learning the room afresh.
 - Place pictures anywhere on the page, with the text flowing round them line by line (like
   Word's text wrapping). Right-click a picture > Text wrapping:
     In line with text ............ as before: the picture sits in a line of text
@@ -382,10 +393,11 @@ MICROPHONE, NOISE FILTER AND GAIN  (gear > Microphone, noise & settings)
 - Gain: makes the mic louder or quieter. Keep the top meter mostly green; if it says
   TOO LOUD, lower it.
 - Noise filter: removes steady background noise (PC fan, AC, hum). 60% is a good start.
-  Use "Record a 6-second test" to hear exactly what Nobu hears, and adjust.
+  Use "Record a 6-second test" to hear exactly what Nobu hears, and adjust. It learns your
+  room's sound by itself whenever you're not talking (a fan switched on or off is picked up
+  within a second or two), so there is nothing to press when the room changes.
 - Speech sensitivity: how readily a sound counts as your voice. Raise it if Nobu misses
   you; lower it if it reacts to other sounds.
-- "Re-learn room noise" if the room's background changed (fan turned on/off).
 Slider changes are heard live; press Save to keep them.
 
 WHILE RECORDING

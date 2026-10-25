@@ -6,35 +6,24 @@ The whole picture is shown with a box over it; the part outside the box is darke
   * drag an edge or a corner ............. make it bigger or smaller
 Enter or "Crop" keeps what's inside the box, Esc or "Cancel" leaves the picture as it was.
 """
-import base64
-import io
 import tkinter as tk
 from tkinter import ttk
 
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageEnhance
 
+import nobu_doc as nd
 import nobu_theme as T
-from nobu_config import abs_from_home
+from nobu_pictool import tk_photo as _photo
 
 GRAB = 9          # how close (screen pixels) to an edge counts as grabbing it
 MIN_SIDE = 8      # the smallest box, in screen pixels
-
-
-def _photo(img):
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
-    return tk.PhotoImage(data=base64.b64encode(buf.getvalue()))
 
 
 class CropWindow:
     def __init__(self, editor, name):
         self.editor = editor
         self.name = name
-        with Image.open(abs_from_home(editor.images[name]["rel"])) as src:   # (closed at once: never locks the file)
-            img = ImageOps.exif_transpose(src)
-            img.load()
-        if img.mode not in ("RGB", "RGBA"):
-            img = img.convert("RGBA" if ("A" in img.mode or img.mode == "P") else "RGB")
+        img = nd.load_picture(editor.images[name]["rel"])
         self.W, self.H = img.size
         k = T.ui_scale(editor.root)
         self.scale = min(1.0, 760 * k / self.W, 520 * k / self.H)      # shown size / real size

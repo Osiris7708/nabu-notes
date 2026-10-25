@@ -220,16 +220,13 @@ class App:
 
     def _set_window_icon(self):
         try:
-            import base64
             art = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nobu_icon.png")
             if os.path.exists(art):
                 self._icon_img = tk.PhotoImage(file=art)
-            else:
-                import io
+            else:                       # (the drawn stand-in, if the icon file is missing)
+                from nobu_pictool import tk_photo
                 from nobu_ui import make_icon
-                buf = io.BytesIO()
-                make_icon("idle").save(buf, "PNG")
-                self._icon_img = tk.PhotoImage(data=base64.b64encode(buf.getvalue()))
+                self._icon_img = tk_photo(make_icon("idle"))
             self.root._nobu_icon = self._icon_img
             self.root.iconphoto(True, self._icon_img)
         except Exception:

@@ -109,8 +109,11 @@ SECTIONS = [
               "copied from a web page (right-click it > Copy image) or from another program, or picture files "
               "copied in File Explorer."),
         ("b", "Click a picture to select it: a blue frame with squares on its corners and sides appears."),
-        ("b", "Move it: drag the picture. A see-through copy follows the mouse and a blue line shows where it "
-              "will land. Esc while dragging cancels."),
+        ("b", "Move it: drag the picture anywhere on the page - it comes loose from its line and the text flows "
+              "round it. Near the left edge, the middle or the right edge it snaps there (hold Alt to stop it "
+              "snapping). Esc while dragging cancels."),
+        ("b", "Ctrl + drag moves a picture within the text instead (a blue line shows where it will land)."),
+        ("b", "Right-click a picture > Place on page: top, middle or bottom of the page, left or right."),
         ("b", "Resize it: drag a side to make it wider, narrower, taller or shorter. Drag a corner to make it "
               "bigger or smaller and keep its shape (hold Shift to stretch it freely). Right-click > Original "
               "shape undoes stretching."),
@@ -119,9 +122,9 @@ SECTIONS = [
         ("b", "Place a picture anywhere on the page: right-click it > Text wrapping. Square = text beside it "
               "(on the right, on the left, or whichever side has more room). Top and bottom = text above and "
               "below only. In front of text = it sits over the words. In line with text = back to normal."),
-        ("b", "Then drag it anywhere - the text moves out of its way as you go. Arrow keys nudge it (Shift + "
-              "arrow: a tiny step). It stays with its paragraph when you write above it, and Word, PDF, e-book "
-              "and web page exports keep it in place."),
+        ("b", "A floating picture: drag it anywhere - the text moves out of its way as you go. Arrow keys nudge "
+              "it (Shift + arrow: a tiny step). It stays with its paragraph when you write above it, and Word, "
+              "PDF, e-book and web page exports keep it in place."),
         ("b", "Right-click a picture to copy it (paste it into another note, Word, an email or a chat), pick a "
               "set size, or Crop… to keep only part of it: drag a box over the part you want (drag the box to "
               "move it, its edges to resize it), then Crop. Ctrl+Z undoes it."),
@@ -196,10 +199,9 @@ SECTIONS = [
         ("b", "Device: which microphone to use."),
         ("b", "Gain: louder or quieter. Keep the meter mostly green."),
         ("b", "Noise filter: removes steady background sound (fans, air conditioning) while listening for "
-              "commands."),
+              "commands. It learns your room's sound by itself whenever you're not talking."),
         ("b", "Speech sensitivity: raise it if Nobu stops while you're still talking quietly."),
-        ("b", "“Record a 6-second test” lets you hear what Nobu hears. “Re-learn room noise” after the room "
-              "changes."),
+        ("b", "“Record a 6-second test” lets you hear what Nobu hears."),
         ("b", "Stop after silence: how many quiet seconds end a recording."),
         ("b", "Wake word strictness, and “Also accept just ‘record this’”: how sure Nobu must be that it heard "
               "“Nobu”."),
