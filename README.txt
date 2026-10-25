@@ -1,10 +1,20 @@
-NOBU NOTES  (version 4.9.1)
+NOBU NOTES  (version 4.9.2)
 ===========================
 
 Say  "Nobu, record this"  and start talking.  ("Nobu" is said "no-boo".)
 Say  "Nobu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
+
+NEW IN VERSION 4.9.2
+--------------------
+- Paste pictures with Ctrl+V (or right-click > Paste): screenshots, pictures copied from a web
+  page (right-click the picture > Copy image), from another program, or picture files copied
+  in File Explorer. Pictures copied from web pages used to paste nothing.
+- Crop a picture: right-click it > Crop... Drag a box over the part you want to keep (drag
+  the box to move it, or its edges to change its size), then press Crop or Enter.
+  "Whole picture" starts again, Esc cancels, and Ctrl+Z brings back the whole picture
+  afterwards. The original picture file is always kept.
 
 NEW IN VERSION 4.9.1  (a full check of every button, slider and menu)
 --------------------

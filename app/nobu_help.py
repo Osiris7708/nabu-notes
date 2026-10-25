@@ -103,8 +103,13 @@ SECTIONS = [
         ("b", "Format painter: click it, then select text to copy the formatting onto it."),
         ("b", "Alignment, line and paragraph spacing (including a manuscript preset), indents, bullet and "
               "numbered lists (Tab / Shift+Tab change the level)."),
-        ("b", "Insert: tables (right-click a cell to add or remove rows and columns), pictures (button, paste or "
-              "drag in; right-click to resize), page breaks, symbols, today's date."),
+        ("b", "Insert: tables (right-click a cell to add or remove rows and columns), pictures, page breaks, "
+              "symbols, today's date."),
+        ("b", "Pictures: use the Picture button, drag a file in, or paste with Ctrl+V - a screenshot, a picture "
+              "copied from a web page (right-click it > Copy image) or from another program, or picture files "
+              "copied in File Explorer."),
+        ("b", "Right-click a picture to resize it, or Crop… to keep only part of it: drag a box over the part "
+              "you want (drag the box to move it, its edges to resize it), then Crop. Ctrl+Z undoes it."),
         ("b", "Spelling: a red wavy line marks a possible mistake. Right-click for suggestions, add the word, or "
               "ignore it. F7 jumps to the next one."),
         ("b", "Thesaurus: right-click a word > Synonyms, or Shift+F7."),

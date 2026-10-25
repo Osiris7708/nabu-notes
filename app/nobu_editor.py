@@ -1536,6 +1536,7 @@ class NoteEditor:
                 m.add_command(label=label, command=lambda w=w, n=name: self.resize_image(n, w))
             m.add_command(label="Original size", command=lambda n=name: self.resize_image(n, 0))
             m.add_separator()
+            m.add_command(label="Crop…", command=lambda n=name: self.crop_dialog(n))
             m.add_command(label="Open in picture viewer", command=lambda: open_path(abs_from_home(info["rel"])))
             m.add_command(label="Remove picture", command=lambda n=name: self.delete_image(n))
             m.tk_popup(ev.x_root, ev.y_root)
@@ -1831,7 +1832,7 @@ class NoteEditor:
                     except Exception:
                         log.exception("html paste failed")
                         items = None
-                if items is None and text is None and self.paste_image():
+                if not self._has_words(items, text) and self.paste_image():
                     return
         if items is None:
             if text is None:
@@ -1850,6 +1851,15 @@ class NoteEditor:
         start = t.index("insert")
         self._insert_items(items, "insert")
         self._finish_insert(start, t.index("insert"))
+
+    @staticmethod
+    def _has_words(items, text):
+        """Is there real writing on the clipboard? "Copy image" in a web browser also gives the picture's
+        web address (as text, and as HTML Nobu can't load offline) - then the picture itself should win."""
+        if items is not None:
+            return any(it.get("t", "").strip() or "i" in it or "table" in it for it in items)
+        s = (text or "").strip()
+        return bool(s) and not re.fullmatch(r"(https?|file)://\S+", s)
 
     def _finish_insert(self, a, b):
         self._renumber()
@@ -1886,19 +1896,22 @@ class NoteEditor:
         self.images[name] = {"rel": rel, "w": width, "photo": photo}
         return name
 
+    def _add_image(self, rel, index="insert", width=None):
+        """Put a picture (already in Images\\) into the page; it takes on the paragraph's alignment etc."""
+        name = self.place_image(rel, width, index)
+        for tg in self._typing_tags(index):
+            if R.is_par_tag(tg):
+                self.text.tag_add(tg, name)
+        self._mark_changed()
+        self._schedule_pages()
+        return name
+
     def insert_image_file(self, src, index="insert"):
         if not self.path:
             return None
         try:
             self._push_undo()
-            rel = nd.import_image(src, self.path)
-            name = self.place_image(rel, None, index)
-            for tg in self._typing_tags(index):
-                if R.is_par_tag(tg):
-                    self.text.tag_add(tg, name)
-            self._mark_changed()
-            self._schedule_pages()
-            return name
+            return self._add_image(nd.import_image(src, self.path), index)
         except Exception as e:
             log.exception("insert image failed")
             T.info(self.root, "Nobu Notes", "Could not add that picture.\n\n%s" % e)
@@ -1913,6 +1926,8 @@ class NoteEditor:
             self.insert_image_file(fp)
 
     def paste_image(self):
+        """Paste a picture from the clipboard: a screenshot, "Copy image" from a web page or another
+        program, or picture files copied in File Explorer. False if there is no picture to paste."""
         if not self.path:
             return False
         try:
@@ -1923,17 +1938,19 @@ class NoteEditor:
         if data is None:
             return False
         if isinstance(data, (list, tuple)):
-            done = False
-            for fp in data:
-                if str(fp).lower().endswith(IMG_EXTS):
-                    self.insert_image_file(str(fp))
-                    done = True
-            return done
+            files = [str(fp) for fp in data if str(fp).lower().endswith(IMG_EXTS)]
+            if files and self.text.tag_ranges("sel"):
+                self._push_undo()
+                self.text.delete("sel.first", "sel.last")
+            for fp in files:
+                self.insert_image_file(fp)
+            return bool(files)
         try:
             self._push_undo()
-            rel = nd.save_pil_image(data, self.path)
-            self.place_image(rel)
-            self._mark_changed()
+            if self.text.tag_ranges("sel"):
+                self.text.delete("sel.first", "sel.last")
+            self._add_image(nd.save_pil_image(data, self.path))
+            self.text.see("insert")
             return True
         except Exception:
             log.exception("paste image failed")
@@ -1973,6 +1990,44 @@ class NoteEditor:
         info.update(photo=photo, w=w)
         self._mark_changed()
         self._schedule_pages()
+
+    def crop_image(self, name, box):
+        """Keep only box = (left, top, right, bottom), in the picture's own pixels. The cropped picture is
+        saved as a new file and the original is kept, so Ctrl+Z brings the whole picture back."""
+        info = self.images.get(name)
+        if not info or not self.path:
+            return False
+        with Image.open(abs_from_home(info["rel"])) as src:
+            img = ImageOps.exif_transpose(src)
+            img.load()
+        W, H = img.size
+        l, t, r, b = (int(round(v)) for v in box)
+        l, t = max(0, min(l, W - 1)), max(0, min(t, H - 1))
+        r, b = max(l + 1, min(r, W)), max(t + 1, min(b, H))
+        if (l, t, r, b) == (0, 0, W, H):
+            return False
+        base, ext = os.path.splitext(os.path.basename(info["rel"]))
+        base = re.sub(r"_cropped(_\d+)?$", "", base)
+        ext = ".jpg" if ext.lower() in (".jpg", ".jpeg") else ".png"
+        try:
+            rel = nd.save_pil_image(img.crop((l, t, r, b)), self.path, base + "_cropped", ext)
+        except Exception as e:
+            log.exception("crop failed")
+            T.info(self.root, "Nobu Notes", "Could not crop that picture.\n\n%s" % e)
+            return False
+        self._push_undo()
+        photo, w = self._make_photo(rel, info["w"] * (r - l) / W)     # the kept part stays the same scale
+        self.text.image_configure(name, image=photo)
+        info.update(rel=rel, w=w, photo=photo)
+        self._mark_changed()
+        self._schedule_pages()
+        return True
+
+    def crop_dialog(self, name):
+        if name not in self.images:
+            return None
+        import nobu_crop
+        return nobu_crop.CropWindow(self, name)
 
     def delete_image(self, name):
         self._push_undo()

@@ -137,17 +137,21 @@ def import_image(src, note_path):
     return rel_to_home(dest)
 
 
-def save_pil_image(img, note_path):
+def save_pil_image(img, note_path, name=None, ext=".png"):
+    """Save a picture into Images/<note>/ (a pasted one, or a cropped copy) and return its path relative to HOME."""
     stem = os.path.splitext(os.path.basename(note_path or "Notes"))[0]
     folder = os.path.join(IMAGES_DIR, stem)
     os.makedirs(folder, exist_ok=True)
-    name = "pasted_" + time.strftime("%Y%m%d_%H%M%S")
-    dest = os.path.join(folder, name + ".png")
+    name = name or "pasted_" + time.strftime("%Y%m%d_%H%M%S")
+    dest = os.path.join(folder, name + ext)
     n = 2
     while os.path.exists(dest):
-        dest = os.path.join(folder, "%s_%d.png" % (name, n))
+        dest = os.path.join(folder, "%s_%d%s" % (name, n, ext))
         n += 1
-    img.save(dest, "PNG")
+    if ext == ".jpg":
+        img.convert("RGB").save(dest, "JPEG", quality=92)
+    else:
+        img.save(dest, "PNG")
     return rel_to_home(dest)
 
 

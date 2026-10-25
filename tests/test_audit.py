@@ -305,6 +305,91 @@ def go():
         check("right-click menu: %d entries all run" % n_ok, n_ok >= 10, [l for _m, _i, l in ents])
         nerr = clean_since(nerr, "right-click menu")
 
+        # ================================================================ pictures: paste and crop
+        import nobu_clip
+        from PIL import ImageGrab
+        real_grab, real_html = ImageGrab.grabclipboard, nobu_clip.get_html
+        CLIP = {"img": None, "html": None}
+        ImageGrab.grabclipboard = lambda *a, **k: CLIP["img"]
+        nobu_clip.get_html = lambda: CLIP["html"]
+        def paste_with(img, html=None, text=None):
+            CLIP["img"], CLIP["html"] = img, html
+            app.clip_items = None
+            app.root.clipboard_clear()
+            if text is not None:
+                app.root.clipboard_append(text)
+            ed.text.mark_set("insert", "end-1c")
+            n = len(ed.images)
+            ed.paste()
+            return len(ed.images) - n
+        shot = Image.new("RGB", (200, 100), (200, 40, 40))
+        check("paste a screenshot", step(lambda: paste_with(shot)) == 1)
+        url = "https://example.com/cat.png"
+        n_url = step(lambda: ed.text.get("1.0", "end").count(url))
+        check("paste a picture copied from a web page (Copy image)",
+              step(lambda: paste_with(shot, '<img src="%s" alt="cat">' % url, url)) == 1
+              and step(lambda: ed.text.get("1.0", "end").count(url)) == n_url)
+        check("a copied web address with no picture still pastes as text",
+              step(lambda: paste_with(None, None, url)) == 0 and step(lambda: ed.text.get("1.0", "end").count(url)) == n_url + 1)
+        check("text with a picture on the clipboard pastes the text", step(lambda: paste_with(shot, None, "Some words")) == 0)
+        img2 = os.path.join(H, "copied.png"); Image.new("RGB", (80, 80), (0, 0, 255)).save(img2)
+        check("paste picture files copied in File Explorer", step(lambda: paste_with([img2])) == 1)
+        n_before = step(lambda: len(ed.images))
+        step(lambda: paste_with(None, None, None))
+        check("pasting with an empty clipboard does nothing", step(lambda: len(ed.images)) == n_before)
+        ImageGrab.grabclipboard, nobu_clip.get_html = real_grab, real_html
+        # crop: the right-click entry
+        pic = step(lambda: [n for n, i in ed.images.items() if i["rel"].endswith("pic.png")][0])
+        def rclick_pic():
+            ed.text.see(pic); bb = ed.text.bbox(pic)
+            ed.text.event_generate("<Button-3>", x=bb[0] + 5, y=bb[1] + 5, rootx=bb[0], rooty=bb[1])
+        MENUS.clear(); step(rclick_pic); pm = last_menu()
+        check("picture right-click menu has Crop…", pm is not None and "Crop…" in step(lambda: labels(pm)), pm and step(lambda: labels(pm)))
+        def crop_windows():
+            return [w for w in app.root.winfo_children() if isinstance(w, tk.Toplevel) and w.winfo_exists() and w.title() == "Crop picture"]
+        step(lambda: invoke_label(pm, "Crop")); idle(0.3)
+        cw_wins = step(crop_windows)
+        check("Crop… opens the crop window", len(cw_wins) == 1)
+        step(lambda: [w.event_generate("<Escape>") for w in cw_wins]); idle(0.2)
+        check("Esc closes it", not step(crop_windows))
+        # crop: drawing, moving and resizing the box with the mouse
+        orig_rel = step(lambda: ed.images[pic]["rel"]); orig_w = step(lambda: ed.images[pic]["w"])
+        cw = step(lambda: ed.crop_dialog(pic)); idle(0.2)
+        class Ev:
+            def __init__(s, x, y): s.x, s.y = x, y
+        check("crop window starts with the whole picture", step(lambda: cw.real_box()) == (0, 0, 120, 60))
+        step(lambda: (cw._press(Ev(20, 10)), cw._drag(Ev(60, 30)), cw._drag(Ev(100, 50)), cw._release(Ev(100, 50))))
+        check("drag draws a new box", step(lambda: cw.real_box()) == (20, 10, 100, 50), step(lambda: cw.real_box()))
+        step(lambda: (cw._press(Ev(60, 30)), cw._drag(Ev(70, 35)), cw._release(Ev(70, 35))))
+        check("drag inside the box moves it", step(lambda: cw.real_box()) == (30, 15, 110, 55), step(lambda: cw.real_box()))
+        step(lambda: (cw._press(Ev(110, 30)), cw._drag(Ev(90, 30)), cw._release(Ev(90, 30))))
+        check("drag an edge resizes it", step(lambda: cw.real_box()) == (30, 15, 90, 55), step(lambda: cw.real_box()))
+        step(lambda: (cw._press(Ev(5, 5)), cw._release(Ev(5, 5))))
+        check("a click outside the box keeps the box", step(lambda: cw.real_box()) == (30, 15, 90, 55))
+        step(lambda: btn(cw.win, "Whole picture").invoke())
+        check("Whole picture starts again", step(lambda: cw.real_box()) == (0, 0, 120, 60))
+        step(lambda: btn(cw.win, "Cancel").invoke()); idle(0.2)
+        check("Cancel leaves the picture as it was", step(lambda: ed.images[pic]["rel"]) == orig_rel and not step(crop_windows))
+        # crop: the result
+        cw = step(lambda: ed.crop_dialog(pic)); idle(0.2)
+        step(lambda: (cw.set_box((10, 5, 70, 45)), btn(cw.win, "Crop").invoke())); idle(0.3)
+        new_rel = step(lambda: ed.images[pic]["rel"])
+        with Image.open(os.path.join(H, new_rel)) as im:
+            new_size = im.size
+        check("Crop keeps only the box", "_cropped" in new_rel and new_size == (60, 40), (new_rel, new_size))
+        check("...at the same scale", step(lambda: ed.images[pic]["w"]) == round(orig_w * 60 / 120), step(lambda: ed.images[pic]["w"]))
+        check("...and the original picture file is kept", os.path.isfile(os.path.join(H, orig_rel)))
+        step(ed.save)
+        with open(a, encoding="utf-8") as f:
+            check("the cropped picture is saved in the note", any(it.get("i") == new_rel for it in json.load(f)["items"]))
+        step(ed.undo)
+        check("Ctrl+Z brings the whole picture back", orig_rel in step(lambda: [i["rel"] for i in ed.images.values()]))
+        step(ed.redo)
+        cw = step(lambda: ed.crop_dialog(next(n for n, i in ed.images.items() if i["rel"] == new_rel))); idle(0.2)
+        step(lambda: (cw.set_box((0, 0, 30, 40)), cw.win.event_generate("<Return>"))); idle(0.3)
+        check("cropping a cropped picture works (Enter = Crop)", step(lambda: cw.done) is True and not step(crop_windows))
+        nerr = clean_since(nerr, "pictures: paste and crop")
+
         # ================================================================ note header buttons
         def hdr(text):
             return btn(ed.head, text)
