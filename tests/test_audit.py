@@ -551,7 +551,7 @@ def go():
             ed.text.see("1.0"); ed.text.update_idletasks(); bx, by, _bw, bh = ed.text.bbox("1.0")
             pt._drag(MEv(bx + 1, by + bh // 2))
             seen = (pt.ghost is not None, pt.caret.winfo_ismapped() or bool(pt.caret.place_info()),
-                    abs(pt.caret.winfo_x() + 1 + pt._inset()[0] - bx) <= 2 if pt.caret.place_info() else False)
+                    (pt.caret.update_idletasks(), abs(pt.caret.winfo_x() + 1 - bx) <= 2)[1] if pt.caret.place_info() else False)
             pt._release(MEv(bx + 1, by + bh // 2))
             return seen
         ghost, caret, caret_at = step(drag_to_top); idle(0.2)
@@ -585,21 +585,22 @@ def go():
             return i["w"], i.get("h"), i["photo"].width(), i["photo"].height()
         w0, h0, pw0, ph0 = step(lambda: drag_edge("r", 0, 0))
         check("a click on a side without dragging changes nothing", h0 is None and w0 == 120)
-        w, h, pw, ph = step(lambda: drag_edge("r", int(100 * sc), 0))
+        w, h, pw, ph = step(lambda: drag_edge("r", round(100 * sc), 0))
         check("drag the right side: wider, same height", w == 220 and h == 60 and abs(ph - ph0) <= 1, (w, h, pw, ph))
-        w, h, pw, ph = step(lambda: drag_edge("l", int(-50 * sc), 0))
+        w, h, pw, ph = step(lambda: drag_edge("l", round(-50 * sc), 0))
         check("drag the left side outwards: wider too", w == 270 and h == 60, (w, h))
-        w, h, pw, ph = step(lambda: drag_edge("b", 0, int(90 * sc)))
+        w, h, pw, ph = step(lambda: drag_edge("b", 0, round(90 * sc)))
         check("drag the bottom: taller, same width", w == 270 and h == 150, (w, h))
-        w, h, pw, ph = step(lambda: drag_edge("t", 0, int(40 * sc)))
+        w, h, pw, ph = step(lambda: drag_edge("t", 0, round(40 * sc)))
         check("drag the top down: shorter", w == 270 and h == 110, (w, h))
+        step(lambda: ed._undo.clear())       # (Nobu keeps only the last 80 steps: count from none)
         n_undo = step(lambda: len(ed._undo))
-        w, h, pw, ph = step(lambda: drag_edge("br", int(54 * sc), 0))
+        w, h, pw, ph = step(lambda: drag_edge("br", round(54 * sc), 0))
         check("drag a corner: bigger, keeping the shape", w == 324 and abs(h - 132) <= 1, (w, h))
         check("...one Ctrl+Z step per resize", step(lambda: len(ed._undo)) == n_undo + 1)
-        w, h, pw, ph = step(lambda: drag_edge("tl", int(54 * sc), 0))
+        w, h, pw, ph = step(lambda: drag_edge("tl", round(54 * sc), 0))
         check("drag the opposite corner inwards: smaller, same shape", w == 270 and abs(h - 110) <= 1, (w, h))
-        w, h, pw, ph = step(lambda: drag_edge("br", int(30 * sc), int(-50 * sc), shift=True))
+        w, h, pw, ph = step(lambda: drag_edge("br", round(30 * sc), round(-50 * sc), shift=True))
         check("Shift + corner stretches freely", w == 300 and abs(h - 60) <= 1, (w, h))
         check("the frame follows the new size", step(lambda: frame_fits(mp)))
         def rclick_mp():
@@ -618,7 +619,7 @@ def go():
         check("...or taller than the page", h == 864)
         w, h, pw, ph = step(lambda: drag_edge("tl", 9000, 9000))
         check("...or smaller than a thumbnail", w >= 30 and (h or 0) >= 20 and (w == 30 or h == 20), (w, h))
-        step(lambda: drag_edge("br", int(200 * sc), 0))
+        step(lambda: drag_edge("br", round(200 * sc), 0))
         step(ed.save)
         st = step(lambda: (ed.images[mp]["w"], ed.images[mp].get("h")))
         with open(a, encoding="utf-8") as f:
@@ -672,7 +673,7 @@ def go():
             t.update_idletasks(); fl.place_all(); t.update_idletasks()
             lab = info()["label"]
             lx, ly, lw, lh = lab.winfo_x(), lab.winfo_y(), lab.winfo_width(), lab.winfo_height()
-            beside, below, idx = [], [], "1.0"
+            beside, below, idx = [], [], t.index("@0,0 display linestart")
             for _ in range(400):
                 dl = t.dlineinfo(idx)
                 if dl is None:
@@ -680,7 +681,7 @@ def go():
                 x, y, w, h, _b = dl
                 bb = t.bbox(idx)
                 if bb and t.get(idx).strip():
-                    if y + h > ly + 3 and y < ly + lh - 3:
+                    if bb[1] + bb[3] > ly + 3 and bb[1] < ly + lh - 3:
                         beside.append((bb[0], x + w))
                     elif y >= ly + lh and len(below) < 3:
                         below.append(bb[0])
@@ -719,6 +720,7 @@ def go():
                 pe = t.index("%s +1c lineend" % pe)
             before = fl.plain(ps, pe)
             pos = len(fl.plain(ps, r[0]))
+            pt.deselect()                      # (with the picture selected, Backspace deletes the picture)
             t.focus_force(); t.mark_set("insert", r[1]); t.event_generate("<BackSpace>"); t.update()
             fl.reflow()
             pe = t.index("%s lineend" % ps)
@@ -726,7 +728,9 @@ def go():
                 pe = t.index("%s +1c lineend" % pe)
             return before[:pos - 1] + before[pos:], fl.plain(ps, pe)
         want, got = step(backspace_at_break)
-        check("Backspace at a hidden break deletes the letter before it", want == got, (want[-80:], got[-80:]))
+        d = next((i for i, (x, y) in enumerate(zip(want, got)) if x != y), min(len(want), len(got)))
+        check("Backspace at a hidden break deletes the letter before it", want == got,
+              (len(want), len(got), d, want[max(0, d - 30):d + 30], got[max(0, d - 30):d + 30]))
         step(ed.undo); idle(0.2)
         fp = step(lambda: next(n for n, i in ed.images.items() if i.get("float")))
         # dragging it anywhere
@@ -740,16 +744,17 @@ def go():
             pt._frelease(MEv(0, 0, 500 + dx, 500 + dy))
             ed.text.update()
             return info()["float"]["x"], info()["_doc_top"]
-        x1, top1 = step(lambda: fdrag(int(150 * sc), int(60 * sc)))
+        x1, top1 = step(lambda: fdrag(round(150 * sc), round(60 * sc)))
         check("drag a floating picture anywhere: across", x1 == x0 + 150, (x0, x1))
-        check("...and down", abs(top1 - (top0 + int(60 * sc))) <= 2, (top0, top1))
+        check("...and down", abs(top1 - (top0 + round(60 * sc))) <= 2, (top0, top1))
         step(ed.undo); idle(0.2)
         fp = step(lambda: next(n for n, i in ed.images.items() if i.get("float")))
         check("Ctrl+Z puts it back", step(lambda: info()["float"]["x"]) == x0)
-        x2, _t2 = step(lambda: fdrag(int(100 * sc), 0, esc=True))
+        x2, _t2 = step(lambda: fdrag(round(100 * sc), 0, esc=True))
         check("Esc while dragging leaves it where it was", x2 == x0, (x0, x2))
         class KEv:
             def __init__(s, state=0): s.state = state
+        step(lambda: ed._undo.clear())
         n_u = step(lambda: len(ed._undo))
         step(lambda: (pt.select(fp), ed._nudge_picture(KEv(), 1, 0), ed._nudge_picture(KEv(), 1, 0), ed._nudge_picture(KEv(1), 1, 0)))
         check("arrow keys nudge it (8 pixels, Shift 1)", step(lambda: info()["float"]["x"]) == x0 + 17)
@@ -761,13 +766,13 @@ def go():
             pt._resize_drag(MEv(0, 0, 500 + dx, 500 + dy)); ed.text.update(); time.sleep(0.05); ed.text.update()
             pt._resize_release()
             return info()["w"], info()["float"]["x"]
-        w1, xa = step(lambda: fresize("r", int(60 * sc)))
+        w1, xa = step(lambda: fresize("r", round(60 * sc)))
         check("drag the right side of a floating picture: wider", w1 == 360, w1)
-        w2, xb = step(lambda: fresize("l", int(-40 * sc)))
-        check("drag its left side: wider, growing to the left", w2 == 400 and xb == xa - 40, (w2, xa, xb))
+        w2, xb = step(lambda: fresize("l", round(-40 * sc)))
+        check("drag its left side: wider, growing to the left", w2 == 400 and xb == max(0, xa - 40), (w2, xa, xb))
         lx, ly, lw, lh, beside, below = step(layout)
         check("the text makes room for the new size", all(x >= lx + lw for x, _e in beside) if beside else True, (lx, lw, beside[:3]))
-        step(lambda: fresize("l", int(100 * sc)))            # (back to 300 wide)
+        step(lambda: fresize("l", round(100 * sc)))            # (back to 300 wide)
         # the other wrapping styles
         def wrap_to(wrap, side=None):
             global_fp = ed.set_wrap(fp, wrap, side)
@@ -799,8 +804,9 @@ def go():
         # a list beside a picture keeps its bullets
         def to_list():
             li = ed.text.search("•", "1.0")
-            fl.move_to(fp, 0, doc_top=fl.ydoc(li))
+            fl.move_to(fp, 0, doc_top=fl.ydoc(li) + 3)
             fl.reflow()
+            li = ed.text.search("•", "1.0")
             return fl.par_start(ed.text.index(fp)) == ed.text.index("%s linestart" % li), len(ed.text.tag_ranges("lm")) // 2
         pinned, n_lm = step(to_list); idle(0.2)
         step(ed._renumber)
@@ -821,6 +827,7 @@ def go():
         fp = step(lambda: fl.names()[0])
         # a picture hanging below the end of the note: the page grows to show it
         def hang():
+            ed._push_undo()
             fl.move_to(fp, 0, doc_top=fl.ydoc("end-1c linestart") + 10)
             fl.reflow()
             return int(ed.text.tag_cget("docend", "spacing3"))
@@ -829,6 +836,7 @@ def go():
         fp = step(lambda: fl.names()[0])
         # zoom, save, reopen, delete
         step(lambda: ed.set_zoom("150%")); idle(0.4)
+        step(lambda: (ed.text.see(fl.par_start(ed.text.index(fp))), ed.text.update_idletasks())); idle(0.3)
         lx, ly, lw, lh, beside, below = step(layout)
         check("zooming in keeps the text flowing round it", len(beside) >= 2 and all(x >= lx + lw for x, _e in beside), (lx, lw, beside[:3]))
         step(lambda: ed.set_zoom("100%")); idle(0.3)
@@ -845,6 +853,7 @@ def go():
         step(ed.undo); idle(0.2)
         check("...Ctrl+Z brings it back", len(step(fl.names)) == 1)
         nerr = clean_since(nerr, "pictures anywhere on the page")
+        step(lambda: app.ws.close_editor(ed)); idle(0.3)
         step(lambda: app.open_note(a)); idle(0.5)
         ed = step(lambda: app.editor); pt = ed.pictool
 

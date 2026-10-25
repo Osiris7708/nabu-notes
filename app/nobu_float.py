@@ -41,7 +41,16 @@ class FloatLayer:
         self.all_dirty = True         # everything must flow again (a picture was added, moved, resized...)
         self.touched = []             # where the text was edited since the last reflow
         self.n_soft = 0               # invisible breaks made by the last reflow (an edit that removed one: reflow)
+        self._width = 0               # the page's width at the last reflow
+        self.t.bind("<Configure>", self._resized, add="+")
         self.recs = {}                # line number -> {"lm", "rm", "push"} while flowing
+
+    def _resized(self, e):
+        """The page got wider or narrower (zooming does this a moment after the fonts change): flow again."""
+        if e.width != self._width:
+            self._width = e.width
+            if self.names():
+                self.schedule()
 
     # ------------------------------------------------------------ the floating pictures
     def names(self):

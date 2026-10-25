@@ -65,6 +65,13 @@ def verdict(code, out):
     m = re.findall(r"RESULT (\d+)/(\d+) passed", out)
     tb = real_errors(out)
     fails = [l.strip() for l in out.splitlines() if l.startswith("FAIL  ")]
+    if not m:                      # tests that print "PASS ..." / "FAIL ..." lines but no RESULT line: count them
+        lines = out.splitlines()
+        n_pass = sum(1 for l in lines if l.startswith("PASS "))
+        n_fail = [l for l in lines if l.startswith("FAIL ")]
+        if n_pass or n_fail:
+            m = [(str(n_pass), str(n_pass + len(n_fail)))]
+            fails = ["FAIL  " + l[5:].strip() for l in n_fail]
     if m:
         a, b = map(int, m[-1])
         if a == b and not tb:

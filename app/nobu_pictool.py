@@ -366,7 +366,7 @@ class PictureTool:
             self.t.yview_scroll(1, "units")
         k = self.ed.img_scale()
         scrolled = fl.view_offset() - fp["off"]
-        fl.move_to(fp["name"], (fp["px"] + dx) / k, doc_top=fp["top"] + dy + scrolled)
+        fl.move_to(fp["name"], fp["fx"] + dx / k, doc_top=fp["top"] + dy + scrolled)
         self.ed.app.set_status("Let go to put the picture here. Esc: leave it where it was.")
         return "break"
 
@@ -392,7 +392,7 @@ class PictureTool:
         img.thumbnail((1600, 1600))                               # (a smaller copy for the live preview)
         k = self.ed.img_scale()
         w0 = float(info["w"])
-        h0 = float(info["h"]) if info.get("h") else info["photo"].height() / k
+        h0 = float(info["h"]) if info.get("h") else w0 * natural    # (its own shape: exact, not from the screen)
         f = info.get("float")
         self.resize = {"edge": edge, "x": e.x_root, "y": e.y_root, "w0": w0, "h0": h0, "w": w0, "h": h0,
                        "natural": natural, "img": img, "undo": False,
