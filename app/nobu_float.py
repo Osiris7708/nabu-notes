@@ -238,7 +238,7 @@ class FloatLayer:
         if not info:
             return
         k = ed.img_scale()
-        w, h = info["photo"].width() / k, info["photo"].height()
+        w, h = info["w"], info["photo"].height()        # (its exact width in page pixels, not the screen's)
         cur = info["_doc_top"]
         if cur is None:
             cur = self.ydoc(self.par_start(t.index(name))) + info["float"]["y"] * k
@@ -246,7 +246,7 @@ class FloatLayer:
         for _ in range(3):              # (moving it re-wraps the text above, which shifts the page: settle)
             top, bottom = self.page_box(page)
             y = max(top, {"t": top, "m": top + (bottom - top - h) / 2.0, "b": bottom - h}[spot[0]])
-            self.move_to(name, 0 if spot[1] == "l" else TEXT_W - w, doc_top=y)
+            self.move_to(name, 0 if spot[1] == "l" else TEXT_W - w, doc_top=y, width=w)
             self.reflow()
             if abs(self.ydoc(self.par_start(t.index(name))) + info["float"]["y"] * k - y) < 2:
                 break

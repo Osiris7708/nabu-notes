@@ -596,7 +596,9 @@ def go():
         mp = step(lambda: next(n for n, i in ed.images.items() if not i.get("float") and ed.text.index(n) == old_ix))
         check("...Ctrl+Z puts it back in its line", not step(ed.flow.names))
         loose, fl_now = step(lambda: loose_drag(round(150 * sc), 0, esc=True))
-        check("...Esc while dragging puts it back in its line", not fl_now and step(lambda: ed.text.index(mp)) == old_ix)
+        back = step(lambda: [n for n, i in ed.images.items() if not i.get("float") and ed.text.index(n) == old_ix])
+        check("...Esc while dragging puts it back in its line", not fl_now and len(back) == 1, (fl_now, back))
+        mp = back[0] if back else mp            # (putting it back reloads the pictures under new names)
         loose, fl_now = step(lambda: loose_drag(-round((x_was - 5) * sc), 0))
         check("near the left edge it snaps to the edge", fl_now and fl_now[0][0] == 0, (x_was, fl_now))
         step(ed.undo); idle(0.2)
@@ -797,7 +799,8 @@ def go():
         x0, top0 = step(lambda: (info()["float"]["x"], info()["_doc_top"]))
         def fdrag(dx, dy, esc=False):
             pt._fpress(MEv(0, 0, 500, 500), fp)
-            pt._fdrag(MEv(0, 0, 500 + dx // 2, 500 + dy // 2)); pt._fdrag(MEv(0, 0, 500 + dx, 500 + dy))
+            alt = 0x20000                       # (Alt: placed exactly, no snapping to the edges or the middle)
+            pt._fdrag(MEv(0, 0, 500 + dx // 2, 500 + dy // 2, alt)); pt._fdrag(MEv(0, 0, 500 + dx, 500 + dy, alt))
             if esc:
                 pt._escape(None)
             pt._frelease(MEv(0, 0, 500 + dx, 500 + dy))
