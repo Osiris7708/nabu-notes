@@ -19,6 +19,7 @@ from PIL import Image, ImageOps
 
 import nobu_clip
 import nobu_doc as nd
+import nobu_pictool
 import nobu_library as lib
 import nobu_rich as R
 import nobu_theme as T
@@ -317,6 +318,7 @@ class NoteEditor:
         self.dpi = float(self.root.winfo_fpixels("1i"))
         self.ctx = R.Ctx(getattr(app, "body_family", "IM FELL English"), getattr(app, "heading_family", "Eagle Lake"),
                          float(cfg["font_size"]))
+        self.pictool = None        # moving / resizing pictures with the mouse (nobu_pictool)
         self._build_ui()
 
     # ------------------------------------------------------------------ measurements
@@ -717,6 +719,7 @@ class NoteEditor:
         t.bind("<Double-Button-1>", self._on_double_click)
         t.bind("<MouseWheel>", lambda e: T.later(self.frame, None, self._draw_gutters), add="+")
         t.bind("<Control-MouseWheel>", self._wheel_zoom)
+        self.pictool = nobu_pictool.PictureTool(self)
 
     def _watch_changes(self):
         """Count every change to the page's text (typing, Tk's own key handling, pictures, tables...).
@@ -1256,6 +1259,8 @@ class NoteEditor:
         ch = ev.char
         if not ch or ch < " " or ch == "\x7f" or (ev.state & 0x4 and not ev.state & 0x20000):
             return None
+        if self.pictool and self.pictool.sel:      # typing goes on at the cursor; the picture stays
+            self.pictool.deselect()
         t = self.text
         self._typing_undo(ch)
         if t.tag_ranges("sel"):
@@ -1317,8 +1322,19 @@ class NoteEditor:
         self.text.insert("insert", "\t", self._typing_tags())
         return "break"
 
+    def _delete_selected_picture(self):
+        """Backspace / Delete while a picture is selected (clicked) removes that picture."""
+        name = self.pictool.sel if self.pictool else None
+        if not name:
+            return False
+        self.pictool.deselect()
+        self.delete_image(name)
+        return True
+
     def _on_backspace(self, ev):
         t = self.text
+        if self._delete_selected_picture():
+            return "break"
         if not t.tag_ranges("sel"):
             line = t.index("insert linestart")
             me = self._marker_end(line)
@@ -1334,6 +1350,8 @@ class NoteEditor:
         return None
 
     def _on_delete(self, ev):
+        if self._delete_selected_picture():
+            return "break"
         self._typing_undo("\n" if self.text.tag_ranges("sel") else "")
         T.later(self.frame, None, self._after_join)
         return None
@@ -1995,11 +2013,33 @@ class NoteEditor:
             return "break"
         return None
 
-    def resize_image(self, name, width):
+    def move_image(self, name, dest):
+        """Move a picture to dest (a place between two characters). It takes on the alignment etc. of the
+        paragraph it lands in. Returns the picture's new name, or None if it didn't move."""
+        t = self.text
+        info = self.images.get(name)
+        if not info:
+            return None
+        src = t.index(name)
+        dest = t.index(dest)
+        if t.compare(dest, "==", src) or t.compare(dest, "==", "%s +1c" % src):
+            return None
+        self._push_undo()
+        t.mark_set("nobu_move", dest)
+        t.delete(src, "%s +1c" % src)
+        self.images.pop(name, None)
+        new = self._add_image(info["rel"], "nobu_move", info["w"])
+        t.mark_unset("nobu_move")
+        self._restyle(src, src)
+        self._restyle(t.index(new), t.index(new))
+        return new
+
+    def resize_image(self, name, width, undo=True):
         info = self.images.get(name)
         if not info:
             return
-        self._push_undo()
+        if undo:
+            self._push_undo()
         if not width:
             with Image.open(abs_from_home(info["rel"])) as im:
                 width = im.size[0]
@@ -2423,6 +2463,8 @@ class NoteEditor:
     def _load_items(self, items):
         t = self.text
         self._loading = True
+        if self.pictool:
+            self.pictool.deselect()
         try:
             t.delete("1.0", "end")
             for b in list(self.blocks.values()):

@@ -8,6 +8,11 @@ campaign whenever you like. Everything runs on this computer - no cloud, no acco
 
 NEW IN VERSION 4.9.3
 --------------------
+- Move and resize pictures with the mouse: click a picture to select it (a blue frame with a
+  square in the corner appears). Drag the picture to move it - a blue line shows where it
+  will land. Drag the corner square to make it bigger or smaller (it keeps its shape, from
+  thumbnail size up to the full page width). Delete removes the selected picture; Esc, typing
+  or a click elsewhere lets go of it. Each move or resize is one Ctrl+Z.
 - Copy a picture out of a note: right-click it > Copy picture (or select just the picture and
   press Ctrl+C). Paste it into another note, Word, an email, Paint or a chat - no need to open
   it in another program first.
