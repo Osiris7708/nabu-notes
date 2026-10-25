@@ -71,6 +71,34 @@ def write_ico(art, path):
     return imgs
 
 
+def _icon_ids(exe):
+    """The numbers of the icon pictures stored in exe."""
+    from ctypes import wintypes
+    k32 = ctypes.windll.kernel32
+    k32.LoadLibraryExW.restype = ctypes.c_void_p
+    k32.LoadLibraryExW.argtypes = [ctypes.c_wchar_p, ctypes.c_void_p, ctypes.c_uint]
+    k32.FreeLibrary.argtypes = [ctypes.c_void_p]
+    proc = ctypes.WINFUNCTYPE(wintypes.BOOL, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+    k32.EnumResourceNamesW.argtypes = [ctypes.c_void_p, ctypes.c_void_p, proc, ctypes.c_void_p]
+    ids = []
+    cb = proc(lambda hm, typ, name, lp: ids.append(int(name)) or True if name and name <= 0xFFFF else True)
+    h = k32.LoadLibraryExW(exe, None, 0x2)            # (as data: nothing in it runs)
+    if h:
+        k32.EnumResourceNamesW(h, 3, cb, None)
+        k32.FreeLibrary(h)
+    return ids
+
+
+def refresh_icons():
+    """Ask Windows to forget the icons it remembered (Explorer, desktop shortcuts)."""
+    import subprocess
+    try:
+        ctypes.windll.shell32.SHChangeNotify(0x08000000, 0, None, None)     # SHCNE_ASSOCCHANGED
+        subprocess.run(["ie4uinit.exe", "-show"], timeout=30)
+    except Exception:
+        pass
+
+
 def patch_exe(exe, imgs):
     """Replace the icon inside exe (group icon 1, icons 1..n) with Windows' resource-update calls."""
     k32 = ctypes.windll.kernel32
@@ -80,6 +108,7 @@ def patch_exe(exe, imgs):
                                     ctypes.c_void_p, ctypes.c_uint]
     k32.EndUpdateResourceW.argtypes = [ctypes.c_void_p, ctypes.c_bool]
     RT_ICON, RT_GROUP_ICON, LANG = 3, 14, 1033
+    old = _icon_ids(exe)                            # (the old icon may have had more sizes: those go too)
     h = k32.BeginUpdateResourceW(exe, False)
     if not h:
         raise OSError("can't open %s to change its icon (is Nobu Notes running?)" % exe)
@@ -89,6 +118,9 @@ def patch_exe(exe, imgs):
         buf = ctypes.create_string_buffer(png, len(png))
         ok &= bool(k32.UpdateResourceW(h, RT_ICON, n, LANG, buf, len(png)))
         group += struct.pack("<BBBBHHIH", s % 256, s % 256, 0, 0, 1, 32, len(png), n)
+    for n in old:
+        if n > len(imgs):
+            ok &= bool(k32.UpdateResourceW(h, RT_ICON, n, LANG, None, 0))
     gbuf = ctypes.create_string_buffer(group, len(group))
     ok &= bool(k32.UpdateResourceW(h, RT_GROUP_ICON, 1, LANG, gbuf, len(group)))
     if not k32.EndUpdateResourceW(h, not ok) or not ok:
@@ -108,6 +140,7 @@ def main(argv):
     exe = os.path.join(ROOT, "NobuNotes.exe")
     if os.name == "nt" and os.path.isfile(exe):
         patch_exe(exe, imgs)
+        refresh_icons()
         print("NobuNotes.exe has the new icon")
     return 0
 

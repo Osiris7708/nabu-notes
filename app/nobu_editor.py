@@ -301,6 +301,7 @@ class NoteEditor:
         self._spell_queue = []
         self._spell_job = None
         self._page_job = None
+        self._pages_later = False  # pages to count once this note is shown (hidden tabs aren't counted)
         self._gut_job = None
         self._rib_job = None
         self._rib_check_job = None
@@ -724,6 +725,9 @@ class NoteEditor:
         t.bind("<Control-MouseWheel>", self._wheel_zoom)
         self.pictool = nobu_pictool.PictureTool(self)
         self.flow = nobu_float.FloatLayer(self)
+        for seq in ("<Configure>", "<Map>"):          # (shown again: count the pages it skipped while hidden)
+            t.bind(seq, lambda e: self._schedule_pages() if self._pages_later and t.winfo_width() >= self.px(2.0)
+                   else None, add="+")
         for seq, d in (("<Left>", (-1, 0)), ("<Right>", (1, 0)), ("<Up>", (0, -1)), ("<Down>", (0, 1))):
             t.bind(seq, lambda e, d=d: self._nudge_picture(e, *d))
 
@@ -2371,6 +2375,12 @@ class NoteEditor:
         t = self.text
         if not self.path:
             return
+        if not t.winfo_ismapped() or t.winfo_width() < self.px(2.0):
+            # A tab that isn't showing is squashed to a pixel wide: every letter would be a line of its own,
+            # and counting its "pages" froze Nobu at start (5 notes reopened). Count them when it's shown.
+            self._pages_later = True
+            return
+        self._pages_later = False
         page_h = self.px(9.0)
         total = self._ypix("1.0", "end")          # (also brings the layout up to date)
         nlines = int(t.index("end-1c").split(".")[0])

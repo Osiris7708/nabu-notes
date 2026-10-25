@@ -43,6 +43,7 @@ class FloatLayer:
         self.n_soft = 0               # invisible breaks made by the last reflow (an edit that removed one: reflow)
         self._width = 0               # the page's width at the last reflow
         self.t.bind("<Configure>", self._resized, add="+")
+        self.t.bind("<Map>", lambda e: self.schedule() if self.all_dirty and self.names() else None, add="+")
         self.recs = {}                # line number -> {"lm", "rm", "push"} while flowing
 
     def _resized(self, e):
@@ -309,6 +310,9 @@ class FloatLayer:
         names = self.names()
         if not names and not t.tag_ranges("softnl") and not self._wtags:
             self.touched = []
+            return
+        if not t.winfo_ismapped() or t.winfo_width() < ed.px(2.0):
+            self.all_dirty = True              # (a tab that isn't showing: flow it when it's shown - _resized)
             return
         todo, spans = self._to_flow(names)
         self.touched = []

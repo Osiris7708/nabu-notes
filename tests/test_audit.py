@@ -942,6 +942,17 @@ def go():
         step(lambda: app.open_note(b)); idle(0.3)
         p0 = step(lambda: app.ws.panes[0])
         check("a second note opens as a tab", step(lambda: len(p0.eds)) == 2)
+        # a tab that isn't showing is a pixel wide: counting its pages (every letter a line) froze Nobu at start
+        hidden = step(lambda: next(e for e in p0.eds if e is not p0.cur))
+        def hidden_pages():
+            t0 = time.time()
+            hidden._paginate()
+            return time.time() - t0, hidden._pages_later
+        dt, later = step(hidden_pages)
+        check("a hidden tab doesn't count its pages (that froze Nobu at start)", dt < 0.3 and later, (dt, later))
+        step(lambda: app.open_note(hidden.path)); idle(1.0)          # (an open note: its tab comes to the front)
+        check("...it counts them as soon as it is shown", not step(lambda: hidden._pages_later))
+        step(lambda: app.open_note(b)); idle(0.3)
         step(lambda: btn(p0.ctl, "☰").invoke())
         check("☰ switches to the compact toolbar", step(lambda: app.editor.ribbon_compact()))
         step(lambda: btn(p0.ctl, "☰").invoke())
