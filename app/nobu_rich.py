@@ -5,7 +5,8 @@ Storage (a note's "items") keeps text runs with tag lists. Tags:
               link:<web address>  (made safe by clean_url: no spaces, quotes or braces)
   paragraph:  st:<style>  al:left|center|right|justify  ls:<multiple>  sb:<pt>  sa:<pt>
               ind:<inches>  fi:<inches>  li:bullet:<level> | li:num:<level>
-  blocks:     {"table": {"rows": [[...]]}}   {"pb": 1}  (page break)   {"i": image, "w": px}
+  blocks:     {"table": {"rows": [[...]]}}   {"pb": 1}  (page break)   {"i": image, "w": px, "h": px}
+              (a picture's "h" is only there when it was stretched; without it the picture keeps its shape)
 "lm" marks list-marker text ("•\\t", "3.\\t") that the editor draws; exporters skip it.
 
 "paras" is the export-friendly form: a list of blocks
@@ -164,7 +165,7 @@ def items_to_paras(items):
             skip_nl = True
             continue
         if "i" in it:
-            cur_runs.append({"img": it["i"], "w": it.get("w")})
+            cur_runs.append({"img": it["i"], "w": it.get("w"), "h": it.get("h")})
             last_tags = tags
             skip_nl = False
             continue
@@ -242,7 +243,7 @@ def paras_to_items(paras):
             num.clear()
         for r in p.get("runs", []):
             if "img" in r:
-                items.append({"i": r["img"], "w": r.get("w"), "g": sorted(pt)})
+                items.append(dict({"i": r["img"], "w": r.get("w"), "g": sorted(pt)}, **({"h": r["h"]} if r.get("h") else {})))
             elif r.get("t"):
                 items.append({"t": r["t"], "g": sorted(set(pt + _char_tags(r)))})
         items.append({"t": "\n", "g": sorted(pt)})
@@ -314,6 +315,17 @@ def luminance(hexcol):
 # ---------------------------------------------------------------- HTML out
 def _css_font(fam):
     return "'%s'" % fam.replace("'", "")
+
+
+def stretched(rel, w, h):
+    """Is w x h a different shape from the picture itself (more than 2% off)?"""
+    try:
+        from PIL import Image
+        with Image.open(abs_from_home(rel)) as im:
+            w0, h0 = im.size
+        return abs(h - w * h0 / float(w0)) > 0.02 * h
+    except Exception:
+        return False
 
 
 def image_data_uri(rel):
@@ -392,6 +404,9 @@ def _run_html(r, pstyle, ctx, img_src):
         except Exception:
             return "[missing picture]"
         w = r.get("w") or 400
+        if r.get("h"):                    # stretched: both sizes, so it isn't put back into shape
+            return "<img src='%s' style='width:%dpx;height:%dpx' width='%d' height='%d'>" % (
+                src, int(w), int(r["h"]), int(w), int(r["h"]))
         return "<img src='%s' style='width:%dpx;max-width:100%%' width='%d'>" % (src, int(w), int(w))
     fam, size, bold, italic = ctx.run_font(pstyle, r)
     css = ["font-family:%s" % _css_font(fam), "font-size:%spt" % _fmt(size)]
@@ -601,12 +616,16 @@ class _HTMLToParas(HTMLParser):
             if rel:
                 if self.par is None:
                     self._start_par()
-                w = a.get("width")
-                try:
-                    w = int(float(str(w).replace("px", ""))) if w else None
-                except ValueError:
-                    w = None
-                self.par["runs"].append({"img": rel, "w": w})
+                def px(v):
+                    try:
+                        return int(float(str(v).replace("px", ""))) if v else None
+                    except ValueError:
+                        return None
+                w, h = px(a.get("width")), px(a.get("height"))
+                run = {"img": rel, "w": w}
+                if w and h and stretched(rel, w, h):
+                    run["h"] = h
+                self.par["runs"].append(run)
 
     def handle_endtag(self, tag):
         if tag in ("style", "script", "head", "xml"):
@@ -833,7 +852,7 @@ def to_rtf(paras, ctx):
                         buf = io.BytesIO()
                         im.convert("RGBA").save(buf, "PNG")
                         w = (r.get("w") or min(im.width, 480))
-                        h = int(im.height * w / im.width)
+                        h = int(r.get("h") or im.height * w / im.width)
                     body.append("{\\pict\\pngblip\\picwgoal%d\\pichgoal%d %s}" % (
                         w * 15, h * 15, buf.getvalue().hex()))
                 except Exception:

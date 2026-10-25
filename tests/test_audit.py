@@ -500,11 +500,13 @@ def go():
         # ================================================================ move and resize pictures with the mouse (v4.9.3)
         pt = ed.pictool
         class MEv:
-            def __init__(s, x, y, xr=None, yr=None): s.x, s.y, s.x_root, s.y_root = x, y, (x if xr is None else xr), (y if yr is None else yr)
-        def new_pic():
+            def __init__(s, x, y, xr=None, yr=None, state=0):
+                s.x, s.y, s.state = x, y, state
+                s.x_root, s.y_root = (x if xr is None else xr), (y if yr is None else yr)
+        def new_pic(src=img):
             ed.text.insert("end-1c", "\nPicture line ")
             ed.text.mark_set("insert", "end-1c")
-            return ed.insert_image_file(img)
+            return ed.insert_image_file(src)
         mp = step(new_pic); idle(0.3)
         def centre(name):
             ed.text.see(name); ed.text.update_idletasks(); x, y, w, h = ed.text.bbox(name)
@@ -512,11 +514,29 @@ def go():
         def real_click(name):
             x, y = centre(name)
             ed.text.event_generate("<ButtonPress-1>", x=x, y=y); ed.text.event_generate("<ButtonRelease-1>", x=x, y=y)
+        def frame_fits(name, see=True):
+            """The blue frame hugs the picture: each side is right against it (in the Text's own pixels)."""
+            if see:
+                ed.text.see(name)
+            ed.text.update_idletasks(); pt.sync(); ed.text.update_idletasks()
+            x, y = ed.text.bbox(name)[:2]
+            ph = ed.images[name]["photo"]
+            w, h = ph.width(), ph.height()
+            bar = pt.bars
+            return (bar["l"].winfo_x() + bar["l"].winfo_width() == x and bar["t"].winfo_y() + bar["t"].winfo_height() == y
+                    and bar["r"].winfo_x() == x + w and bar["b"].winfo_y() == y + h)
         step(lambda: real_click(mp)); idle(0.3)
         check("click a picture selects it", step(lambda: pt.sel) == mp)
-        check("...and shows the corner handle", step(lambda: pt.handle.winfo_ismapped()) == 1)
+        check("...the frame and 8 squares show", step(lambda: all(w.winfo_ismapped() for w in pt._widgets())))
+        check("...and the frame sits right around the picture (page margins allowed for)", step(lambda: frame_fits(mp)))
         step(lambda: ed.text.event_generate("<Escape>")); idle(0.1)
-        check("Esc lets go of the picture", step(lambda: pt.sel) is None and step(lambda: pt.handle.winfo_ismapped()) == 0)
+        check("Esc lets go of the picture", step(lambda: pt.sel) is None and not step(lambda: any(w.winfo_ismapped() for w in pt._widgets())))
+        cropped = step(lambda: next(n for n, i in ed.images.items() if "_cropped" in i["rel"]))
+        step(lambda: pt.select(cropped)); idle(0.2)
+        check("...the frame also fits a cropped picture", step(lambda: frame_fits(cropped)))
+        step(lambda: ed.text.yview_scroll(-1, "units")); idle(0.3)
+        check("...and follows it when the page scrolls", step(lambda: frame_fits(cropped, see=False)))
+        step(pt.deselect)
         # a tiny wobble doesn't move it
         old_ix = step(lambda: ed.text.index(mp))
         def wobble():
@@ -530,53 +550,90 @@ def go():
             pt._press(MEv(x, y)); pt._drag(MEv(x + 20, y + 20))
             ed.text.see("1.0"); ed.text.update_idletasks(); bx, by, _bw, bh = ed.text.bbox("1.0")
             pt._drag(MEv(bx + 1, by + bh // 2))
-            shown = pt.caret.winfo_ismapped() or True
+            seen = (pt.ghost is not None, pt.caret.winfo_ismapped() or bool(pt.caret.place_info()),
+                    abs(pt.caret.winfo_x() + 1 + pt._inset()[0] - bx) <= 2 if pt.caret.place_info() else False)
             pt._release(MEv(bx + 1, by + bh // 2))
-            return shown
-        step(drag_to_top); idle(0.2)
+            return seen
+        ghost, caret, caret_at = step(drag_to_top); idle(0.2)
+        check("while dragging, a see-through copy follows the mouse", ghost)
+        check("...and a blue line shows where it will land", caret and caret_at)
         moved = step(lambda: [n for n, i in ed.images.items() if ed.text.index(n) == "1.0"])
         check("drag a picture to move it", len(moved) == 1, step(lambda: {n: ed.text.index(n) for n in ed.images}))
         check("...it is still selected after the move", moved and step(lambda: pt.sel) == moved[0])
-        check("...and the old spot is empty", step(lambda: mp not in ed.images))
+        check("...the copy is gone and the old spot is empty", step(lambda: pt.ghost is None and mp not in ed.images))
         step(ed.undo)
         back = step(lambda: [n for n, i in ed.images.items() if ed.text.index(n) == old_ix])
         check("Ctrl+Z puts the picture back where it was", len(back) == 1, step(lambda: {n: ed.text.index(n) for n in ed.images}))
         mp = back[0] if back else mp
-        # resize with the corner handle
-        w0 = step(lambda: ed.images[mp]["w"])
-        def resize_by(dx, dy=0):
+        def esc_drag():
+            x, y = centre(mp)
+            pt._press(MEv(x, y)); pt._drag(MEv(x + 30, y + 30))
+            ed.text.event_generate("<Escape>")
+            pt._release(MEv(x + 30, y - 200))
+        step(esc_drag); idle(0.1)
+        check("Esc while dragging leaves the picture where it was", step(lambda: ed.text.index(mp)) == old_ix and step(lambda: pt.ghost) is None)
+        # resize: sides stretch one way, corners keep the shape
+        sc = step(ed.img_scale)
+        def drag_edge(edge, dx, dy, shift=False):
             pt.select(mp)
-            pt._resize_press(MEv(0, 0, 500, 500)); pt._resize_drag(MEv(0, 0, 500 + dx // 2, 500 + dy // 2))
-            pt._resize_drag(MEv(0, 0, 500 + dx, 500 + dy)); pt._resize_release(MEv(0, 0, 500 + dx, 500 + dy))
-        sc = step(pt.scale)
-        step(lambda: resize_by(100))
-        w1 = step(lambda: ed.images[mp]["w"])
-        check("drag the corner to make it bigger", abs(w1 - (w0 + 100 / sc)) <= 1, (w0, w1, sc))
+            pt._resize_press(MEv(0, 0, 500, 500), edge)
+            pt._resize_drag(MEv(0, 0, 500 + dx // 2, 500 + dy // 2, 1 if shift else 0))
+            pt._resize_drag(MEv(0, 0, 500 + dx, 500 + dy, 1 if shift else 0))
+            ed.text.update(); time.sleep(0.05); ed.text.update()
+            pt._resize_release()
+            i = ed.images[mp]
+            return i["w"], i.get("h"), i["photo"].width(), i["photo"].height()
+        w0, h0, pw0, ph0 = step(lambda: drag_edge("r", 0, 0))
+        check("a click on a side without dragging changes nothing", h0 is None and w0 == 120)
+        w, h, pw, ph = step(lambda: drag_edge("r", int(100 * sc), 0))
+        check("drag the right side: wider, same height", w == 220 and h == 60 and abs(ph - ph0) <= 1, (w, h, pw, ph))
+        w, h, pw, ph = step(lambda: drag_edge("l", int(-50 * sc), 0))
+        check("drag the left side outwards: wider too", w == 270 and h == 60, (w, h))
+        w, h, pw, ph = step(lambda: drag_edge("b", 0, int(90 * sc)))
+        check("drag the bottom: taller, same width", w == 270 and h == 150, (w, h))
+        w, h, pw, ph = step(lambda: drag_edge("t", 0, int(40 * sc)))
+        check("drag the top down: shorter", w == 270 and h == 110, (w, h))
         n_undo = step(lambda: len(ed._undo))
-        step(lambda: resize_by(-60))
-        w2 = step(lambda: ed.images[mp]["w"])
-        check("drag the corner back to make it smaller", w2 < w1)
+        w, h, pw, ph = step(lambda: drag_edge("br", int(54 * sc), 0))
+        check("drag a corner: bigger, keeping the shape", w == 324 and abs(h - 132) <= 1, (w, h))
         check("...one Ctrl+Z step per resize", step(lambda: len(ed._undo)) == n_undo + 1)
-        step(lambda: resize_by(0, 80))
-        check("dragging the corner down grows it too", step(lambda: ed.images[mp]["w"]) > w2)
-        step(lambda: resize_by(5000))
-        check("it can't grow wider than the page", step(lambda: ed.images[mp]["w"]) == 624)
-        step(lambda: resize_by(-9000))
-        check("...or smaller than a thumbnail", step(lambda: ed.images[mp]["w"]) == 30)
+        w, h, pw, ph = step(lambda: drag_edge("tl", int(54 * sc), 0))
+        check("drag the opposite corner inwards: smaller, same shape", w == 270 and abs(h - 110) <= 1, (w, h))
+        w, h, pw, ph = step(lambda: drag_edge("br", int(30 * sc), int(-50 * sc), shift=True))
+        check("Shift + corner stretches freely", w == 300 and abs(h - 60) <= 1, (w, h))
+        check("the frame follows the new size", step(lambda: frame_fits(mp)))
+        def rclick_mp():
+            x, y = centre(mp)
+            ed.text.event_generate("<Button-3>", x=x, y=y, rootx=0, rooty=0)
+        MENUS.clear(); step(rclick_mp)
+        pm = last_menu()
+        check("a stretched picture can go back to its own shape", pm is not None and any(l.startswith("Original shape") for l in step(lambda: labels(pm))))
+        step(lambda: invoke_label(pm, "Original shape"))
+        check("...Original shape", step(lambda: ed.images[mp].get("h")) is None and step(lambda: ed.images[mp]["w"]) == 300)
         step(ed.undo)
-        widths = step(lambda: [i["w"] for i in ed.images.values()])
-        check("Ctrl+Z undoes a resize", 624 in widths and 30 not in widths, widths)
+        mp = step(lambda: next(n for n, i in ed.images.items() if i.get("h") == 60 and i["w"] == 300))
+        w, h, pw, ph = step(lambda: drag_edge("r", 9000, 0))
+        check("it can't grow wider than the page", w == 624)
+        w, h, pw, ph = step(lambda: drag_edge("b", 0, 9000))
+        check("...or taller than the page", h == 864)
+        w, h, pw, ph = step(lambda: drag_edge("tl", 9000, 9000))
+        check("...or smaller than a thumbnail", w >= 30 and (h or 0) >= 20 and (w == 30 or h == 20), (w, h))
+        step(lambda: drag_edge("br", int(200 * sc), 0))
         step(ed.save)
+        st = step(lambda: (ed.images[mp]["w"], ed.images[mp].get("h")))
         with open(a, encoding="utf-8") as f:
-            check("the new size is saved in the note", any(it.get("w") == 624 for it in json.load(f)["items"] if "i" in it))
+            saved = [(it.get("w"), it.get("h")) for it in json.load(f)["items"] if "i" in it]
+        check("the new width and height are saved in the note", st in saved, (st, saved))
+        step(lambda: ed.load(a)); idle(0.3)
+        mp = step(lambda: next(n for n, i in ed.images.items() if (i["w"], i.get("h")) == st))
+        check("...and come back when the note is opened again", step(lambda: abs(ed.images[mp]["photo"].height() - st[1] * sc) <= 2))
         # Delete key, typing
-        mp = step(lambda: [n for n, i in ed.images.items() if i["w"] == 624][0])
         n_pics = step(lambda: len(ed.images))
         step(lambda: (pt.select(mp), ed._on_delete(None)))
         check("Delete removes the selected picture", step(lambda: len(ed.images)) == n_pics - 1 and step(lambda: pt.sel) is None)
         step(ed.undo)
         check("...and Ctrl+Z brings it back", step(lambda: len(ed.images)) == n_pics)
-        mp = step(lambda: [n for n, i in ed.images.items() if i["w"] == 624][0])
+        mp = step(lambda: next(n for n, i in ed.images.items() if (i["w"], i.get("h")) == st))
         class KEv: char = "q"; state = 0
         step(lambda: (pt.select(mp), ed.text.mark_set("insert", "end-1c"), ed._on_key(KEv())))
         check("typing lets go of the picture (and types as normal)", step(lambda: pt.sel) is None

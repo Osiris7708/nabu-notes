@@ -102,14 +102,17 @@ def fonts_used(paras, ctx):
     return used
 
 
-def image_size_in(rel, w_css):
-    """Display width/height in inches for an image stored with a CSS-pixel width."""
+def image_size_in(rel, w_css, h_css=None):
+    """Display width/height in inches for an image stored with a CSS-pixel width (and a height, if it was
+    stretched; otherwise it keeps its shape)."""
     from PIL import Image
     with Image.open(abs_from_home(rel)) as im:
         w0, h0 = im.size
     w = (w_css or min(w0, 480)) / 96.0
-    w = min(w, TEXT_W_IN)
-    return w, w * h0 / float(w0)
+    h = h_css / 96.0 if h_css else w * h0 / float(w0)
+    if w > TEXT_W_IN:                     # never wider than the page (shrinks evenly)
+        h, w = h * TEXT_W_IN / w, TEXT_W_IN
+    return w, h
 
 
 def _list_numbers(paras):
@@ -415,8 +418,8 @@ def to_docx(paras, ctx, out_path, title="", opts=None):
         for r in p["runs"]:
             if "img" in r:
                 try:
-                    w, _h = image_size_in(r["img"], r.get("w"))
-                    par.add_run().add_picture(abs_from_home(r["img"]), width=Inches(w))
+                    w, h = image_size_in(r["img"], r.get("w"), r.get("h"))
+                    par.add_run().add_picture(abs_from_home(r["img"]), width=Inches(w), height=Inches(h))
                 except Exception:
                     log.exception("image skipped")
                     par.add_run("[missing picture]")
@@ -707,7 +710,7 @@ def to_pdf(paras, ctx, out_path, title="", opts=None):
         if images_only:
             for r in p["runs"]:
                 try:
-                    w, h = image_size_in(r["img"], r.get("w"))
+                    w, h = image_size_in(r["img"], r.get("w"), r.get("h"))
                     im = RLImage(abs_from_home(r["img"]), width=w * inch, height=h * inch)
                     im.hAlign = {"center": "CENTER", "right": "RIGHT"}.get(m["align"], "LEFT")
                     story += [Spacer(1, m["sb"]), im, Spacer(1, m["sa"])]
@@ -717,7 +720,7 @@ def to_pdf(paras, ctx, out_path, title="", opts=None):
         for r in p["runs"]:
             if "img" in r:
                 try:
-                    w, h = image_size_in(r["img"], r.get("w"))
+                    w, h = image_size_in(r["img"], r.get("w"), r.get("h"))
                     parts.append('<img src="%s" width="%d" height="%d" valign="bottom"/>' % (
                         html.escape(abs_from_home(r["img"])), w * 72, h * 72))
                 except Exception:

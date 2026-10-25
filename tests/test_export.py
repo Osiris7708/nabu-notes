@@ -89,3 +89,26 @@ back = nd.load_doc(I.import_file("out/links.docx", H + "/Notes/Book", ctx=ctx))[
 ok("importing a Word file keeps its links", any("link:https://example.org/guide" in it.get("g", []) and it.get("t") == "the guide"
                                                for it in back), back)
 print("links: all checks passed")
+
+# ---------------------------------------------------------------- stretched pictures (v4.9.3)
+st_items = [{"i": "Images/red.png", "w": 300, "h": 60, "g": []}, {"t": "\n", "g": []},
+            {"i": "Images/red.png", "w": 300, "g": []}, {"t": "\n", "g": []}]
+ok("a stretched picture keeps its height in the note format",
+   [it.get("h") for it in R.paras_to_items(R.items_to_paras(st_items)) if "i" in it] == [60, None])
+ok("export size: stretched keeps its height, unstretched keeps its shape",
+   E.image_size_in("Images/red.png", 300, 60) == (300 / 96.0, 60 / 96.0)
+   and E.image_size_in("Images/red.png", 300) == (300 / 96.0, 150 / 96.0))
+w_, h_ = E.image_size_in("Images/red.png", 1200, 300)
+ok("...and a too-wide stretched picture shrinks evenly to the page", abs(w_ - E.TEXT_W_IN) < 1e-6 and abs(h_ - 300 / 96.0 * E.TEXT_W_IN / 12.5) < 1e-6)
+ok("pasted web pictures with a different shape stay stretched",
+   [r.get("h") for p in R.html_to_paras('<img src="x" width="300" height="60"><img src="y" width="300" height="150">',
+                                         image_cb=lambda s: "Images/red.png") for r in p["runs"]] == [60, None])
+snote = H + "/Notes/Book/Stretch.nobu"
+d = nd.empty_doc(); d["items"] = st_items; nd.save_doc(snote, d)
+for fmt in ("docx", "html", "pdf"):
+    E.export([snote], fmt, "out/stretch." + fmt, ctx, {})
+with zipfile.ZipFile("out/stretch.docx") as z:
+    ext = [tuple(int(v) for v in m) for m in __import__("re").findall(r'<wp:extent cx="(\d+)" cy="(\d+)"', z.read("word/document.xml").decode())]
+ok("Word: the stretched picture is 300 x 60, the other 300 x 150", [(round(cx / 9525), round(cy / 9525)) for cx, cy in ext] == [(300, 60), (300, 150)], ext)
+ok("web page: width and height", "width:300px;height:60px" in open("out/stretch.html", encoding="utf-8").read())
+print("stretched pictures: all checks passed")

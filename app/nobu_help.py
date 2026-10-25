@@ -108,9 +108,14 @@ SECTIONS = [
         ("b", "Pictures: use the Picture button, drag a file in, or paste with Ctrl+V - a screenshot, a picture "
               "copied from a web page (right-click it > Copy image) or from another program, or picture files "
               "copied in File Explorer."),
-        ("b", "Click a picture to select it (a blue frame appears). Drag it to move it - a blue line shows where "
-              "it will go. Drag the square in its corner to make it bigger or smaller. Delete removes it; Esc or "
-              "a click elsewhere lets go. Ctrl+Z undoes a move or resize."),
+        ("b", "Click a picture to select it: a blue frame with squares on its corners and sides appears."),
+        ("b", "Move it: drag the picture. A see-through copy follows the mouse and a blue line shows where it "
+              "will land. Esc while dragging cancels."),
+        ("b", "Resize it: drag a side to make it wider, narrower, taller or shorter. Drag a corner to make it "
+              "bigger or smaller and keep its shape (hold Shift to stretch it freely). Right-click > Original "
+              "shape undoes stretching."),
+        ("b", "Delete removes the selected picture; Esc or a click elsewhere lets go of it. Ctrl+Z undoes any "
+              "move or resize."),
         ("b", "Right-click a picture to copy it (paste it into another note, Word, an email or a chat), pick a "
               "set size, or Crop… to keep only part of it: drag a box over the part you want (drag the box to "
               "move it, its edges to resize it), then Crop. Ctrl+Z undoes it."),

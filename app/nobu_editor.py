@@ -806,7 +806,7 @@ class NoteEditor:
         self.text.configure(font=self.font_for_body())
         for name, info in list(self.images.items()):
             try:
-                photo, _ = self._make_photo(info["rel"], info["w"])
+                photo, _w, _h = self._make_photo(info["rel"], info["w"], info.get("h"))
                 self.text.image_configure(name, image=photo)
                 info["photo"] = photo
             except Exception:
@@ -1557,6 +1557,8 @@ class NoteEditor:
             for label, w in (("Small", 200), ("Medium", 340), ("Large", 520), ("Full page width", 624)):
                 m.add_command(label=label, command=lambda w=w, n=name: self.resize_image(n, w))
             m.add_command(label="Original size", command=lambda n=name: self.resize_image(n, 0))
+            if info.get("h"):
+                m.add_command(label="Original shape (undo stretching)", command=lambda n=name: self.resize_image(n, info["w"]))
             m.add_separator()
             m.add_command(label="Crop…", command=lambda n=name: self.crop_dialog(n))
             m.add_command(label="Open in picture viewer", command=lambda: open_path(abs_from_home(info["rel"])))
@@ -1806,7 +1808,8 @@ class NoteEditor:
                     items.append({"t": val, "g": g})
             elif key == "image" and val in self.images:
                 info = self.images[val]
-                items.append({"i": info["rel"], "w": info["w"], "g": sorted(x for x in active if R.persistent(x))})
+                items.append(dict({"i": info["rel"], "w": info["w"], "g": sorted(x for x in active if R.persistent(x))},
+                                  **({"h": info["h"]} if info.get("h") else {})))
             elif key == "window":
                 blk = self.blocks.get(val)
                 if isinstance(blk, TableBlock):
@@ -1910,31 +1913,35 @@ class NoteEditor:
         self._img_counter += 1
         return "nobuimg%d" % self._img_counter
 
-    def _make_photo(self, rel, width):
+    def img_scale(self):
+        """Screen pixels per page pixel (pictures are measured in page pixels, 96 to the inch)."""
+        return self.dpi / 96.0 * self.zoom
+
+    def _make_photo(self, rel, width, height=None):
+        """The picture as shown on the page: width (and height, if it was stretched) in page pixels.
+        Returns (photo, width, height); height is None when the picture keeps its own shape."""
         with Image.open(abs_from_home(rel)) as src:      # (closed straight away: never locks the file)
             img = ImageOps.exif_transpose(src)
             img.load()
         if img.mode not in ("RGB", "RGBA"):
             img = img.convert("RGBA" if ("A" in img.mode or img.mode == "P") else "RGB")
         w0, h0 = img.size
-        if not width:
-            width = min(w0, 480)
-        width = max(30, int(width))
-        disp = max(20, int(width * self.dpi / 96.0 * self.zoom))
-        img = img.resize((disp, max(1, round(h0 * disp / w0))), Image.LANCZOS)
-        buf = io.BytesIO()
-        img.save(buf, "PNG")
-        return tk.PhotoImage(data=base64.b64encode(buf.getvalue())), width
+        width = max(nobu_pictool.MIN_W, int(round(width or min(w0, 480))))
+        height = max(nobu_pictool.MIN_H, int(round(height))) if height else None
+        k = self.img_scale()
+        dw = max(20, int(width * k))
+        dh = max(10, int(height * k)) if height else max(1, round(h0 * dw / w0))
+        return nobu_pictool.tk_photo(img.resize((dw, dh), Image.LANCZOS)), width, height
 
-    def place_image(self, rel, width=None, index="insert"):
-        photo, width = self._make_photo(rel, width)
+    def place_image(self, rel, width=None, index="insert", height=None):
+        photo, width, height = self._make_photo(rel, width, height)
         name = self.text.image_create(index, image=photo, name=self._next_img_name(), padx=2, pady=4)
-        self.images[name] = {"rel": rel, "w": width, "photo": photo}
+        self.images[name] = {"rel": rel, "w": width, "h": height, "photo": photo}
         return name
 
-    def _add_image(self, rel, index="insert", width=None):
+    def _add_image(self, rel, index="insert", width=None, height=None):
         """Put a picture (already in Images\\) into the page; it takes on the paragraph's alignment etc."""
-        name = self.place_image(rel, width, index)
+        name = self.place_image(rel, width, index, height)
         for tg in self._typing_tags(index):
             if R.is_par_tag(tg):
                 self.text.tag_add(tg, name)
@@ -2028,13 +2035,14 @@ class NoteEditor:
         t.mark_set("nobu_move", dest)
         t.delete(src, "%s +1c" % src)
         self.images.pop(name, None)
-        new = self._add_image(info["rel"], "nobu_move", info["w"])
+        new = self._add_image(info["rel"], "nobu_move", info["w"], info.get("h"))
         t.mark_unset("nobu_move")
         self._restyle(src, src)
         self._restyle(t.index(new), t.index(new))
         return new
 
-    def resize_image(self, name, width, undo=True):
+    def resize_image(self, name, width, height=None, undo=True):
+        """New size in page pixels. Without a height the picture keeps its own shape; width 0 = its real size."""
         info = self.images.get(name)
         if not info:
             return
@@ -2043,11 +2051,13 @@ class NoteEditor:
         if not width:
             with Image.open(abs_from_home(info["rel"])) as im:
                 width = im.size[0]
-        photo, w = self._make_photo(info["rel"], width)
+        photo, w, h = self._make_photo(info["rel"], width, height)
         self.text.image_configure(name, image=photo)
-        info.update(photo=photo, w=w)
+        info.update(photo=photo, w=w, h=h)
         self._mark_changed()
         self._schedule_pages()
+        if self.pictool and self.pictool.sel == name:
+            self.pictool.sync()
 
     def crop_image(self, name, box):
         """Keep only box = (left, top, right, bottom), in the picture's own pixels. The cropped picture is
@@ -2074,9 +2084,10 @@ class NoteEditor:
             T.info(self.root, "Nobu Notes", "Could not crop that picture.\n\n%s" % e)
             return False
         self._push_undo()
-        photo, w = self._make_photo(rel, info["w"] * (r - l) / W)     # the kept part stays the same scale
+        h = info["h"] * (b - t) / H if info.get("h") else None          # the kept part stays the same scale
+        photo, w, h = self._make_photo(rel, info["w"] * (r - l) / W, h)
         self.text.image_configure(name, image=photo)
-        info.update(rel=rel, w=w, photo=photo)
+        info.update(rel=rel, w=w, h=h, photo=photo)
         self._mark_changed()
         self._schedule_pages()
         return True
@@ -2086,7 +2097,7 @@ class NoteEditor:
         info = self.images.get(name)
         if not info:
             return False
-        items = [{"i": info["rel"], "w": info["w"], "g": []}]
+        items = [dict({"i": info["rel"], "w": info["w"], "g": []}, **({"h": info["h"]} if info.get("h") else {}))]
         paras = R.items_to_paras(items)
         src = (lambda rel: "file:///" + abs_from_home(rel).replace("\\", "/"))
         self.app.clip_items = None
@@ -2317,6 +2328,8 @@ class NoteEditor:
 
     def _on_yscroll(self, a, b):
         self.vsb.set(a, b)
+        if self.pictool and self.pictool.sel:          # the selected picture's frame scrolls with it
+            self.pictool.sync_soon()
         if self._gut_job is None:
             self._gut_job = T.later(self.frame, 40, self._draw_gutters)
 
@@ -2443,7 +2456,7 @@ class NoteEditor:
                 t.insert("nobu_ins", it["t"], tags)
             elif "i" in it:
                 try:
-                    name = self.place_image(it["i"], it.get("w"), "nobu_ins")
+                    name = self.place_image(it["i"], it.get("w"), "nobu_ins", it.get("h"))
                     for tg in tags:
                         t.tag_add(tg, name)
                 except Exception:
