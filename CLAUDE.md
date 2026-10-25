@@ -12,8 +12,8 @@ This folder is also a **live install holding the user's real data**. `Notes/` (t
 
 1. **Change this install only.** The copy for other people (`..\Nobu Notes - Share` and `..\Nobu Notes - Share.zip` on the Desktop) is updated **only when the user asks**, and only with `tools\make_share_copy.py --yes`.
 2. **After every new or changed feature**, update the tutorial (the `SECTIONS` text in `app/nobu_help.py`) and the "NEW IN VERSION x" section at the top of `README.txt`. Tutorial style, in the user's words: explain every feature "in the easiest possible way to understand ... minimal fluff or filler words, and minimum technical jargon the average person might not understand ... as concise and informative as possible."
-3. **Run the tests before saying something is done** (see Tests). If you add a feature, add a check for it, ideally in `tests/test_audit.py` for anything with a button, slider or menu entry.
-4. **Commit to git** after each finished, tested change (see Git), so any change can be undone.
+3. **Don't run the test suite unless the user asks for it** (said Oct 25 2026). Instead, add a check for every new or changed feature as you go, ideally in `tests/test_audit.py` for anything with a button, slider or menu entry, so it runs whenever the user asks for the tests. A quick syntax check (`runtime\python.exe tests\run_tests.py compile`, a few seconds, no windows) is fine. When you report a change, say plainly that the tests haven't been run yet.
+4. **Commit to git** after each finished change (see Git), so any change can be undone.
 5. Talk to the user in plain words. They are a writer, not a programmer.
 
 ## Running
@@ -78,6 +78,8 @@ runtime\python.exe app\nobu_main.py
 
 ## Tests
 
+Run these only when the user asks (rule 3).
+
 ```bat
 "Run tests.bat"                                   :: double-click: every test, about 10 minutes
 runtime\python.exe tests\run_tests.py             :: the same from a terminal
@@ -110,14 +112,14 @@ Before committing, check that `git status --short` lists only `app/`, `docs/`, `
 
 After that, the folder is a git repository with one branch, `main`. Only code, docs, tests and tools are tracked. `.gitignore` lists everything personal or bulky (runtime, models, setup zips, the font library, the thesaurus, NobuNotes.exe).
 
-- Commit after each finished, tested change, with a plain message saying what changed for the user, e.g. `git add -A && git commit -m "Find & replace: Esc closes it"`.
+- Commit after each finished change, with a plain message saying what changed for the user, e.g. `git add -A && git commit -m "Find & replace: Esc closes it"`.
 - Before a risky change, check `git status` is clean, so `git restore .` can undo it.
 - Never commit anything under `Notes/`, `Recordings/`, `Images/`, `config.json`, `cache/`, `logs/` or `fonts/`.
 - There is no remote. Don't add one or push unless the user asks. A public remote would need the README checked for anything personal first.
 
 ## The copy for other people
 
-`runtime\python.exe tools\make_share_copy.py` shows what it would do. Add `--yes` to rebuild `..\Nobu Notes - Share` and `..\Nobu Notes - Share.zip`; the folder sits at the root of the zip. It copies only the program: exe, README, debug .bat, `app/` code, icon, thesaurus and base fonts, and the setup zips that `nobu_main._unpack_addons` names, plus the runtime parts. Run it only when the user asks (rule 1), after the tests pass.
+`runtime\python.exe tools\make_share_copy.py` shows what it would do. Add `--yes` to rebuild `..\Nobu Notes - Share` and `..\Nobu Notes - Share.zip`; the folder sits at the root of the zip. It copies only the program: exe, README, debug .bat, `app/` code, icon, thesaurus and base fonts, and the setup zips that `nobu_main._unpack_addons` names, plus the runtime parts. Run it only when the user asks (rule 1). If the tests haven't been run since the last change, say so first and ask whether to run them before building, since the copy goes to other people.
 
 ## Launcher
 
