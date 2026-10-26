@@ -350,8 +350,12 @@ def go():
         step(lambda: invoke_label(pm, "Crop")); idle(0.3)
         cw_wins = step(crop_windows)
         check("Crop… opens the crop window", len(cw_wins) == 1)
-        step(lambda: [w.event_generate("<Escape>") for w in cw_wins]); idle(0.2)
+        # (a key goes to the window that has the focus: bring the crop window to the front first, or a
+        # window elsewhere on the screen can take the key - and the crop window, still open, would hold on
+        # to the mouse and spoil every check after this one)
+        step(lambda: [(w.lift(), w.focus_force(), w.update(), w.event_generate("<Escape>")) for w in cw_wins]); idle(0.2)
         check("Esc closes it", not step(crop_windows))
+        step(lambda: [(w.grab_release(), w.destroy()) for w in crop_windows()])     # (whatever happened)
         # crop: drawing, moving and resizing the box with the mouse
         orig_rel = step(lambda: ed.images[pic]["rel"]); orig_w = step(lambda: ed.images[pic]["w"])
         cw = step(lambda: ed.crop_dialog(pic)); idle(0.2)
@@ -386,8 +390,10 @@ def go():
         check("Ctrl+Z brings the whole picture back", orig_rel in step(lambda: [i["rel"] for i in ed.images.values()]))
         step(ed.redo)
         cw = step(lambda: ed.crop_dialog(next(n for n, i in ed.images.items() if i["rel"] == new_rel))); idle(0.2)
-        step(lambda: (cw.set_box((0, 0, 30, 40)), cw.win.event_generate("<Return>"))); idle(0.3)
+        step(lambda: (cw.set_box((0, 0, 30, 40)), cw.win.lift(), cw.win.focus_force(), cw.win.update(),
+                      cw.win.event_generate("<Return>"))); idle(0.3)
         check("cropping a cropped picture works (Enter = Crop)", step(lambda: cw.done) is True and not step(crop_windows))
+        step(lambda: [(w.grab_release(), w.destroy()) for w in crop_windows()])     # (whatever happened)
         nerr = clean_since(nerr, "pictures: paste and crop")
 
         # ================================================================ copy a picture out of a note (v4.9.2)
