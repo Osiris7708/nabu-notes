@@ -116,11 +116,13 @@ After that, the folder is a git repository with one branch, `main`. Only code, d
 - Commit after each finished change, with a plain message saying what changed for the user, e.g. `git add -A && git commit -m "Find & replace: Esc closes it"`.
 - Before a risky change, check `git status` is clean, so `git restore .` can undo it.
 - Never commit anything under `Notes/`, `Recordings/`, `Images/`, `config.json`, `cache/`, `logs/` or `fonts/`.
-- There is no remote. Don't add one or push unless the user asks. A public remote would need the README checked for anything personal first.
+- The remote `origin` is the user's **private** GitHub repository https://github.com/Osiris7708/nobu-notes (set up Oct 27 2026, GitHub CLI signed in as Osiris7708). Code goes up with each release (below), not after every commit. Never make it public without the user asking (and check everything for personal details first).
 
 ## The copy for other people
 
 `runtime\python.exe tools\make_share_copy.py` shows what it would do. Add `--yes` to rebuild `..\Nobu Notes - Share` and `..\Nobu Notes - Share.zip`; the folder sits at the root of the zip. It copies only the program: exe, README, debug .bat, `app/` code, icon, thesaurus and base fonts, and the setup zips that `nobu_main._unpack_addons` names, plus the runtime parts. Run it only when the user asks (rule 1). If the tests haven't been run since the last change, say so first and ask whether to run them before building, since the copy goes to other people.
+
+`--yes` also publishes the copy on GitHub (the user asked for this on Oct 27 2026): `tools\publish_release.py` pushes `main` and makes release `v<VERSION>` with the zip as `Nobu-Notes-<VERSION>.zip` and README's "NEW IN VERSION" section as notes. Rebuilding the same version replaces that release's zip and notes. So **bump `VERSION` for every new patch you hand out**, or the release just gets overwritten. If GitHub CLI is missing or signed out, the copy is still built and the script says GitHub wasn't updated. Pass `--no-github` to skip it.
 
 ## Launcher
 

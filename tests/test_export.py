@@ -168,3 +168,12 @@ ok("icon: the .ico has every size Windows uses", sizes == [16, 24, 32, 48, 64, 1
 ok("icon: Nobu's own icon is 256 x 256 with see-through corners",
    Image.open(os.path.join(os.path.dirname(os.path.abspath(R.__file__)), "nobu_icon.png")).getpixel((0, 0))[3] == 0)
 print("icon: all checks passed")
+
+# ---------------------------------------------------------------- GitHub release notes (tools\publish_release.py)
+import publish_release
+import nobu_config as _C
+rn = publish_release.notes_for(_C.VERSION)
+ok("release notes: this version's 'what's new' from README.txt, with how to install",
+   "Nobu-Notes-%s.zip" % _C.VERSION in rn and "NEW IN VERSION" not in rn and len(rn) > 200, rn[:300])
+ok("release notes: a version with no README section still gets a line", "Nobu Notes 0.0.1." in publish_release.notes_for("0.0.1"))
+print("release notes: all checks passed")

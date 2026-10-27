@@ -1,7 +1,9 @@
 """Build the copy of Nobu Notes to give to other people: the program only, none of your writing.
 
     runtime\\python.exe tools\\make_share_copy.py          shows what it would do
-    runtime\\python.exe tools\\make_share_copy.py --yes    replaces "Nobu Notes - Share" and its .zip on the Desktop
+    runtime\\python.exe tools\\make_share_copy.py --yes    replaces "Nobu Notes - Share" and its .zip on the Desktop,
+                                                          then puts the zip on GitHub as that version's release
+                                                          (tools\\publish_release.py; add --no-github to skip it)
 
 What goes in: NobuNotes.exe, README.txt, the debug .bat, the app's code, icon, thesaurus and base fonts,
 and the setup zips (runtime + the add-on and font zips nobu_main unpacks). What never goes in: Notes,
@@ -85,6 +87,11 @@ def main(argv):
             sys.exit("The new zip is damaged at %s; the old zip was kept." % bad)
     os.replace(ztmp, ZIP)
     print("Done: %s and %s are now version %s." % (NAME, os.path.basename(ZIP), VERSION))
+    if "--no-github" not in argv:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import publish_release
+        ok, msg = publish_release.publish(VERSION)
+        print(("GitHub: " if ok else "GitHub: not updated - ") + msg)
     return 0
 
 
