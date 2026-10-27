@@ -1,7 +1,7 @@
 # Nobu Notes: design summary (v4.9, Oct 22 2026)
 
 > **STANDING INSTRUCTION FROM THE USER (applies after every new feature):** "re write the tutorial, make it explain every single feature in nobu in the easiest possible way to understand. in this context easy to understand means minimal fluff or filler words, and minimum technical jargon the average person might not understand. we want it as concise and informative as possible." In practice: after any feature change, update `app/nobu_help.py` `SECTIONS` (and README "what's new") so every feature is covered, short and plain.
-> Other standing rules: deliver changes to the personal copy (`C:\Users\orion\Desktop\Nobu Notes`) only; update the share folder/zip only when asked.
+> Other standing rules: deliver changes to the personal copy (the `Nobu Notes` folder on the Desktop) only; update the share folder/zip only when asked.
 
 **What it is:** A fully offline Windows tray app. Say "No boo, record this" to start dictating. Recording ends after 8 s of real silence (with an on-screen countdown) or on "No boo, end recording". The audio is saved as a WAV, and each transcript becomes its own note in **Unassigned**. The user files notes into project folders (books and campaigns) from the app. Since v4 it is also a Word-style writing app with export to Word, PDF, e-book and web formats.
 
