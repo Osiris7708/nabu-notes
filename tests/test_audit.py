@@ -1179,6 +1179,36 @@ def go():
         check("the window has the Nobu icon (256 x 256, see-through corners)",
               step(lambda: (app.root._nobu_icon.width(), app.root._nobu_icon.height(),
                             app.root._nobu_icon.transparency_get(0, 0))) == (256, 256, True))
+        # first start: choose the speech model (v4.9.4)
+        import nobu_ui, nobu_models
+        def chooser(pick=None, cancel=False):
+            c = nobu_ui.ModelChooser(app.root)
+            c.win.update()
+            names = list(c.buttons)
+            ticked = c.choice.get()
+            text = " ".join(str(w.cget("text")) for w in widgets(c.win, (ttk.Label, ttk.Radiobutton)))
+            if cancel:
+                btn(c.win, "Not now").invoke()
+            else:
+                if pick:
+                    c.buttons[pick].invoke()
+                btn(c.win, "Download and start").invoke()
+            return names, ticked, c.run(), text
+        names, ticked, got, text = step(lambda: chooser("small.en"))
+        best = nobu_models.recommend(*nobu_models.computer())
+        check("first start: choose from the 4 speech models", names == ["large-v3-turbo", "medium.en", "small.en", "base.en"], names)
+        check("...the best one for this computer is already ticked", ticked == best and "recommended for this computer" in text,
+              (ticked, best))
+        check("...each says what it needs (download, memory, processor)", text.count("Needs ") == 4
+              and text.count("download") >= 4 and "processor" in text and "This computer:" in text)
+        check("...Download and start gives the one picked", got == "small.en", got)
+        names, ticked, got, text = step(lambda: chooser(cancel=True))
+        check("...Not now gives nothing (Nobu closes, nothing downloaded)", got is None)
+        vals = step(lambda: [list(c.cget("values")) for c in widgets(sd.win, (ttk.Combobox,))
+                             if "large-v3-turbo" in c.cget("values")])
+        settings_text = step(lambda: " ".join(str(w.cget("text")) for w in widgets(sd.win, (ttk.Label,))))
+        check("Settings: the same 4 models, with what each needs",
+              vals == [["large-v3-turbo", "medium.en", "small.en", "base.en"]] and settings_text.count("Needs ") == 4, vals)
         def move(sc_, v):
             sc_.set(v); sc_.update()
             row = sc_.master; return [w.cget("text") for w in row.winfo_children() if isinstance(w, ttk.Label)][-1]

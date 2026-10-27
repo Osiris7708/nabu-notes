@@ -236,8 +236,15 @@ class App:
         log.error("UI error:\n%s", "".join(traceback.format_exception(exc, val, tb)))
 
     def run(self):
-        from nobu_models import missing
+        from nobu_models import first_start, missing
         need = missing([self.cfg["detect_model"], self.cfg["transcribe_model"]])
+        if need and first_start():      # a new install: let the person choose the model (what each needs is shown)
+            from nobu_ui import ModelChooser
+            pick = ModelChooser(self.root).run()
+            if not pick:
+                return
+            self.cfg.update(transcribe_model=pick)
+            need = missing([self.cfg["detect_model"], pick])
         if need:
             from nobu_ui import SetupWindow
             if not SetupWindow(self.root, need).run():

@@ -18,6 +18,60 @@ REPOS = {
     # the newest, most accurate model faster-whisper supports (multilingual, used in English mode)
     "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 }
+# The transcription models you can pick (first start, and Settings), best first. Sizes are the one-time
+# download; "needs" is the computer to run it comfortably (it runs on the processor; "uses" = extra memory while
+# transcribing). Rough guides from faster-whisper's int8 models, not promises.
+CHOICES = [
+    dict(name="large-v3-turbo", title="Large v3 Turbo", quality="the most accurate", size_mb=1620,
+         ram_gb=8, uses_gb=3.0, cores=4, cpu="a 4-core processor or better from the last 6 years or so"),
+    dict(name="medium.en", title="Medium (English)", quality="very accurate", size_mb=1530,
+         ram_gb=8, uses_gb=2.5, cores=4, cpu="a 4-core processor"),
+    dict(name="small.en", title="Small (English)", quality="good, faster", size_mb=480,
+         ram_gb=4, uses_gb=1.0, cores=2, cpu="any 2-core processor"),
+    dict(name="base.en", title="Base (English)", quality="basic, fastest", size_mb=145,
+         ram_gb=4, uses_gb=0.5, cores=1, cpu="any processor, even an older laptop"),
+]
+DETECT_MB = 145          # base.en, the small model that listens for "Nobu" (always downloaded too)
+
+
+def computer():
+    """(memory in GB, processor cores) of this computer."""
+    cores = os.cpu_count() or 2
+    ram = 0.0
+    try:
+        import ctypes
+
+        class MEM(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        m = MEM()
+        m.dwLength = ctypes.sizeof(MEM)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+            ram = m.ullTotalPhys / 1024.0 ** 3
+    except Exception:
+        try:
+            ram = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1024.0 ** 3
+        except (ValueError, OSError, AttributeError):
+            ram = 0.0
+    return round(ram, 1), cores
+
+
+def recommend(ram_gb, cores):
+    """The best model this computer runs comfortably (memory a little under the label is fine: 8 GB shows ~7.8)."""
+    for c in CHOICES:
+        if ram_gb >= c["ram_gb"] - 0.5 and cores >= c["cores"]:
+            return c["name"]
+    return CHOICES[-1]["name"]
+
+
+def first_start():
+    """Nothing to transcribe with yet (a new install): time to let the person choose a model."""
+    return not any(is_ready(c["name"]) for c in CHOICES)
+
+
 MARKER = ".nobu_complete"
 SKIP = {".gitattributes", "README.md"}
 

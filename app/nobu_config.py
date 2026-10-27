@@ -3,7 +3,7 @@ import json
 import os
 import threading
 
-VERSION = "4.9.3"
+VERSION = "4.9.4"
 
 
 def _find_home():

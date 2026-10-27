@@ -177,3 +177,20 @@ ok("release notes: this version's 'what's new' from README.txt, with how to inst
    "Nobu-Notes-%s.zip" % _C.VERSION in rn and "NEW IN VERSION" not in rn and len(rn) > 200, rn[:300])
 ok("release notes: a version with no README section still gets a line", "Nobu Notes 0.0.1." in publish_release.notes_for("0.0.1"))
 print("release notes: all checks passed")
+
+# ---------------------------------------------------------------- speech model choice at first start (v4.9.4)
+import nobu_models as NM
+ok("recommendation: a strong computer gets Large v3 Turbo", NM.recommend(16, 8) == "large-v3-turbo")
+ok("...'8 GB' (reported a little under) still counts as 8", NM.recommend(7.8, 4) == "large-v3-turbo")
+ok("...6 GB / 4 cores gets Small, 4 GB / 2 cores Small, 2 GB / 1 core Base",
+   (NM.recommend(6, 4), NM.recommend(4, 2), NM.recommend(2, 1)) == ("small.en", "small.en", "base.en"),
+   (NM.recommend(6, 4), NM.recommend(4, 2), NM.recommend(2, 1)))
+ram, cores = NM.computer()
+ok("this computer's memory and processor are read", ram > 0 and cores >= 1, (ram, cores))
+ok("a new install (no models yet) asks which model", NM.first_start())
+mdir = NM.model_dir("base.en")
+os.makedirs(mdir, exist_ok=True)
+open(os.path.join(mdir, "model.bin"), "wb").close()
+open(os.path.join(mdir, NM.MARKER), "w").close()
+ok("an install that already has a model doesn't ask again", not NM.first_start())
+print("speech models: all checks passed")

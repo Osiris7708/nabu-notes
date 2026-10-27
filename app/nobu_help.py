@@ -212,9 +212,10 @@ SECTIONS = [
         ("b", "Add names to My dictionary. They help through the whole recording."),
         ("b", "Keep “Transcribe from the natural sound” ticked (Settings). The speech engine understands "
               "unfiltered sound better."),
-        ("b", "Transcription model (Settings): medium.en is accurate and the default. large-v3-turbo is the most "
-              "accurate, about as fast, but needs a one-time 1.6 GB download. small and base are faster but less "
-              "accurate."),
+        ("b", "Transcription model: you pick it the first time Nobu starts - the best one for your computer is "
+              "already ticked. Change it any time in Settings (a new one downloads once)."),
+        ("b", "large-v3-turbo: most accurate, needs 8 GB memory and a 4-core processor. medium.en: very "
+              "accurate, the same. small.en: good, 4 GB. base.en: basic, fastest, runs on anything."),
         ("b", "Wake word model: base.en is more reliable; tiny.en is lighter on older computers."),
     ]),
     ("Export & import", [

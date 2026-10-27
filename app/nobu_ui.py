@@ -36,6 +36,75 @@ def play_wav(path):
 
 
 # ---------------------------------------------------------------- first-run setup
+def model_line(c):
+    """One line about a transcription model: how good, how big, what computer it needs."""
+    return "%s.  %s download.  Needs %d GB memory (uses about %.1f GB) and %s." % (
+        c["quality"].capitalize(), ("%.1f GB" % (c["size_mb"] / 1000.0)) if c["size_mb"] >= 1000 else
+        "%d MB" % c["size_mb"], c["ram_gb"], c["uses_gb"], c["cpu"])
+
+
+class ModelChooser:
+    """First start: pick the transcription model (with what each needs). The best one this computer runs
+    comfortably is ticked. run() waits for the answer: the model's name, or None (closed: quit for now)."""
+
+    def __init__(self, root):
+        self.root = root
+        self.result = None
+        self.done = False
+        ram, cores = nobu_models.computer()
+        self.best = nobu_models.recommend(ram, cores)
+        self.choice = tk.StringVar(value=self.best)
+        w = self.win = T.toplevel(root, "Nobu Notes — choose a speech model")
+        w.protocol("WM_DELETE_WINDOW", self.cancel)
+        f = ttk.Frame(w, padding=20)
+        f.pack(fill="both", expand=True)
+        ttk.Label(f, text="Welcome to Nobu Notes", style="H2.TLabel").pack(anchor="w")
+        ttk.Label(f, wraplength=620, justify="left", style="Muted.TLabel", text=(
+            "Choose how Nobu turns your speech into text. It's downloaded once, then everything works offline. "
+            "A better model makes fewer mistakes but needs a stronger computer. You can change it later in "
+            "Settings.")).pack(anchor="w", pady=(6, 4))
+        ttk.Label(f, style="Muted.TLabel", text="This computer: %s memory, %d processor cores." % (
+            ("%.0f GB" % ram) if ram else "unknown", cores)).pack(anchor="w", pady=(0, 10))
+        self.buttons = {}
+        for c in nobu_models.CHOICES:
+            row = ttk.Frame(f)
+            row.pack(fill="x", pady=4)
+            title = c["title"] + ("   (recommended for this computer)" if c["name"] == self.best else "")
+            b = ttk.Radiobutton(row, text=title, value=c["name"], variable=self.choice)
+            b.pack(anchor="w")
+            self.buttons[c["name"]] = b
+            ttk.Label(row, text=model_line(c), style="Muted.TLabel", wraplength=600,
+                      justify="left").pack(anchor="w", padx=(26, 0))
+        ttk.Label(f, wraplength=620, justify="left", style="Muted.TLabel", text=(
+            "A small extra model (about %d MB) that listens for “Nobu” is downloaded too."
+            % nobu_models.DETECT_MB)).pack(anchor="w", pady=(10, 0))
+        b = ttk.Frame(f)
+        b.pack(anchor="e", pady=(14, 0))
+        ttk.Button(b, text="Not now", command=self.cancel).pack(side="right", padx=(6, 0))
+        ttk.Button(b, text="Download and start", style="Accent.TButton", command=self.ok).pack(side="right")
+        w.bind("<Return>", lambda e: self.ok())
+        w.bind("<Escape>", lambda e: self.cancel())
+        T.fit(w)
+        w.deiconify()
+        w.lift()
+
+    def ok(self):
+        self.result = self.choice.get()
+        self.done = True
+        self.win.destroy()
+
+    def cancel(self):
+        self.result = None
+        self.done = True
+        self.win.destroy()
+
+    def run(self):
+        while not self.done:
+            self.root.update()
+            self.root.after(50)
+        return self.result
+
+
 class SetupWindow:
     """Downloads speech models. Blocks (own loop) until done."""
 
@@ -49,7 +118,7 @@ class SetupWindow:
         f = ttk.Frame(w, padding=20)
         f.pack(fill="both", expand=True)
         ttk.Label(f, text="Getting the offline speech models", style="H2.TLabel").pack(anchor="w")
-        sizes = {"tiny.en": 75, "base.en": 145, "small.en": 480, "medium.en": 1530}
+        sizes = dict({c["name"]: c["size_mb"] for c in nobu_models.CHOICES}, **{"tiny.en": 75})
         mb = sum(sizes.get(n, 200) for n in names)
         ttk.Label(f, wraplength=530, justify="left", style="Muted.TLabel", text=(
             "This needs the internet once (about %d MB). After that Nobu Notes works completely offline. "
@@ -330,14 +399,14 @@ class SettingsDialog:
         section("Transcription & program")
         r = row()
         ttk.Label(r, text="Transcription model", width=22).pack(side="left")
-        self.model = ttk.Combobox(r, values=["large-v3-turbo", "medium.en", "small.en", "base.en"], state="readonly",
-                                  width=15)
+        self.model = ttk.Combobox(r, values=[c["name"] for c in nobu_models.CHOICES], state="readonly", width=15)
         self.model.set(cfg["transcribe_model"])
         self.model.pack(side="left")
-        ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
-            "medium.en: very accurate (the default).  large-v3-turbo: the most accurate model available, about "
-            "as fast as medium, needs a one-time 1.6 GB download and ~1 GB more memory while transcribing.  "
-            "small / base: faster, less accurate.")).pack(anchor="w")
+        ram, cores = nobu_models.computer()
+        ttk.Label(outer, style="Muted.TLabel", wraplength=600, justify="left", text="\n".join(
+            "%s: %s" % (c["name"], model_line(c)) for c in nobu_models.CHOICES) + (
+            "\nThis computer: %.0f GB memory, %d cores (best fit: %s). A new model downloads once when you Save."
+            % (ram, cores, nobu_models.recommend(ram, cores)))).pack(anchor="w")
         self.tray = tk.BooleanVar(value=cfg["close_to_tray"])
         ttk.Checkbutton(outer, text="Closing the window keeps listening in the system tray",
                         variable=self.tray).pack(anchor="w", pady=2)

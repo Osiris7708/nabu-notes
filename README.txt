@@ -1,10 +1,21 @@
-NOBU NOTES  (version 4.9.3)
+NOBU NOTES  (version 4.9.4)
 ===========================
 
 Say  "Nobu, record this"  and start talking.  ("Nobu" is said "no-boo".)
 Say  "Nobu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
+
+NEW IN VERSION 4.9.4
+--------------------
+- Choose your speech model the first time Nobu starts. Four choices, with what each needs:
+    Large v3 Turbo .... the most accurate. 1.6 GB download. 8 GB memory, a 4-core processor.
+    Medium (English) .. very accurate. 1.5 GB download. 8 GB memory, a 4-core processor.
+    Small (English) ... good, faster. 480 MB download. 4 GB memory, any 2-core processor.
+    Base (English) .... basic, fastest. 145 MB download. 4 GB memory, any processor.
+  Nobu looks at your computer's memory and processor and ticks the best one it runs well.
+  (Before, a new install always got Medium.) Change it any time in Settings, which now shows
+  the same details. Updating an install that already has its models? Nothing to choose.
 
 NEW IN VERSION 4.9.3
 --------------------
@@ -426,9 +437,10 @@ FOLDERS (all inside "Nobu Notes")
 
 TRANSCRIPTION SPEED
 -------------------
-"medium" is the most accurate model but heavy on older PCs. Settings can switch to
-"small" or "base". The audio is always saved first, so nothing is lost while it works.
-Put character and place names in Settings > "Names & unusual words" so they are spelled right.
+You pick the model the first time Nobu starts (Large v3 Turbo is the most accurate; Small and
+Base are lighter for older PCs). Switch any time in Settings > Transcription model. The audio
+is always saved first, so nothing is lost while it works. Put character and place names in
+My dictionary (gear menu) so they are spelled right.
 
 TROUBLESHOOTING
 ---------------
