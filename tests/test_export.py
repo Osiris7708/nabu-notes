@@ -278,6 +278,8 @@ _lib = os.path.join(_root, "app", "fonts", "lib", "fonts.json")
 if os.path.exists(_lib):
     _fams = [f["family"] for f in json.load(open(_lib, encoding="utf-8"))]
     ok("every font in the font library is credited", all(f in _notes for f in _fams), [f for f in _fams if f not in _notes])
+ok("the download unzips to a folder called Nabu Notes", _msc.IN_ZIP == "Nabu Notes")
+ok("the licence names its maker, Osiris7708", "Copyright (c) 2026 Osiris7708" in open(os.path.join(_root, "LICENSE"), encoding="utf-8").read())
 ok("the licence is MIT", open(os.path.join(_root, "LICENSE"), encoding="utf-8").read().startswith("MIT License"))
 print("licence: all checks passed")
 

@@ -74,4 +74,4 @@ The full manual and the list of changes in each version are in [README.txt](READ
 
 ## Licence
 
-Nabu Notes is free and open source under the [MIT licence](LICENSE). The fonts, the thesaurus and the other parts it comes with are credited in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+Made by [Osiris7708](https://github.com/Osiris7708). Nabu Notes is free and open source under the [MIT licence](LICENSE). The fonts, the thesaurus and the other parts it comes with are credited in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).

@@ -1,16 +1,18 @@
 1 ICON "nabu.ico"
 1 VERSIONINFO
-FILEVERSION 5,0,1,0
-PRODUCTVERSION 5,0,1,0
+FILEVERSION 5,0,2,0
+PRODUCTVERSION 5,0,2,0
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
     BLOCK "040904B0"
     BEGIN
       VALUE "FileDescription", "Nabu Notes"
+      VALUE "CompanyName", "Osiris7708"
+      VALUE "LegalCopyright", "Copyright (c) 2026 Osiris7708 - MIT licence"
       VALUE "ProductName", "Nabu Notes"
-      VALUE "FileVersion", "5.0.1"
-      VALUE "ProductVersion", "5.0.1"
+      VALUE "FileVersion", "5.0.2"
+      VALUE "ProductVersion", "5.0.2"
     END
   END
   BLOCK "VarFileInfo"

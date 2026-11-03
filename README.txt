@@ -1,4 +1,4 @@
-NABU NOTES  (version 5.0.1)
+NABU NOTES  (version 5.0.2)
 ===========================
 
 Say  "Nabu, record this"  and start talking.  ("Nabu" is said "naboo".)
@@ -11,6 +11,12 @@ NabuNotes.exe is a small home-made program that isn't "signed" (signing costs mo
 the first time you open it Windows may say "Windows protected your PC". Click "More info",
 then "Run anyway". Now and then an antivirus wrongly flags it too. That's a false alarm:
 all of Nabu's code is open to read on GitHub, and it never sends your writing anywhere.
+
+NEW IN VERSION 5.0.2
+--------------------
+- The download now unzips to a folder simply called "Nabu Notes".
+- NabuNotes.exe's properties (right-click > Properties > Details) show its maker, Osiris7708,
+  and its licence.
 
 NEW IN VERSION 5.0.1
 --------------------

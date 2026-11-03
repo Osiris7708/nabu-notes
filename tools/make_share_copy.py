@@ -19,7 +19,8 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARENT = os.path.dirname(ROOT)
-NAME = "Nabu Notes - Share"
+NAME = "Nabu Notes - Share"                         # the copy on your Desktop
+IN_ZIP = "Nabu Notes"                              # the folder the download unzips to
 DEST = os.path.join(PARENT, NAME)
 ZIP = DEST + ".zip"
 
@@ -79,7 +80,7 @@ def main(argv):
     with zipfile.ZipFile(ztmp, "w", zipfile.ZIP_DEFLATED) as z:
         for _, rel in files:
             already_packed = rel.endswith(".zip") or ".zip.0" in rel
-            z.write(os.path.join(DEST, rel), NAME + "/" + rel.replace(os.sep, "/"),
+            z.write(os.path.join(DEST, rel), IN_ZIP + "/" + rel.replace(os.sep, "/"),
                     compress_type=zipfile.ZIP_STORED if already_packed else zipfile.ZIP_DEFLATED)
     with zipfile.ZipFile(ztmp) as z:
         bad = z.testzip()
