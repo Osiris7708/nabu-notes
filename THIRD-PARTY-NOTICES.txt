@@ -1,0 +1,69 @@
+THIRD-PARTY NOTICES
+===================
+
+Nobu Notes' own code is under the MIT licence (LICENSE). It comes with, or uses, the
+following work by other people. Each keeps its own licence; all of them allow it to be
+shared as part of Nobu Notes. Thank you to everyone who made them.
+
+Where the licence texts are, in an installed copy:
+  runtime\LICENSE_PYTHON.txt ......................... Python and Tcl/Tk
+  runtime\Lib\site-packages\<name>.dist-info\ ......... each Python library
+  app\fonts\  and  app\fonts\lib\ ...................... each font (OFL-*.txt, APACHE-*.txt)
+  app\data\WordNet_license.txt ........................ the thesaurus
+
+
+PROGRAM PARTS
+-------------
+Python 3.11 and Tcl/Tk ........ Python Software Foundation License; Tcl/Tk licence (BSD style)
+                                https://www.python.org
+Go (NobuNotes.exe launcher) ... BSD 3-Clause, Copyright (c) 2009 The Go Authors
+                                https://go.dev/LICENSE
+faster-whisper ................ MIT (includes the Silero VAD model, MIT, Silero Team)
+CTranslate2 ................... MIT. Ships Intel OpenMP (libiomp5md.dll) and NVIDIA cuDNN
+                                (cudnn64_9.dll), redistributable under their makers' licences
+ONNX Runtime .................. MIT, Microsoft
+tokenizers, huggingface_hub, hf_xet, requests, flatbuffers ....... Apache 2.0
+PyAV .......................... BSD 3-Clause. Ships FFmpeg libraries (av.libs), which are
+                                LGPL 2.1 or later: source at https://ffmpeg.org. The GNU
+                                licence texts are in pystray's folder (COPYING, COPYING.LGPL)
+pystray ....................... LGPL 3.0, used unchanged; source at
+                                https://github.com/moses-palmer/pystray
+NumPy, lxml, pypdf, protobuf, click, fsspec, idna, httpx2, httpcore2, pycparser, striprtf
+                                BSD 3-Clause
+ReportLab ..................... BSD, Copyright ReportLab Europe Ltd.
+Pillow ........................ MIT-CMU (HPND), Copyright Jeffrey A. Clark and contributors
+python-docx, pyspellchecker, fontTools, PyYAML, six, sounddevice, tkinterdnd2, anyio, h11,
+filelock, charset-normalizer, urllib3, truststore, cffi ........... MIT
+certifi ....................... MPL 2.0, unchanged; source at https://github.com/certifi/python-certifi
+tqdm .......................... MPL 2.0 and MIT
+typing_extensions ............. PSF 2.0
+packaging ..................... Apache 2.0 or BSD 2-Clause
+
+DATA
+----
+Thesaurus ..................... built from WordNet 3.0, Princeton University (WordNet licence,
+                                app\data\WordNet_license.txt), via LibreOffice's English thesaurus
+Spelling word list ............ from pyspellchecker (MIT)
+
+FONTS
+-----
+72 fonts, all free to use and share (not to be sold on their own):
+  - SIL Open Font License 1.1: Alegreya, Almendra, Almendra Display, Berkshire Swash,
+    Butcherman, Cardo, Caveat, Cinzel, Cinzel Decorative, Cormorant Garamond, Courier Prime,
+    Creepster, Crimson Pro, Cutive Mono, Dancing Script, Eagle Lake, Eater, EB Garamond,
+    Fondamento, Fruktur, Gentium Book Plus, Germania One, Great Vibes, Grenze, Grenze Gotisch,
+    IBM Plex Mono, IM FELL DW Pica, IM FELL English, IM FELL English SC, IM FELL Great Primer,
+    Inter, Jacquard 24, Josefin Sans, Kalam, Kings, La Belle Aurore, Lancelot, Lato,
+    Libre Baskerville, Libre Caslon Text, Lora, Macondo, Macondo Swash Caps, Marcellus,
+    MedievalSharp, Merriweather, Metal Mania, Metamorphous, Mrs Saint Delafield, New Rocker,
+    Nosifer, Nunito, Old Standard TT, Open Sans, Parisienne, Pinyon Script, Pirata One,
+    Playfair Display, Raleway, Rouge Script, Rye, Sorts Mill Goudy, Source Sans 3, Spectral,
+    Tangerine, Texturina, Uncial Antiqua, UnifrakturCook, UnifrakturMaguntia
+  - Apache License 2.0: Homemade Apple, Satisfy, Special Elite
+Each font's copyright and licence is in its OFL-*.txt or APACHE-*.txt file.
+
+DOWNLOADED, NOT INCLUDED
+------------------------
+Speech models (Whisper, OpenAI, MIT; CTranslate2 conversions by SYSTRAN, MIT) are downloaded
+from Hugging Face the first time Nobu starts. Free fonts for pasted text are downloaded from
+Google Fonts (open-source fonts only, each under its own licence).

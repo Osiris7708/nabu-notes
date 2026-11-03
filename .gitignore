@@ -7,6 +7,10 @@
 /cache/
 /logs/
 /fonts/
+/spelling.json
+
+# ---- Claude's working notes for this install (kept on this computer, not published) ----
+/CLAUDE.md
 
 # ---- Big files, or files rebuilt when Nobu starts ----
 /runtime/

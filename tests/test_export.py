@@ -264,3 +264,16 @@ ok("choices read back the same in the drop-downs",
    (PF.font_label(_rules["book antiqua"]), PF.size_label(_rules["book antiqua"]), PF.font_label(_rules["arial"]),
     PF.size_label(_rules["arial"])) == ("Georgia", "13", PF.FONT_MINE, PF.SIZE_MINE))
 print("pasted font choices: all checks passed")
+
+# ---------------------------------------------------------------- licence and credits
+import make_share_copy as _msc
+_rels = [r for _s, r in _msc.wanted()]
+ok("the copy for other people has LICENSE and THIRD-PARTY-NOTICES.txt", "LICENSE" in _rels and "THIRD-PARTY-NOTICES.txt" in _rels)
+_root = os.path.dirname(os.path.dirname(os.path.abspath(R.__file__)))
+_notes = open(os.path.join(_root, "THIRD-PARTY-NOTICES.txt"), encoding="utf-8").read()
+_lib = os.path.join(_root, "app", "fonts", "lib", "fonts.json")
+if os.path.exists(_lib):
+    _fams = [f["family"] for f in json.load(open(_lib, encoding="utf-8"))]
+    ok("every font in the font library is credited", all(f in _notes for f in _fams), [f for f in _fams if f not in _notes])
+ok("the licence is MIT", open(os.path.join(_root, "LICENSE"), encoding="utf-8").read().startswith("MIT License"))
+print("licence: all checks passed")

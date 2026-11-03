@@ -5,7 +5,7 @@
                                                           then puts the zip on GitHub as that version's release
                                                           (tools\\publish_release.py; add --no-github to skip it)
 
-What goes in: NobuNotes.exe, README.txt, the debug .bat, the app's code, icon, thesaurus and base fonts,
+What goes in: NobuNotes.exe, README.txt, LICENSE, THIRD-PARTY-NOTICES.txt, the debug .bat, the app's code, icon, thesaurus and base fonts,
 and the setup zips (runtime + the add-on and font zips nobu_main unpacks). What never goes in: Notes,
 Recordings, Images, config.json, cache, logs, your own fonts, the downloaded speech models, the unpacked
 runtime, tests, tools, git history and CLAUDE.md.
@@ -32,7 +32,7 @@ def wanted():
         if not os.path.isfile(src):
             sys.exit("Missing: %s" % src)
         out.append((src, rel))
-    for f in ("NobuNotes.exe", "README.txt", "Debug - show errors.bat"):
+    for f in ("NobuNotes.exe", "README.txt", "LICENSE", "THIRD-PARTY-NOTICES.txt", "Debug - show errors.bat"):
         add(os.path.join(ROOT, f), f)
     for f in sorted(glob.glob(os.path.join(app, "nobu_*.py"))) + [os.path.join(app, "nobu_icon.png")]:
         add(f, os.path.join("app", os.path.basename(f)))

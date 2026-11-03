@@ -8,6 +8,9 @@ campaign whenever you like. Everything runs on this computer - no cloud, no acco
 
 NEW IN VERSION 4.9.5
 --------------------
+- Licence: Nobu Notes is free and open under the MIT licence (see LICENSE). The fonts,
+  thesaurus and other parts it comes with are credited, with their own licences, in
+  THIRD-PARTY-NOTICES.txt.
 - Pasting keeps the font. Text pasted from another program now keeps its font and size on
   every line (before, every other line could fall back to your own font). The copied page's
   own colours - a dark page's black background and white text, or plain black text - are
