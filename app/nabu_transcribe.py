@@ -15,11 +15,11 @@ import wave
 
 import numpy as np
 
-from nobu_config import model_dir
-import nobu_dictionary
-from nobu_match import Word
+from nabu_config import model_dir
+import nabu_dictionary
+from nabu_match import Word
 
-log = logging.getLogger("nobu.stt")
+log = logging.getLogger("nabu.stt")
 
 
 def _load_model(name, threads):
@@ -120,7 +120,7 @@ def read_wav(path):
     return a.astype(np.float32) / 32768.0
 
 
-_NB = r"(?:nobu|no\W*boo|no\W*bu|know\W*boo|now\W*boo|nobo|noboo|knobu|nabu|naboo)"
+_NB = r"(?:nabu|naboo|nah?\W*boo|nah?\W*bu|nab\W*boo|gnaboo|knaboo|nabo|navu)"
 _STOP_ANY = re.compile(r"[\s,;:\-]*\b" + _NB + r"\b[\s,.!?;:\-]*(?:end|stop)\s+(?:the\s+)?recording\b\W*", re.I)
 _CMD_ANY = re.compile(r"(?:^|(?<=[\s.,!?;:]))(?:hey\s+)?" + _NB + r"\W+(?:record|edit|cut)\s+(?:this|that)\b\W*", re.I)
 _WAKE_HEAD = re.compile(r"^\W*(?:(?:hey\s+)?" + _NB + r"\W+)?(?:record|edit|cut)\s+(?:this|that)\b\W*", re.I)
@@ -154,7 +154,7 @@ class Transcriber:
         self.model_name = None
         self.last_used = time.time()
         self.busy = False
-        self.thread = threading.Thread(target=self._run, name="nobu-transcriber", daemon=True)
+        self.thread = threading.Thread(target=self._run, name="nabu-transcriber", daemon=True)
         self.thread.start()
 
     def submit(self, wav_path, started=None, **extra):
@@ -207,7 +207,7 @@ class Transcriber:
                 self.last_used = time.time()
 
     def _prompt(self, entries):
-        return (nobu_dictionary.prompt_words(entries)[:600] or None) if entries else None
+        return (nabu_dictionary.prompt_words(entries)[:600] or None) if entries else None
 
     def _sample(self, wav_path, extra):
         """Transcribe a pronunciation sample with and without the hint, report what was heard."""
@@ -230,7 +230,7 @@ class Transcriber:
         self._ensure_model()
         audio = level(load_audio(wav_path))
         duration = len(audio) / 16000.0
-        entries = nobu_dictionary.load()
+        entries = nabu_dictionary.load()
         kw = dict(DECODE)
         prompt = self._prompt(entries)
         if prompt:
@@ -252,7 +252,7 @@ class Transcriber:
         if cur:
             paras.append(" ".join(cur))
         paras = _clean_paragraphs(paras)
-        paras = [nobu_dictionary.apply(p, entries) for p in paras]
+        paras = [nabu_dictionary.apply(p, entries) for p in paras]
         if mode != "cut":
             try:
                 with open(os.path.splitext(wav_path)[0] + ".txt", "w", encoding="utf-8") as f:

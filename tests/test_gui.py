@@ -1,17 +1,17 @@
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, subprocess, datetime, traceback
-H=tempfile.mkdtemp(); os.environ['NOBU_HOME']=H
-import nobu_models; nobu_models.missing=lambda n: []
-import nobu_audio, nobu_transcribe
+H=tempfile.mkdtemp(); os.environ['NABU_HOME']=H
+import nabu_models; nabu_models.missing=lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s,a): return []
-nobu_transcribe.Detector=lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector=lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s,*a,**k): k['start_stream']=False; super().__init__(*a,**k)
-nobu_audio.Engine=E2
-import nobu_main as M, nobu_config as C, nobu_library as lib, nobu_doc as nd, nobu_rich as R
+nabu_audio.Engine=E2
+import nabu_main as M, nabu_config as C, nabu_library as lib, nabu_doc as nd, nabu_rich as R
 app=M.App(); app._server=M._claim_instance()
 print('FONTS', app.body_family, '|', app.heading_family, '|', app.ui_family)
 def step(fn):
@@ -80,7 +80,7 @@ def go():
         # thesaurus + spell menu (post menus would block; call fill functions)
         app.thesaurus.ensure(); time.sleep(4)
         def syn():
-            import nobu_theme as T
+            import nabu_theme as T
             m=T.menu(app.root); ed._fill_synonyms(m,'silent','1.0','1.1'); return [m.entrycget(i,'label') for i in range(min(8,m.index('end')+1))]
         print('SYN', step(syn))
         print('SUGG', app.speller.suggestions('wizzard'), app.speller.suggestions('Teh'))
@@ -88,12 +88,12 @@ def go():
         step(lambda: app.export_dialog([n1])); shot('6_export'); step(lambda: app.root.focus_get() and [w.destroy() for w in app.root.winfo_children() if str(w).startswith('.!toplevel')])
         step(app.open_font_browser); step(lambda: app.font_win._pick('Cinzel Decorative')); shot('7_fonts'); step(lambda: app.font_win.win.destroy())
         # export all formats via module
-        import nobu_export as E
+        import nabu_export as E
         ctx=R.Ctx(app.body_family, app.heading_family, 14)
         for f in ('docx','pdf','epub','html','txt'):
             print('EXPORT', f, os.path.getsize(E.export([n1], f, os.path.join(EXPORT,'gui.'+f), ctx, {})))
         # import the docx we made
-        import nobu_importers as I
+        import nabu_importers as I
         p=step(lambda: I.import_file(os.path.join(EXPORT,'gui.docx'), book, True, ctx))
         step(lambda: app.open_note(p)); step(lambda: ed.text.see('1.0')); shot('8_imported')
         step(lambda: app.show_project(book)); shot('9_project')

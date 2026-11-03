@@ -1,4 +1,4 @@
-"""Drag & drop inside Nobu: rearrange books, campaigns, sub-folders and notes in the sidebar.
+"""Drag & drop inside Nabu: rearrange books, campaigns, sub-folders and notes in the sidebar.
 
 Drag an item (from the sidebar, a folder list or Unassigned) and drop it:
   * onto a folder ............ moves it inside that folder (the folder is highlighted)
@@ -9,7 +9,7 @@ Drag an item (from the sidebar, a folder list or Unassigned) and drop it:
   * onto "Trash" ............. deletes (to Trash, restorable)
   * onto the page area ........ opens the note there: the left or right part of a page puts it on a
                                new page beside it, the middle (or the tabs) makes it a tab; dropped
-                               well outside Nobu's window it opens in its own window. A blue shadow
+                               well outside Nabu's window it opens in its own window. A blue shadow
                                shows where. (A folder dropped there is opened.)
 The label that follows the mouse has a second line saying exactly where it will end up ("Goes into:
 "Book > Chapters", above "Chapter 3"") or that it can't go there. Files dragged in from Windows
@@ -21,11 +21,11 @@ import os
 import time
 import tkinter as tk
 
-import nobu_library as lib
-import nobu_theme as T
-from nobu_config import INBOX_DIR, NOTES_DIR
+import nabu_library as lib
+import nabu_theme as T
+from nabu_config import INBOX_DIR, NOTES_DIR
 
-log = logging.getLogger("nobu.drag")
+log = logging.getLogger("nabu.drag")
 
 
 class DragDrop:
@@ -277,7 +277,7 @@ class DragDrop:
 
     def _target_at(self, xr, yr):
         app = self.app
-        # which part of Nobu is under the mouse - worked out from positions, not from "the window under
+        # which part of Nabu is under the mouse - worked out from positions, not from "the window under
         # the mouse", because the blue shade itself can be under the mouse
         w = None
         for cand in (app.nav, app.tree, app.projview._tv, app.inbox._tv):
@@ -391,7 +391,7 @@ class DragDrop:
             try:
                 new = lib.place(p, anchor, mode)
             except Exception as ex:
-                T.info(self.root, "Nobu Notes", str(ex))
+                T.info(self.root, "Nabu Notes", str(ex))
                 break
             if os.path.normcase(new) != os.path.normcase(p):
                 if os.path.isdir(p):
@@ -413,8 +413,8 @@ class DragDrop:
 
 
 class ExplorerHint:
-    """A label beside the mouse while files dragged in from Windows Explorer are over a part of Nobu,
-    saying what will happen to them if let go there (same look as the label of Nobu's own drags)."""
+    """A label beside the mouse while files dragged in from Windows Explorer are over a part of Nabu,
+    saying what will happen to them if let go there (same look as the label of Nabu's own drags)."""
 
     def __init__(self, root):
         self.root = root

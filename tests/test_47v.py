@@ -2,18 +2,18 @@
 symbols in titles, side by side + pop-out + dock, big-library speed."""
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, traceback, json
-H = tempfile.mkdtemp(); os.environ['NOBU_HOME'] = H
-import nobu_models; nobu_models.missing = lambda n: []
-import nobu_audio, nobu_transcribe
+H = tempfile.mkdtemp(); os.environ['NABU_HOME'] = H
+import nabu_models; nabu_models.missing = lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s, a, prompt=None): return []
-nobu_transcribe.Detector = lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector = lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s, *a, **k): k['start_stream'] = False; super().__init__(*a, **k)
-nobu_audio.Engine = E2
-import nobu_main as M, nobu_config as C, nobu_library as lib, nobu_theme as T
+nabu_audio.Engine = E2
+import nabu_main as M, nabu_config as C, nabu_library as lib, nabu_theme as T
 import tkinter as tk
 
 MENUS = []
@@ -144,8 +144,8 @@ def go():
         step(lambda: app.open_note(n3))           # reveals Characters
         step(lambda: app._tree_open(book, False)); step(lambda: app.show_inbox())
         src = os.path.join(H, "imported idea.txt"); open(src, "w").write("A loose idea from a file.\n")
-        import nobu_share
-        step(lambda: nobu_share.import_files(app, [src], C.INBOX_DIR, ask=False))
+        import nabu_share
+        step(lambda: nabu_share.import_files(app, [src], C.INBOX_DIR, ask=False))
         check("import into Unassigned leaves the book closed", not step(lambda: app.tree.item(book, "open")))
         # ---------------- side by side, sash, pop-out, dock
         step(lambda: [app.ws.close_editor(e) for e in list(app.ws.editors())])
@@ -197,14 +197,14 @@ def go():
         check("join into one page", step(lambda: len(app.ws.panes)) == 1)
         # ---------------- big library: speed
         big = lib.create_project('Big Saga')
-        import nobu_doc as nd
+        import nabu_doc as nd
         t0 = time.time()
         for i in range(3000):
             d = nd.empty_doc(); d["items"] = [{"t": "Note %d\n" % i, "g": ["st:title"]}, {"t": "Some words for the preview of note %d.\n" % i, "g": []}]
-            nd.save_doc(os.path.join(big, "Note %04d.nobu" % i), d)
+            nd.save_doc(os.path.join(big, "Note %04d.nabu" % i), d)
         for i in range(1500):
             d = nd.empty_doc(); d["items"] = [{"t": "Idea %d words words\n" % i, "g": []}]
-            nd.save_doc(os.path.join(C.INBOX_DIR, "2026-10-%02d 10.%02d – idea %d.nobu" % (1 + i % 28, i % 60, i)), d)
+            nd.save_doc(os.path.join(C.INBOX_DIR, "2026-10-%02d 10.%02d – idea %d.nabu" % (1 + i % 28, i % 60, i)), d)
         print("made 4500 notes in %.1fs" % (time.time() - t0))
         lib._info_cache.clear(); lib._cache_state["loaded"] = True
         t = time.time(); step(app.refresh_library); tr = time.time() - t
@@ -226,7 +226,7 @@ def go():
     except Exception:
         traceback.print_exc()
     try:
-        lg = open(os.path.join(H, "logs", "nobu.log"), encoding="utf-8").read()
+        lg = open(os.path.join(H, "logs", "nabu.log"), encoding="utf-8").read()
         errs = [l for l in lg.splitlines() if " ERROR " in l or "Traceback" in l or "Error:" in l]
         print("LOG ERRORS:", len(errs)); print("\n".join(errs[:15]))
         if errs: print(lg[lg.find(errs[0]) : lg.find(errs[0]) + 2500])

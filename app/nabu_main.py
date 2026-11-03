@@ -1,4 +1,4 @@
-"""Nobu Notes - entry point. Run through NobuNotes.exe (which starts the bundled Python)."""
+"""Nabu Notes - entry point. Run through NabuNotes.exe (which starts the bundled Python)."""
 import os
 import sys
 
@@ -67,18 +67,18 @@ import threading  # noqa: E402
 import time  # noqa: E402
 import traceback  # noqa: E402
 
-import nobu_config as C  # noqa: E402
+import nabu_config as C  # noqa: E402
 
 C.ensure_dirs()
-_logfile = os.path.join(C.LOGS_DIR, "nobu.log")
+_logfile = os.path.join(C.LOGS_DIR, "nabu.log")
 _h = logging.handlers.RotatingFileHandler(_logfile, maxBytes=1_000_000, backupCount=3, encoding="utf-8")
 _h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
 logging.basicConfig(level=logging.INFO, handlers=[_h])
-log = logging.getLogger("nobu")
+log = logging.getLogger("nabu")
 logging.getLogger("faster_whisper").setLevel(logging.WARNING)   # don't log every speech burst (less disk writing)
-import nobu_offline  # noqa: E402
+import nabu_offline  # noqa: E402
 
-nobu_offline.install()   # Nobu's own internet access is blocked (other programs are not affected)
+nabu_offline.install()   # Nabu's own internet access is blocked (other programs are not affected)
 if sys.stdout is None:
     sys.stdout = open(os.path.join(C.LOGS_DIR, "stdout.txt"), "a", encoding="utf-8")
 if sys.stderr is None:
@@ -87,8 +87,8 @@ if sys.stderr is None:
 import tkinter as tk  # noqa: E402
 from tkinter import filedialog, messagebox, ttk  # noqa: E402
 
-import nobu_library as lib  # noqa: E402
-import nobu_theme as T  # noqa: E402
+import nabu_library as lib  # noqa: E402
+import nabu_theme as T  # noqa: E402
 
 PORT = 47651
 
@@ -122,6 +122,12 @@ class App:
     def __init__(self, tray_only=False):
         self.tray_only = tray_only
         self.cfg = C.Config()
+        self.renamed = self.cfg.from_nobu         # first start after the rename: say so once the window is up
+        if self.renamed:
+            try:
+                self._move_from_nobu()
+            except Exception:
+                log.exception("moving over from Nobu Notes")
         self.uiq = queue.Queue()
         self.tray = None
         self.settings_win = None
@@ -147,24 +153,93 @@ class App:
         self.root = self._make_root()
         self.root.withdraw()
         self.root.report_callback_exception = self._tk_error
-        import nobu_fonts
-        nobu_fonts.load_private()
-        self.body_family = nobu_fonts.pick(self.root, self.cfg["font_family"], nobu_fonts.BODY_FALLBACKS)
-        self.heading_family = nobu_fonts.pick(self.root, self.cfg["heading_font"], nobu_fonts.HEADING_FALLBACKS)
-        self.ui_family = nobu_fonts.pick(self.root, self.cfg["ui_font"], nobu_fonts.UI_FALLBACKS)
+        import nabu_fonts
+        nabu_fonts.load_private()
+        self.body_family = nabu_fonts.pick(self.root, self.cfg["font_family"], nabu_fonts.BODY_FALLBACKS)
+        self.heading_family = nabu_fonts.pick(self.root, self.cfg["heading_font"], nabu_fonts.HEADING_FALLBACKS)
+        self.ui_family = nabu_fonts.pick(self.root, self.cfg["ui_font"], nabu_fonts.UI_FALLBACKS)
         T.set_ui_family(self.ui_family, 11 if self.ui_family != "Segoe UI" else 10)
         T.register_custom(self.cfg.get("custom_theme"))
         T.set_theme(self.cfg.get("theme") or "dark")
         log.info("fonts: text=%s headings=%s interface=%s", self.body_family, self.heading_family, self.ui_family)
         T.apply(self.root, self.heading_family)
         self._set_window_icon()
-        import nobu_spell
-        self.speller = nobu_spell.Speller()
-        self.thesaurus = nobu_spell.Thesaurus()
+        import nabu_spell
+        self.speller = nabu_spell.Speller()
+        self.thesaurus = nabu_spell.Thesaurus()
         self._migrate_vocabulary()
         self._refresh_spell_words()
         if self.cfg.get("install_fonts", True) is not False:
             self.install_fonts_background()
+
+    def _move_from_nobu(self):
+        """Until 5.0 this app was called Nobu Notes. Bring an install of it over to the new name: note files
+        (.nobu -> .nabu, see lib.move_from_nobu), the note paths kept in the settings, the old program files,
+        the Windows start-up entry and shortcuts to NobuNotes.exe. The voice samples learned for the old name
+        are dropped (Teach learns the new one)."""
+        n = lib.move_from_nobu()
+        data = {k: lib.renamed_values(self.cfg.get(k)) for k in ("open_tabs", "recent_notes", "last_open")}
+        self.cfg.update(wake_aliases=[], phrase_samples={}, **data)
+        app_dir = os.path.join(C.HOME, "app")
+        old = [os.path.join(app_dir, f) for f in os.listdir(app_dir) if f.startswith("nobu_")]
+        cache = os.path.join(app_dir, "__pycache__")
+        if os.path.isdir(cache):
+            old += [os.path.join(cache, f) for f in os.listdir(cache) if f.startswith("nobu_")]
+        old += [os.path.join(C.LOGS_DIR, f) for f in os.listdir(C.LOGS_DIR) if f.startswith("nobu.log")] \
+            if os.path.isdir(C.LOGS_DIR) else []
+        old_exe = os.path.join(C.HOME, "NobuNotes.exe")
+        if os.path.exists(C.EXE_PATH):
+            old.append(old_exe)
+        for p in old:
+            try:
+                if os.path.isfile(p):
+                    os.remove(p)
+            except OSError:
+                log.warning("could not remove %s", p)
+        if os.name == "nt":
+            try:
+                import winreg
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run",
+                                     0, winreg.KEY_SET_VALUE)
+                try:
+                    winreg.DeleteValue(key, "NobuNotes")
+                except FileNotFoundError:
+                    pass
+                winreg.CloseKey(key)
+            except OSError:
+                log.exception("old start-up entry")
+            self.apply_autostart()
+            self._repoint_shortcuts(old_exe)
+        log.info("moved over from Nobu Notes: %d note files renamed", n)
+
+    @staticmethod
+    def _repoint_shortcuts(old_exe):
+        """Shortcuts (desktop, Start menu, start-up) to NobuNotes.exe now open NabuNotes.exe, and are renamed."""
+        script = (
+            "$s = New-Object -ComObject WScript.Shell; "
+            "$dirs = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('CommonDesktopDirectory'), "
+            "[Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Startup')); "
+            "foreach ($d in $dirs) { if (-not $d -or -not (Test-Path $d)) { continue }; "
+            "Get-ChildItem -Path $d -Filter *.lnk -Recurse -ErrorAction SilentlyContinue | ForEach-Object { "
+            "$l = $s.CreateShortcut($_.FullName); "
+            "if ($l.TargetPath -and ($l.TargetPath -ieq $env:NABU_OLD_EXE)) { "
+            "$l.TargetPath = $env:NABU_NEW_EXE; $l.WorkingDirectory = $env:NABU_DIR; $l.IconLocation = $env:NABU_NEW_EXE + ',0'; "
+            "$l.Save(); $n = $_.Name -replace 'Nobu', 'Nabu'; "
+            "if ($n -ne $_.Name) { Rename-Item -LiteralPath $_.FullName -NewName $n -ErrorAction SilentlyContinue } } } }")
+        env = dict(os.environ, NABU_OLD_EXE=old_exe, NABU_NEW_EXE=C.EXE_PATH, NABU_DIR=C.HOME)
+        try:
+            import subprocess
+            subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script], env=env,
+                           timeout=60, creationflags=0x08000000, capture_output=True)      # no console window
+        except Exception:
+            log.exception("could not update shortcuts")
+
+    def _tell_renamed(self):
+        T.info(self.root, "Nobu Notes is now Nabu Notes", (
+            "This app has a new name: Nabu Notes, said “naboo”.\n\n"
+            "Say “%s” to start recording and “%s” to stop.\n\n"
+            "Your notes, folders and settings came across as they were. Nabu forgot how you said the old name, "
+            "so please run ⚙ > Teach Nabu my voice once more (about a minute)." % (C.WAKE_PHRASE, C.STOP_PHRASE)))
 
     def _migrate_vocabulary(self):
         """The old Settings box 'Names & unusual words' did a subset of what My dictionary does.
@@ -174,15 +249,15 @@ class App:
             return
         try:
             import re as _re
-            import nobu_dictionary
-            entries = nobu_dictionary.load()
+            import nabu_dictionary
+            entries = nabu_dictionary.load()
             have = {e["word"].lower() for e in entries}
             for w in _re.split(r"[,;\n]+", vocab):
                 w = w.strip()
                 if w and w.lower() not in have:
                     entries.append({"word": w, "sounds": []})
                     have.add(w.lower())
-            nobu_dictionary.save(entries)
+            nabu_dictionary.save(entries)
             self.cfg.update(custom_vocabulary="")
             log.info("moved the Settings vocabulary into My dictionary")
         except Exception:
@@ -190,18 +265,18 @@ class App:
 
     def _refresh_spell_words(self):
         try:
-            import nobu_dictionary
-            self.speller.set_extra([e["word"] for e in nobu_dictionary.load()])
+            import nabu_dictionary
+            self.speller.set_extra([e["word"] for e in nabu_dictionary.load()])
         except Exception:
             log.exception("dictionary words for spell check")
 
     def install_fonts_background(self, force=False):
-        """Install Nobu's fonts for this Windows user so Word & co. show the same fonts (no admin needed)."""
-        import nobu_fonts
+        """Install Nabu's fonts for this Windows user so Word & co. show the same fonts (no admin needed)."""
+        import nabu_fonts
 
         def run():
             try:
-                n = nobu_fonts.install_into_windows(force=force)
+                n = nabu_fonts.install_into_windows(force=force)
                 if n:
                     self.ui(lambda: self.set_status("Installed %d font files into Windows - Word and other programs "
                                                     "can use them now." % n))
@@ -220,14 +295,14 @@ class App:
 
     def _set_window_icon(self):
         try:
-            art = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nobu_icon.png")
+            art = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nabu_icon.png")
             if os.path.exists(art):
                 self._icon_img = tk.PhotoImage(file=art)
             else:                       # (the drawn stand-in, if the icon file is missing)
-                from nobu_pictool import tk_photo
-                from nobu_ui import make_icon
+                from nabu_pictool import tk_photo
+                from nabu_ui import make_icon
                 self._icon_img = tk_photo(make_icon("idle"))
-            self.root._nobu_icon = self._icon_img
+            self.root._nabu_icon = self._icon_img
             self.root.iconphoto(True, self._icon_img)
         except Exception:
             pass
@@ -236,31 +311,33 @@ class App:
         log.error("UI error:\n%s", "".join(traceback.format_exception(exc, val, tb)))
 
     def run(self):
-        from nobu_models import first_start, missing
+        from nabu_models import first_start, missing
         need = missing([self.cfg["detect_model"], self.cfg["transcribe_model"]])
         if need and first_start():      # a new install: let the person choose the model (what each needs is shown)
-            from nobu_ui import ModelChooser
+            from nabu_ui import ModelChooser
             pick = ModelChooser(self.root).run()
             if not pick:
                 return
             self.cfg.update(transcribe_model=pick)
             need = missing([self.cfg["detect_model"], pick])
         if need:
-            from nobu_ui import SetupWindow
+            from nabu_ui import SetupWindow
             if not SetupWindow(self.root, need).run():
                 if missing([self.cfg["detect_model"]]) and not missing(["tiny.en"]):
                     self.cfg.update(detect_model="tiny.en")      # fall back to what we already have
                 if missing([self.cfg["detect_model"], self.cfg["transcribe_model"]]):
                     return
-        from nobu_audio import Engine, recover_partial_recordings
-        from nobu_transcribe import Detector, Transcriber
-        from nobu_ui import Badge
+        from nabu_audio import Engine, recover_partial_recordings
+        from nabu_transcribe import Detector, Transcriber
+        from nabu_ui import Badge
 
         lib.migrate_trash()
         moved = lib.migrate_legacy()
         if moved:
             log.info("moved %d older notes into Unassigned", len(moved))
         self._build_window()
+        if self.renamed:
+            T.later(self.root, 1500, self._tell_renamed)
         self.badge = Badge(self.root)
         self.detector = Detector(self.cfg)
         self.transcriber = Transcriber(self.cfg, lambda n, **kw: self.ui(self._tx_event, n, kw))
@@ -293,12 +370,12 @@ class App:
             self.detector.warm()
         except Exception:
             log.exception("could not load the wake-phrase model")
-            self.ui(lambda: self.set_status("Could not load the speech model - see logs\\nobu.log"))
+            self.ui(lambda: self.set_status("Could not load the speech model - see logs\\nabu.log"))
 
     # ------------------------------------------------------------ main window
     def _build_window(self):
         r = self.root
-        r.title("Nobu Notes")
+        r.title("Nabu Notes")
         sc = T.ui_scale(r)
         sw, sh = r.winfo_screenwidth(), r.winfo_screenheight()
         r.minsize(min(int(760 * sc), sw - 40), min(int(500 * sc), sh - 80))
@@ -342,7 +419,7 @@ class App:
         # --- sidebar header
         hd = ttk.Frame(side, style="Side.TFrame", padding=(16, 16, 16, 8))
         hd.pack(fill="x")
-        self.brand = tk.Label(hd, text="Nobu Notes", bg=T.SIDEBAR, fg=T.FG, font=(self.heading_family, 20))
+        self.brand = tk.Label(hd, text="Nabu Notes", bg=T.SIDEBAR, fg=T.FG, font=(self.heading_family, 20))
         self.brand.pack(anchor="w")
         pill = tk.Frame(hd, bg=T.SIDEBAR)
         pill.pack(anchor="w", pady=(6, 0))
@@ -410,14 +487,14 @@ class App:
         self.progress = ttk.Progressbar(main, mode="determinate", maximum=100)
         self.content = ttk.Frame(main)
         self.content.pack(side="top", fill="both", expand=True)
-        from nobu_workspace import Workspace
+        from nabu_workspace import Workspace
         self.editor = None
         self.ws = Workspace(self.content, self)      # sets self.editor (the note you're working in)
         self.home = self._build_home(self.content)
         self.inbox = self._build_list_view(self.content, inbox=True)
         self.projview = self._build_list_view(self.content, inbox=False)
         self.trashview = self._build_trash_view(self.content)
-        from nobu_dragdrop import DragDrop
+        from nabu_dragdrop import DragDrop
         self.dragdrop = DragDrop(self)
         self.root.bind("<FocusIn>", lambda e: self._update_note_context(), add="+")
         self.root.bind("<FocusOut>", lambda e: self.root.after(50, self._update_note_context), add="+")
@@ -440,7 +517,7 @@ class App:
         return "%dx%d+%d+%d" % (w, h, x, y)
 
     def restart(self):
-        """Start a fresh copy of Nobu (it waits for this one to close), then quit."""
+        """Start a fresh copy of Nabu (it waits for this one to close), then quit."""
         import subprocess
         try:
             flags = (0x00000008 | 0x00000200) if os.name == "nt" else 0   # DETACHED_PROCESS | NEW_PROCESS_GROUP
@@ -448,7 +525,7 @@ class App:
                              close_fds=True)
         except Exception:
             log.exception("restart failed")
-            T.info(self.root, "Nobu Notes", "Please close Nobu (tray icon > Quit) and open it again.")
+            T.info(self.root, "Nabu Notes", "Please close Nabu (tray icon > Quit) and open it again.")
             return
         self.quit()
 
@@ -477,11 +554,11 @@ class App:
     def _gear_menu(self):
         m = T.menu(self.root)
         m.add_command(label="Microphone, noise & settings…", command=self.open_settings)
-        m.add_command(label="Teach Nobu my voice…", command=self.open_teach)
+        m.add_command(label="Teach Nabu my voice…", command=self.open_teach)
         m.add_command(label="My dictionary (names & spellings)…", command=self.open_dictionary)
         m.add_command(label="What is it hearing?…", command=self.open_diagnostics)
         m.add_command(label="Fonts…", command=self.open_font_browser)
-        m.add_command(label="How to use Nobu (tutorial)…", command=self.open_tutorial)
+        m.add_command(label="How to use Nabu (tutorial)…", command=self.open_tutorial)
         m.add_separator()
         m.add_command(label="Import documents…", command=lambda: self.import_dialog())
         m.add_command(label="Transcribe an audio file…", command=self.transcribe_file_dialog)
@@ -489,7 +566,7 @@ class App:
         m.add_command(label="Open log file", command=lambda: self._open(_logfile))
         m.add_separator()
         m.add_command(label="Hide to tray", command=self.hide_window)
-        m.add_command(label="Quit Nobu Notes", command=self.quit)
+        m.add_command(label="Quit Nabu Notes", command=self.quit)
         b = self.gear_btn
         m.tk_popup(b.winfo_rootx(), b.winfo_rooty() - 13 * 26)
 
@@ -556,7 +633,7 @@ class App:
 
     @staticmethod
     def _open(p):
-        from nobu_editor import open_path
+        from nabu_editor import open_path
         open_path(p)
 
     # --- home view
@@ -590,11 +667,11 @@ class App:
                 canvas.yview_scroll(-1 if (getattr(ev, "delta", 0) > 0 or ev.num == 4) else 1, "units")
         for seq in ("<MouseWheel>", "<Button-4>", "<Button-5>"):
             outer.bind_all(seq, wheel, add="+")
-        ttk.Label(f, text="Nobu Notes", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(f, text="Nabu Notes", style="Title.TLabel").pack(anchor="w")
         ttk.Label(f, text="Say “%s” and start talking. Say “%s”, or stay quiet for a few "
                           "seconds, to finish." % (C.WAKE_PHRASE, C.STOP_PHRASE), style="Muted.TLabel",
                   wraplength=760).pack(anchor="w", pady=(4, 0))
-        ttk.Label(f, text="(Tip: “Nobu” is said “no-boo”.)", style="Muted.TLabel").pack(anchor="w", pady=(2, 14))
+        ttk.Label(f, text="(Tip: “Nabu” is said “naboo”.)", style="Muted.TLabel").pack(anchor="w", pady=(2, 14))
         priv = tk.Frame(f, bg=T.PANEL, highlightthickness=0)
         priv.pack(fill="x", pady=(0, 20))
         tk.Frame(priv, width=4, bg=T.GREEN).pack(side="left", fill="y")
@@ -605,7 +682,7 @@ class App:
         self.privacy_lbl = tk.Label(
             pin, bg=T.PANEL, fg=T.MUTED, font=T.UI_FONT, anchor="w", justify="left", wraplength=900,
             text="Your recordings, transcripts and notes are made and stored only on this computer, in your "
-                 "Nobu Notes folder. Speech recognition runs here, with no account and no cloud. Nobu also blocks "
+                 "Nabu Notes folder. Speech recognition runs here, with no account and no cloud. Nabu also blocks "
                  "its own internet access while it runs (other programs on your computer are not affected); "
                  "the only exceptions are the one-time download of the speech models, and free fonts for text you "
                  "paste in a font you don't have (only the font's name is sent; Settings > Fonts can turn it off).")
@@ -652,7 +729,7 @@ class App:
         ttk.Label(f, text="Tune it to your voice and room", style="H2.TLabel").pack(anchor="w", pady=(26, 6))
         tb = ttk.Frame(f)
         tb.pack(anchor="w")
-        ttk.Button(tb, text="Teach Nobu my voice", command=self.open_teach).pack(side="left")
+        ttk.Button(tb, text="Teach Nabu my voice", command=self.open_teach).pack(side="left")
         ttk.Button(tb, text="My dictionary", command=self.open_dictionary).pack(side="left", padx=8)
         ttk.Button(tb, text="Microphone & noise filter", command=self.open_settings).pack(side="left", padx=8)
         ttk.Button(tb, text="What is it hearing?", command=self.open_diagnostics).pack(side="left")
@@ -664,7 +741,7 @@ class App:
         ttk.Button(wb, text="Fonts…", command=self.open_font_browser).pack(side="left", padx=8)
 
         ttk.Label(f, text="Help", style="H2.TLabel").pack(anchor="w", pady=(26, 4))
-        tut = tk.Label(f, text="How to use Nobu — the full tutorial", bg=T.BG, fg=T.ACCENT,
+        tut = tk.Label(f, text="How to use Nabu — the full tutorial", bg=T.BG, fg=T.ACCENT,
                        font=(T.UI_FAMILY, T.UI_SIZE + 1), cursor="hand2")
         tut.pack(anchor="w")
         tut.bind("<Button-1>", lambda e: self.open_tutorial())
@@ -673,7 +750,7 @@ class App:
         return outer
 
     def open_tutorial(self):
-        from nobu_help import TutorialWindow
+        from nabu_help import TutorialWindow
         w = self.tutorial_win
         if w and w.win.winfo_exists():
             w.win.lift()
@@ -681,20 +758,20 @@ class App:
         self.tutorial_win = TutorialWindow(self.root)
 
     def _privacy_details(self):
-        n = len(nobu_offline.blocked)
+        n = len(nabu_offline.blocked)
         T.info(self.root, "Local and private", (
             "• Recording, noise filtering, wake-word detection and transcription all run on this PC "
             "(speech models in the “models” folder).\n"
-            "• Audio is saved in “Recordings” and notes in “Notes”, both inside your Nobu Notes folder.\n"
-            "• Nobu has a built-in network guard: while Nobu runs, any attempt by Nobu itself to connect to the "
+            "• Audio is saved in “Recordings” and notes in “Notes”, both inside your Nabu Notes folder.\n"
+            "• Nabu has a built-in network guard: while Nabu runs, any attempt by Nabu itself to connect to the "
             "internet is refused. The only exceptions are the speech-model download (first start, or changing "
             "models in Settings) and free fonts from Google Fonts for pasted text in a font you don't have (only "
             "the font's name is sent, never your writing; Settings > Fonts can turn it off).\n"
-            "• The guard lives inside Nobu only. It does not touch Windows, your firewall or any other program - "
+            "• The guard lives inside Nabu only. It does not touch Windows, your firewall or any other program - "
             "your browser, games and everything else use the internet exactly as before.\n"
             "• Spell check, thesaurus, fonts, import and export all work offline too.\n"
-            "• Any blocked attempt is written to logs\\nobu.log.\n\n"
-            "Connections by Nobu that were blocked this session: %d" % n))
+            "• Any blocked attempt is written to logs\\nabu.log.\n\n"
+            "Connections by Nabu that were blocked this session: %d" % n))
 
     def _fill_home(self):
         n = lib.inbox_count()
@@ -1107,7 +1184,7 @@ class App:
                 n += 1
             except Exception as e:
                 log.exception("restore failed")
-                T.info(self.root, "Nobu Notes", "Could not restore that item:\n%s" % e)
+                T.info(self.root, "Nabu Notes", "Could not restore that item:\n%s" % e)
         self.refresh_library()
         if n:
             self.set_status("Restored %d item%s." % (n, "" if n == 1 else "s"))
@@ -1145,7 +1222,7 @@ class App:
         self._update_note_context()
 
     def _update_note_context(self):
-        """'edit this' / 'cut this' only work while a note is open and Nobu's window is in front."""
+        """'edit this' / 'cut this' only work while a note is open and Nabu's window is in front."""
         try:
             on = bool(self._note_showing() and (self.root.state() == "normal" or self.ws.is_popped(self.editor))
                       and self.root.focus_displayof() is not None)
@@ -1267,7 +1344,7 @@ class App:
                 self._repath(path, new)
             except Exception as ex:
                 log.exception("rename after title")
-                T.info(self.root, "Nobu Notes", "The title was added, but the note couldn't be renamed:\n%s" % ex)
+                T.info(self.root, "Nabu Notes", "The title was added, but the note couldn't be renamed:\n%s" % ex)
             self.refresh_library()
             if ed.path and self.tree.exists(ed.path):
                 self._quiet_select(self.tree, ed.path)
@@ -1517,7 +1594,7 @@ class App:
             T.later(tv, 1, self._tree_colors_later, unknown)
 
     def _tree_colors_later(self, paths):
-        """Colour labels for sidebar notes Nobu hasn't read before, a batch at a time (a folder of thousands
+        """Colour labels for sidebar notes Nabu hasn't read before, a batch at a time (a folder of thousands
         of notes opens at once instead of freezing while every note is opened)."""
         tv = self.tree
         for p in paths[:60]:
@@ -1660,7 +1737,7 @@ class App:
         try:
             p = lib.create_project(name)
         except Exception as e:
-            T.info(self.root, "Nobu Notes", str(e))
+            T.info(self.root, "Nabu Notes", str(e))
             return None
         self.current_project = p
         self.refresh_library()
@@ -1679,7 +1756,7 @@ class App:
         try:
             p = lib.create_folder(parent, name)
         except Exception as e:
-            T.info(self.root, "Nobu Notes", str(e))
+            T.info(self.root, "Nabu Notes", str(e))
             return
         self.current_project = p
         self.refresh_library()
@@ -1718,7 +1795,7 @@ class App:
         try:
             new = lib.rename_project(folder, name)
         except Exception as e:
-            T.info(self.root, "Nobu Notes", str(e))
+            T.info(self.root, "Nabu Notes", str(e))
             return
         self._rebase_open_note(folder, new)
         self.refresh_library()
@@ -1760,7 +1837,7 @@ class App:
         try:
             new = lib.rename_note(path, name, sync_title=not eds)
         except Exception as e:
-            T.info(self.root, "Nobu Notes", "Could not rename the note:\n%s" % e)
+            T.info(self.root, "Nabu Notes", "Could not rename the note:\n%s" % e)
             return
         self._repath(path, new)
         for ed in eds:
@@ -1821,7 +1898,7 @@ class App:
     def move_menu(self, widget, paths):
         paths = [p for p in paths if p]
         if not paths:
-            T.info(self.root, "Nobu Notes", "Select one or more transcripts first.")
+            T.info(self.root, "Nabu Notes", "Select one or more transcripts first.")
             return
         m = T.menu(self.root)
         self._fill_move_menu(m, paths)
@@ -1838,7 +1915,7 @@ class App:
         try:
             d = lib.create_folder(parent, name) if parent else lib.create_project(name)
         except Exception as e:
-            T.info(self.root, "Nobu Notes", str(e))
+            T.info(self.root, "Nabu Notes", str(e))
             return
         self.move_notes(paths, d)
 
@@ -1859,7 +1936,7 @@ class App:
                     self._repath(p, new)
                 moved += 1
             except Exception as e:
-                T.info(self.root, "Nobu Notes", str(e))
+                T.info(self.root, "Nabu Notes", str(e))
         if not lib.is_inbox(folder):
             self.current_project = folder
         self.refresh_library()
@@ -1893,7 +1970,7 @@ class App:
         try:
             shown = bool(self.root.winfo_viewable())
             if shown:
-                from nobu_ui import level_pct
+                from nabu_ui import level_pct
                 self.side_meter["value"] = level_pct(self.engine.level)[0]
         except Exception:
             pass
@@ -1950,7 +2027,7 @@ class App:
 
     def _restore_session(self):
         """Reopen the notes that were open last time (Settings > Reopen my notes). True if any opened."""
-        from nobu_workspace import MAX_PANES, MAX_TABS
+        from nabu_workspace import MAX_PANES, MAX_TABS
         if self.cfg.get("reopen_notes", True) is False:
             return False
         ws, first_pane = self.ws, None
@@ -1987,7 +2064,7 @@ class App:
         self.root.withdraw()
         if not self.told_tray:
             self.told_tray = True
-            self.notify("Still listening", "Nobu Notes is in the system tray. Say “%s” any time." % C.WAKE_PHRASE)
+            self.notify("Still listening", "Nabu Notes is in the system tray. Say “%s” any time." % C.WAKE_PHRASE)
 
     def on_close_window(self):
         if self.cfg["close_to_tray"] and self.tray is not None:
@@ -1998,10 +2075,10 @@ class App:
     def _start_tray(self):
         try:
             import pystray
-            from nobu_ui import make_icon
+            from nabu_ui import make_icon
             M, I = pystray.Menu, pystray.MenuItem
             menu = M(
-                I("Open Nobu Notes", lambda i, it: self.ui(self.show_window), default=True),
+                I("Open Nabu Notes", lambda i, it: self.ui(self.show_window), default=True),
                 I(lambda it: "Stop recording" if self.state == "recording" else "Start recording now",
                   lambda i, it: self.ui(self.toggle_manual_record)),
                 I(lambda it: "Resume listening" if self.state == "paused" else "Pause listening",
@@ -2011,7 +2088,7 @@ class App:
                 M.SEPARATOR,
                 I("Quit", lambda i, it: self.ui(self.quit)),
             )
-            self.tray = pystray.Icon("NobuNotes", make_icon("idle"), "Nobu Notes", menu)
+            self.tray = pystray.Icon("NabuNotes", make_icon("idle"), "Nabu Notes", menu)
             self.tray.run_detached()
         except Exception:
             log.exception("system tray unavailable")
@@ -2027,14 +2104,14 @@ class App:
         if self.tray is None:
             return
         try:
-            from nobu_ui import make_icon
+            from nabu_ui import make_icon
             busy = self.transcriber.pending() > 0
             self.tray.icon = make_icon(self.state, busy)
             tip = {"idle": "Listening for “%s”" % C.WAKE_PHRASE, "recording": "Recording…",
-                   "paused": "Paused", "nomic": "No microphone found"}.get(self.state, "Nobu Notes")
+                   "paused": "Paused", "nomic": "No microphone found"}.get(self.state, "Nabu Notes")
             if busy:
                 tip += " (transcribing)"
-            self.tray.title = ("Nobu Notes — " + tip)[:120]
+            self.tray.title = ("Nabu Notes — " + tip)[:120]
             self.tray.update_menu()
         except Exception:
             pass
@@ -2196,13 +2273,13 @@ class App:
         if ed is not None and ed is not self.editor:
             self.ws._activate(ed)
         if not self._note_showing():
-            T.info(self.root, "Nobu Notes", "Open a note first.")
+            T.info(self.root, "Nabu Notes", "Open a note first.")
             return
         if self.state == "recording":
             self.stop_manual_record()
             return
         if self.state != "idle":
-            T.info(self.root, "Nobu Notes", "Listening is paused or the microphone is unavailable.")
+            T.info(self.root, "Nabu Notes", "Listening is paused or the microphone is unavailable.")
             return
         self.engine.command("start_recording", mode=kind)
 
@@ -2225,7 +2302,7 @@ class App:
 
     # --- keyboard shortcuts
     def apply_hotkeys(self):
-        from nobu_hotkeys import Hotkeys
+        from nabu_hotkeys import Hotkeys
         if self.hotkeys is None:
             self.hotkeys = Hotkeys(self, self._on_hotkey)
         self.hotkeys.apply({k: self.cfg.get("hotkey_" + k) or "" for k in ("record", "edit", "cut")})
@@ -2287,12 +2364,12 @@ class App:
                         lib.set_note_color(p, color)
             except Exception as e:
                 log.exception("colour label")
-                T.info(self.root, "Nobu Notes", "Could not set the colour:\n%s" % e)
+                T.info(self.root, "Nabu Notes", "Could not set the colour:\n%s" % e)
         self.refresh_library()
 
     # --- writing: export / import / fonts
     def export_dialog(self, paths=None, folder=None):
-        from nobu_share import ExportDialog
+        from nabu_share import ExportDialog
         paths = [p for p in (paths or []) if p]
         if not paths and not folder:
             if self._note_showing():
@@ -2305,7 +2382,7 @@ class App:
         ExportDialog(self, paths, folder)
 
     def import_dialog(self, folder=None):
-        from nobu_share import import_dialog
+        from nabu_share import import_dialog
         if folder is None:
             # into the folder you're looking at; otherwise Unassigned (never a folder you merely visited earlier)
             if self.view is self.projview and self.current_project and os.path.isdir(self.current_project):
@@ -2317,11 +2394,11 @@ class App:
         import_dialog(self, folder)
 
     def import_files(self, files, folder):
-        from nobu_share import import_files
+        from nabu_share import import_files
         import_files(self, files, folder)
 
     def open_font_browser(self):
-        from nobu_share import FontBrowser
+        from nabu_share import FontBrowser
         w = self.font_win
         if w and w.win.winfo_exists():
             w.win.lift()
@@ -2334,7 +2411,7 @@ class App:
             from tkinterdnd2 import DND_FILES
             tv.drop_target_register(DND_FILES)
 
-            from nobu_dragdrop import ExplorerHint
+            from nabu_dragdrop import ExplorerHint
             hint = ExplorerHint(self.root)
 
             def where():
@@ -2364,7 +2441,7 @@ class App:
             pass
 
     def open_dictionary(self, prefill=None):
-        from nobu_ui import DictionaryWindow
+        from nabu_ui import DictionaryWindow
         if self.dict_win and self.dict_win.win.winfo_exists():
             self.dict_win.win.lift()
             if prefill:
@@ -2409,21 +2486,21 @@ class App:
         self.engine.command("resume" if self.state == "paused" else "pause")
 
     def open_settings(self):
-        from nobu_ui import SettingsDialog
+        from nabu_ui import SettingsDialog
         if self.settings_win and self.settings_win.win.winfo_exists():
             self.settings_win.win.lift()
             return
         self.settings_win = SettingsDialog(self.root, self, self.cfg)
 
     def open_teach(self):
-        from nobu_ui import TeachWindow
+        from nabu_ui import TeachWindow
         if self.teach_win and self.teach_win.win.winfo_exists():
             self.teach_win.win.lift()
             return
         self.teach_win = TeachWindow(self.root, self)
 
     def open_diagnostics(self):
-        from nobu_ui import DiagnosticsWindow
+        from nabu_ui import DiagnosticsWindow
         if self.diag_win and self.diag_win.win.winfo_exists():
             self.diag_win.win.lift()
             return
@@ -2431,10 +2508,10 @@ class App:
 
     def apply_fonts(self):
         """Switch fonts live after they are changed in Settings."""
-        import nobu_fonts
-        self.body_family = nobu_fonts.pick(self.root, self.cfg["font_family"], nobu_fonts.BODY_FALLBACKS)
-        self.heading_family = nobu_fonts.pick(self.root, self.cfg["heading_font"], nobu_fonts.HEADING_FALLBACKS)
-        self.ui_family = nobu_fonts.pick(self.root, self.cfg["ui_font"], nobu_fonts.UI_FALLBACKS)
+        import nabu_fonts
+        self.body_family = nabu_fonts.pick(self.root, self.cfg["font_family"], nabu_fonts.BODY_FALLBACKS)
+        self.heading_family = nabu_fonts.pick(self.root, self.cfg["heading_font"], nabu_fonts.HEADING_FALLBACKS)
+        self.ui_family = nabu_fonts.pick(self.root, self.cfg["ui_font"], nabu_fonts.UI_FALLBACKS)
         T.set_ui_family(self.ui_family, 11 if self.ui_family != "Segoe UI" else 10)
         T.apply(self.root, self.heading_family)
         self.brand.config(font=(self.heading_family, 20))
@@ -2446,10 +2523,10 @@ class App:
         self.engine.command("reconfigure", reopen=mic_changed)
         self.apply_autostart()
         if models_changed:
-            from nobu_models import missing
+            from nabu_models import missing
             need = missing([self.cfg["detect_model"], self.cfg["transcribe_model"]])
             if need:
-                from nobu_ui import SetupWindow
+                from nabu_ui import SetupWindow
                 if not SetupWindow(self.root, need).run():
                     self.cfg.update(transcribe_model="medium.en", detect_model="tiny.en")
             self.detector.reload()
@@ -2461,14 +2538,14 @@ class App:
             return
         try:
             import winreg
-            exe = os.environ.get("NOBU_EXE") or C.EXE_PATH
+            exe = os.environ.get("NABU_EXE") or C.EXE_PATH
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                                  r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
             if self.cfg["autostart"] and os.path.exists(exe):
-                winreg.SetValueEx(key, "NobuNotes", 0, winreg.REG_SZ, '"%s" --tray' % exe)
+                winreg.SetValueEx(key, "NabuNotes", 0, winreg.REG_SZ, '"%s" --tray' % exe)
             else:
                 try:
-                    winreg.DeleteValue(key, "NobuNotes")
+                    winreg.DeleteValue(key, "NabuNotes")
                 except FileNotFoundError:
                     pass
             winreg.CloseKey(key)
@@ -2491,7 +2568,7 @@ class App:
                     todo.append(os.path.join(dp, f))
         if not todo:
             return
-        if not T.confirm(self.root, "Nobu Notes", "%d recording(s) have no transcript yet (probably from when the "
+        if not T.confirm(self.root, "Nabu Notes", "%d recording(s) have no transcript yet (probably from when the "
                          "program was closed).\n\nTranscribe them now? They will appear in Unassigned.\n\n(If you skip "
                          "them, you can still transcribe one later: \u2699 > Transcribe an audio file.)" % len(todo),
                          yes="Transcribe", no="Skip them"):
@@ -2584,11 +2661,11 @@ def main():
     try:
         app = App(tray_only=tray_only)
         app._server = srv
-        log.info("Nobu Notes %s starting (home=%s)", C.VERSION, C.HOME)
+        log.info("Nabu Notes %s starting (home=%s)", C.VERSION, C.HOME)
         app.run()
     except Exception:
         log.exception("fatal error")
-        _fatal("Nobu Notes", "Nobu Notes hit a problem and had to stop.\n\nDetails were saved to:\n%s\n\n%s"
+        _fatal("Nabu Notes", "Nabu Notes hit a problem and had to stop.\n\nDetails were saved to:\n%s\n\n%s"
                % (_logfile, traceback.format_exc()[-800:]))
 
 

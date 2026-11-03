@@ -1,10 +1,10 @@
-"""Fonts: Nobu's font library, your own fonts, and Windows' fonts.
+"""Fonts: Nabu's font library, your own fonts, and Windows' fonts.
 
   app\\fonts\\lib\\   ~64 free fonts (SIL Open Font License) + fonts.json (family, category, files)
   app\\fonts\\        older bundled copies (IM Fell English, Grenze)
   fonts\\             your own fonts (e.g. Varnyx) - drop any .ttf/.otf here
 
-At start-up they are loaded privately for Nobu, and (by default) installed into Windows
+At start-up they are loaded privately for Nabu, and (by default) installed into Windows
 for your user account only, so Word and other programs can show the same fonts.
 """
 import glob
@@ -15,9 +15,9 @@ import shutil
 import threading
 import tkinter.font as tkfont
 
-from nobu_config import HOME
+from nabu_config import HOME
 
-log = logging.getLogger("nobu.fonts")
+log = logging.getLogger("nabu.fonts")
 
 APP_FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 LIB_FONTS = os.path.join(APP_FONTS, "lib")
@@ -194,7 +194,7 @@ def all_files():
 
 
 def load_private():
-    """Make all of Nobu's fonts usable inside Nobu straight away (no installation needed)."""
+    """Make all of Nabu's fonts usable inside Nabu straight away (no installation needed)."""
     os.makedirs(USER_FONTS, exist_ok=True)
     files = all_files()
     if os.name == "nt":
@@ -210,7 +210,7 @@ def load_private():
 
 
 def install_into_windows(force=False):
-    """Install Nobu's fonts for this Windows user (no admin) so Word etc. can use them.
+    """Install Nabu's fonts for this Windows user (no admin) so Word etc. can use them.
 
     Returns the number of newly installed files."""
     if os.name != "nt":
@@ -232,7 +232,7 @@ def install_into_windows(force=False):
             ident = "%s|%s|%d" % (e["family"], style, os.path.getsize(src))
             if ident in done and not force:
                 continue
-            dest = os.path.join(dest_dir, "Nobu_" + os.path.basename(src))
+            dest = os.path.join(dest_dir, "Nabu_" + os.path.basename(src))
             try:
                 if not os.path.exists(dest) or os.path.getsize(dest) != os.path.getsize(src):
                     shutil.copy2(src, dest)

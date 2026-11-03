@@ -1,13 +1,13 @@
-"""Keeps Nobu Notes offline.
+"""Keeps Nabu Notes offline.
 
 Your recordings, transcripts and notes never leave this computer. To make sure of that, every
-network connection from inside Nobu is blocked, except:
-  * connections to this computer itself (127.0.0.1 - used so a second NobuNotes.exe can bring the
+network connection from inside Nabu is blocked, except:
+  * connections to this computer itself (127.0.0.1 - used so a second NabuNotes.exe can bring the
     open window to the front), and
   * the one-time download of the speech models (Settings / first start), which only downloads, and
-  * free fonts from Google Fonts, when you paste text in a font you don't have (nobu_fontfetch; only the
+  * free fonts from Google Fonts, when you paste text in a font you don't have (nabu_fontfetch; only the
     font's name is sent, never your text - Settings > Fonts can turn it off).
-Blocked attempts are written to logs\\nobu.log as "BLOCKED network connection".
+Blocked attempts are written to logs\\nabu.log as "BLOCKED network connection".
 """
 import ipaddress
 import logging
@@ -15,7 +15,7 @@ import os
 import socket
 import threading
 
-log = logging.getLogger("nobu.offline")
+log = logging.getLogger("nabu.offline")
 _allow = threading.local()
 _installed = False
 blocked = []
@@ -42,8 +42,8 @@ def _check(address):
     if getattr(_allow, "on", False) or _is_local(address):
         return
     blocked.append(str(address))
-    log.warning("BLOCKED network connection to %s (Nobu stays offline)", address)
-    raise ConnectionRefusedError("Nobu Notes works offline - network access is blocked")
+    log.warning("BLOCKED network connection to %s (Nabu stays offline)", address)
+    raise ConnectionRefusedError("Nabu Notes works offline - network access is blocked")
 
 
 class allow_downloads:

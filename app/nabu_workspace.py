@@ -7,10 +7,10 @@ one per open note - and shows one of them.
   * Drag a tab (or a note from the sidebar / a folder list)
       - onto the LEFT or RIGHT part of a page ... it snaps there as a new page beside it
       - onto the middle of a page / its tabs .... it becomes a tab of that page
-      - well away from the Nobu window ......... it opens in its own window
+      - well away from the Nabu window ......... it opens in its own window
     A soft blue shadow shows where it will land.
   * A pop-out window comes back the same way (drag its name), or drag the window by its title bar
-    to the left / right edge of Nobu's page area.
+    to the left / right edge of Nabu's page area.
   * The grab bars between pages: drag to resize, double-click to make them even.
   * The note you're in is the "active" one: dictation and voice commands go there.
 """
@@ -21,10 +21,10 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
-import nobu_library as lib
-import nobu_theme as T
+import nabu_library as lib
+import nabu_theme as T
 
-log = logging.getLogger("nobu.workspace")
+log = logging.getLogger("nabu.workspace")
 
 MAX_PANES = 6
 MAX_TABS = 12          # per page; past that, the tab you haven't looked at for longest closes (saved)
@@ -83,12 +83,12 @@ class Pane:
 
 class PopOut:
     def __init__(self, ws, geom=None):
-        from nobu_editor import NoteEditor
+        from nabu_editor import NoteEditor
         self.ws = ws
         root = ws.root
         w = self.win = tk.Toplevel(root, bg=T.BG)
         try:
-            w.iconphoto(False, root._nobu_icon)  # noqa
+            w.iconphoto(False, root._nabu_icon)  # noqa
         except Exception:
             pass
         T.dark_titlebar(w)
@@ -97,19 +97,19 @@ class PopOut:
         self.ed = NoteEditor(w, ws.app, ws.app.cfg)
         self.ed.frame.pack(fill="both", expand=True)
         w.protocol("WM_DELETE_WINDOW", lambda: ws.close_popout(self))
-        # dragging this window (by its title bar) to the edge of Nobu's page snaps it back in
+        # dragging this window (by its title bar) to the edge of Nabu's page snaps it back in
         self.geom = None
         self.watch = None
         self.seen_down = False
         self.ignore_until = time.time() + 1.0
         w.bind("<Configure>", lambda e: ws._popout_configure(self, e), add="+")
-        # voice commands ("Nobu, edit this") follow the window you're in
+        # voice commands ("Nabu, edit this") follow the window you're in
         w.bind("<FocusIn>", lambda e: ws.app._update_note_context(), add="+")
         w.bind("<FocusOut>", lambda e: ws.root.after(50, ws.app._update_note_context), add="+")
 
     def retitle(self):
         try:
-            self.win.title((lib.title(self.ed.path) if self.ed.path else "Note") + "  —  Nobu Notes")
+            self.win.title((lib.title(self.ed.path) if self.ed.path else "Note") + "  —  Nabu Notes")
         except tk.TclError:
             pass
 
@@ -144,7 +144,7 @@ class Workspace:
         self._ghost_lbl = None
         self._prev_esc = ""
         # stands in as "the editor" while no note is open anywhere (never shown)
-        from nobu_editor import NoteEditor
+        from nabu_editor import NoteEditor
         self._holder = tk.Frame(self.frame)
         self.blank = NoteEditor(self._holder, app, app.cfg)
         self._activate(None)
@@ -356,7 +356,7 @@ class Workspace:
 
     # ------------------------------------------------------------ tabs
     def _pane_controls(self, p):
-        from nobu_editor import _btn
+        from nabu_editor import _btn
 
         def add(text, cmd, tip):
             b = _btn(p.ctl, text, cmd, tip=tip, bg=T.BG, font=(T.UI_FAMILY, T.UI_SIZE + 1))
@@ -367,7 +367,7 @@ class Workspace:
         b = add("⧉", None, "Open another note on a new page beside this one")
         b.configure(command=lambda b=b: p.cur and self.side_menu(b, p.cur))
         add("⇱", lambda: p.cur and self.pop_out(p.cur), "Give this note its own window "
-            "(or drag its tab out of Nobu)")
+            "(or drag its tab out of Nabu)")
 
     def toggle_ribbon(self, ed):
         """☰: switch this page between all tools and the compact toolbar."""
@@ -453,7 +453,7 @@ class Workspace:
 
     def _new_tab(self, p, index=None):
         """A new, empty editor as a tab of page p."""
-        from nobu_editor import NoteEditor
+        from nabu_editor import NoteEditor
         ed = NoteEditor(p.body, self.app, self.app.cfg)
         self._hook(ed)
         self._tab_widget(p, ed)
@@ -477,7 +477,7 @@ class Workspace:
         self._activate(ed)
         ed._check_rib_soon()
         try:
-            if self.root.focus_get() is not None:     # (only when Nobu has the keyboard)
+            if self.root.focus_get() is not None:     # (only when Nabu has the keyboard)
                 ed.text.focus_set()                   # typing, Ctrl+W... now go to this tab
         except (tk.TclError, KeyError):
             pass
@@ -649,7 +649,7 @@ class Workspace:
     def _busy(self, ed):
         app = self.app
         if app.state == "recording" and getattr(app, "cmd_editor", None) is ed:
-            app.set_status("Finish dictating first (say “Nobu, end recording” or press Stop).")
+            app.set_status("Finish dictating first (say “Nabu, end recording” or press Stop).")
             return True
         return False
 
@@ -770,7 +770,7 @@ class Workspace:
         self._activate(po.ed)
         po.win.lift()
         po.ed.text.focus_set()
-        self.app.set_status("“%s” has its own window now. Drag its name back onto Nobu's page (or press ⇲) "
+        self.app.set_status("“%s” has its own window now. Drag its name back onto Nabu's page (or press ⇲) "
                             "to put it back." % lib.title(po.ed.path))
         return po.ed
 
@@ -791,7 +791,7 @@ class Workspace:
         return new
 
     def _popout_controls(self, po):
-        from nobu_editor import _btn
+        from nabu_editor import _btn
         box = po.ed.pane_btns
         for w in box.winfo_children():
             w.destroy()
@@ -802,7 +802,7 @@ class Workspace:
             b.pack(side="left", padx=1)
             return b
         add("☰", lambda: self.toggle_ribbon(po.ed), "All tools / fewer tools")
-        add("⇲", lambda: self.dock(po), "Put this note back into Nobu's main window (as a tab)")
+        add("⇲", lambda: self.dock(po), "Put this note back into Nabu's main window (as a tab)")
 
     def _discard_popout(self, po):
         po.ed.shutdown()

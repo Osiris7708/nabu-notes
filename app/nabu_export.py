@@ -10,13 +10,13 @@ import re
 import uuid
 import zipfile
 
-import nobu_doc as nd
-import nobu_fonts as F
-import nobu_library as lib
-import nobu_rich as R
-from nobu_config import abs_from_home
+import nabu_doc as nd
+import nabu_fonts as F
+import nabu_library as lib
+import nabu_rich as R
+from nabu_config import abs_from_home
 
-log = logging.getLogger("nobu.export")
+log = logging.getLogger("nabu.export")
 
 FORMATS = [("docx", "Word document (.docx)", "Opens in Microsoft Word, Google Docs, LibreOffice, Pages. Editable."),
            ("pdf", "PDF (.pdf)", "Looks exactly the same on every device. Best for sending and printing."),
@@ -47,7 +47,7 @@ def load_notes(paths, keep_meta=False):
 
 
 def clean(paras, keep_meta):
-    """Drop Nobu-only bits (recording links, grey timestamps) unless asked to keep them."""
+    """Drop Nabu-only bits (recording links, grey timestamps) unless asked to keep them."""
     out = []
     for p in paras:
         if p["type"] != "p":
@@ -59,7 +59,7 @@ def clean(paras, keep_meta):
                 continue
             runs.append(r)
         if not runs and p["runs"]:
-            continue    # paragraph was only Nobu notes
+            continue    # paragraph was only Nabu notes
         q = dict(p)
         q["runs"] = runs
         out.append(q)
@@ -832,7 +832,7 @@ def to_pdf(paras, ctx, out_path, title="", opts=None):
             canvas.restoreState()
 
     doc = SimpleDocTemplate(out_path, pagesize=letter, leftMargin=inch, rightMargin=inch, topMargin=inch,
-                            bottomMargin=inch, title=title or "", author="", creator="Nobu Notes")
+                            bottomMargin=inch, title=title or "", author="", creator="Nabu Notes")
     doc.build(story or [Spacer(1, 1)], onFirstPage=on_page, onLaterPages=on_page)
     return out_path
 
@@ -954,7 +954,7 @@ def to_epub(notes, ctx, out_path, title="", opts=None):
                    'version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">'
                    '<dc:identifier id="bookid">%s</dc:identifier><dc:title>%s</dc:title><dc:language>en</dc:language>'
                    '<meta property="dcterms:modified">%s</meta></metadata><manifest>%s</manifest><spine>%s</spine></package>'
-                   % (book_id, html.escape(title or "Nobu Notes"), now, "".join(man), "".join(spine)),
+                   % (book_id, html.escape(title or "Nabu Notes"), now, "".join(man), "".join(spine)),
                    compress_type=zipfile.ZIP_DEFLATED)
     return out_path
 
@@ -964,7 +964,7 @@ def export(paths, fmt, out_path, ctx, opts=None):
     """paths: notes in reading order. fmt: docx | pdf | epub | html | txt."""
     opts = opts or {}
     notes = load_notes(paths, keep_meta=opts.get("keep_meta", False))
-    title = opts.get("title") or (notes[0].title if len(notes) == 1 else "Nobu Notes")
+    title = opts.get("title") or (notes[0].title if len(notes) == 1 else "Nabu Notes")
     if fmt == "epub":
         return to_epub(notes, ctx, out_path, title, opts)
     paras = combined(notes, opts)

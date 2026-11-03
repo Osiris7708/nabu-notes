@@ -1,27 +1,29 @@
-"""The tutorial window (Home page > "How to use Nobu")."""
+"""The tutorial window (Home page > "How to use Nabu")."""
 import tkinter as tk
 from tkinter import ttk
 
-import nobu_theme as T
-from nobu_config import STOP_PHRASE, WAKE_PHRASE
+import nabu_theme as T
+from nabu_config import STOP_PHRASE, WAKE_PHRASE
 
 # (section title, [(kind, text)])  kind: p = paragraph, b = bullet, h = small heading, k = key/phrase line
 # Written to be short and plain. Update it whenever a feature is added or changed.
 SECTIONS = [
     ("Start here", [
-        ("p", "Nobu Notes turns your voice into written notes, and is also a full writing app. Everything stays "
+        ("p", "Nabu Notes turns your voice into written notes, and is also a full writing app. Everything stays "
               "on this computer."),
-        ("b", "Say “%s” (say it “no-boo”), then talk." % WAKE_PHRASE),
+        ("b", "Say “%s” (say it “naboo”), then talk." % WAKE_PHRASE),
         ("b", "Stop talking for 8 seconds, or say “%s”." % STOP_PHRASE),
         ("b", "Your words appear as a new note in Unassigned."),
         ("b", "Open it, give it a title, and move it into a book or campaign."),
         ("b", "Settings, tools and this tutorial are in the ⚙ button at the bottom left."),
+        ("b", "Used it when it was called Nobu Notes? Your notes and settings move over by themselves. Run "
+              "⚙ > Teach Nabu my voice once, so it learns how you say “Nabu”."),
     ]),
     ("Recording by voice", [
         ("k", "“%s”  —  start recording" % WAKE_PHRASE),
         ("k", "“%s”  —  stop recording" % STOP_PHRASE),
-        ("k", "“Nobu, edit this”  —  type by voice into the open note"),
-        ("k", "“Nobu, cut this”  —  delete a passage from the open note"),
+        ("k", "“Nabu, edit this”  —  type by voice into the open note"),
+        ("k", "“Nabu, cut this”  —  delete a passage from the open note"),
         ("b", "Say the whole phrase, pause briefly, then start talking. A rising beep means recording started; a "
               "falling beep means it stopped."),
         ("b", "Recording stops after 8 seconds of silence. A small badge at the top of the screen counts down."),
@@ -40,7 +42,7 @@ SECTIONS = [
     ]),
     ("Unassigned & titles", [
         ("b", "Unassigned is your inbox. Every recording lands here first, newest at the top."),
-        ("b", "The first time you open a recorded note, Nobu asks for a title. “Later” asks again next time; "
+        ("b", "The first time you open a recorded note, Nabu asks for a title. “Later” asks again next time; "
               "“Don't ask for this note” stops asking."),
         ("b", "The title at the top of the page and the note's name stay the same: change one and the other "
               "follows."),
@@ -74,7 +76,7 @@ SECTIONS = [
         ("b", "Close a tab with its ✕, a middle-click or Ctrl+W. Notes are saved first."),
         ("b", "Ctrl+Tab / Ctrl+Shift+Tab (or Ctrl+Page Down / Up) move between tabs. Right-click a tab for more "
               "options."),
-        ("b", "The notes you had open come back, with their pages and tabs, the next time Nobu starts. (Turn "
+        ("b", "The notes you had open come back, with their pages and tabs, the next time Nabu starts. (Turn "
               "this off in Settings.)"),
         ("h", "Putting notes side by side"),
         ("b", "Drag a tab to the left or right part of the page. A coloured shade shows where it will land. Let go "
@@ -90,10 +92,10 @@ SECTIONS = [
               "else is under “▾ More tools”. ☰ switches between the short and the full toolbar."),
         ("b", "The page you clicked last has a coloured line on top. Voice editing goes there."),
         ("h", "A note in its own window"),
-        ("b", "Drag a tab (or a note from a list) well outside Nobu's window, or press ⇱. It opens in its own "
+        ("b", "Drag a tab (or a note from a list) well outside Nabu's window, or press ⇱. It opens in its own "
               "window you can move anywhere, even to another screen."),
-        ("b", "To put it back: drag its name onto Nobu's page, drag the window to the left or right edge of "
-              "Nobu's page, or press ⇲."),
+        ("b", "To put it back: drag its name onto Nabu's page, drag the window to the left or right edge of "
+              "Nabu's page, or press ⇲."),
         ("b", "You can change the shade's colour and strength: ⚙ > Settings > Appearance > Make my own colours > "
               "Drop highlight."),
     ]),
@@ -147,16 +149,16 @@ SECTIONS = [
         ("b", "Click the word count (bottom) for full counts."),
         ("b", "⋯ (top right of a note): word count, show the file, delete."),
         ("b", "Notes save themselves a few seconds after you stop typing. Ctrl+Z undoes, Ctrl+Y redoes."),
-        ("b", "Justified text looks left-aligned in Nobu but is justified in Word and PDF."),
+        ("b", "Justified text looks left-aligned in Nabu but is justified in Word and PDF."),
     ]),
     ("Voice editing", [
-        ("p", "Works only while a note is open and Nobu's window is in front, so nothing changes by accident."),
-        ("h", "“Nobu, edit this”  (● Dictate here, Ctrl+Alt+E)"),
+        ("p", "Works only while a note is open and Nabu's window is in front, so nothing changes by accident."),
+        ("h", "“Nabu, edit this”  (● Dictate here, Ctrl+Alt+E)"),
         ("b", "Click where the words should go, then say the phrase and talk. Selected text gets replaced."),
         ("b", "New words flash green for a moment."),
         ("b", "It stops after 8 seconds of quiet, or when you say “%s”." % STOP_PHRASE),
-        ("h", "“Nobu, cut this”  (✂ Cut by voice, Ctrl+Alt+X)"),
-        ("b", "Say the phrase, then read out the passage to delete. Nobu marks the closest match in red and asks "
+        ("h", "“Nabu, cut this”  (✂ Cut by voice, Ctrl+Alt+X)"),
+        ("b", "Say the phrase, then read out the passage to delete. Nabu marks the closest match in red and asks "
               "before deleting. Ctrl+Z brings it back."),
         ("h", "Options (⚙ > Settings > Dictation, cuts & shortcuts)"),
         ("b", "How long a quiet pause ends dictation, or only stop when you say so."),
@@ -168,7 +170,7 @@ SECTIONS = [
         ("p", "These three work from any program. Change them in ⚙ > Settings > Dictation, cuts & shortcuts: "
               "click one and press the new key."),
         ("b", "A single key is fine (F9, Insert, a number-pad key, even a letter). Keys that normally type ask "
-              "first, because Nobu takes that key over everywhere while it runs."),
+              "first, because Nabu takes that key over everywhere while it runs."),
         ("b", "Esc, Enter, Tab, Backspace, Delete and Print Screen need Ctrl or Alt with them. The Windows key "
               "and Windows' own shortcuts can't be used."),
         ("h", "In a note"),
@@ -179,20 +181,20 @@ SECTIONS = [
         ("k", "Ctrl+Z  undo      Ctrl+Y  redo      Ctrl+S  save now"),
         ("h", "Everywhere"),
         ("k", "Esc  cancel a drag, or close a small window      Enter  the highlighted button"),
-        ("b", "When Nobu asks before deleting, Enter means “no”. Press Tab to reach the delete button."),
+        ("b", "When Nabu asks before deleting, Enter means “no”. Press Tab to reach the delete button."),
     ]),
-    ("Teach Nobu your voice", [
-        ("p", "Do this once if Nobu misses your commands or reacts to the TV. It takes about two minutes."),
-        ("b", "⚙ > Teach Nobu my voice. It listens to your room, then asks you to say each command a few times."),
+    ("Teach Nabu your voice", [
+        ("p", "Do this once if Nabu misses your commands or reacts to the TV. It takes about two minutes."),
+        ("b", "⚙ > Teach Nabu my voice. It listens to your room, then asks you to say each command a few times."),
         ("b", "It remembers how it hears your voice and accepts that from then on."),
         ("b", "At the end, test any command: ✔ or ✘. If one fails, say it a few more times; it keeps learning."),
         ("b", "Run it again after moving the microphone or changing rooms. Earlier learning is kept."),
-        ("b", "⚙ > What is it hearing? shows, live, what Nobu thinks you said."),
+        ("b", "⚙ > What is it hearing? shows, live, what Nabu thinks you said."),
     ]),
     ("My dictionary (names & spellings)", [
         ("p", "For names and invented words the speech engine gets wrong."),
         ("b", "⚙ > My dictionary. Type the word as you want it spelled, press Record and say it 2–3 times."),
-        ("b", "Nobu then fixes how it mishears that word in every new recording, dictation and cut."),
+        ("b", "Nabu then fixes how it mishears that word in every new recording, dictation and cut."),
         ("b", "Dictionary words are never marked as spelling mistakes."),
         ("b", "“Fix the open note now” applies the dictionary to an existing note."),
         ("b", "Quick way: select a word in a note, right-click > Add to my pronunciation dictionary."),
@@ -203,11 +205,11 @@ SECTIONS = [
         ("b", "Gain: louder or quieter. Keep the meter mostly green."),
         ("b", "Noise filter: removes steady background sound (fans, air conditioning) while listening for "
               "commands. It learns your room's sound by itself whenever you're not talking."),
-        ("b", "Speech sensitivity: raise it if Nobu stops while you're still talking quietly."),
-        ("b", "“Record a 6-second test” lets you hear what Nobu hears."),
+        ("b", "Speech sensitivity: raise it if Nabu stops while you're still talking quietly."),
+        ("b", "“Record a 6-second test” lets you hear what Nabu hears."),
         ("b", "Stop after silence: how many quiet seconds end a recording."),
-        ("b", "Wake word strictness, and “Also accept just ‘record this’”: how sure Nobu must be that it heard "
-              "“Nobu”."),
+        ("b", "Wake word strictness, and “Also accept just ‘record this’”: how sure Nabu must be that it heard "
+              "“Nabu”."),
         ("b", "Beeps on start and stop can be turned off."),
         ("b", "The mouse wheel scrolls the Settings page. It never changes a setting by accident."),
     ]),
@@ -215,7 +217,7 @@ SECTIONS = [
         ("b", "Add names to My dictionary. They help through the whole recording."),
         ("b", "Keep “Transcribe from the natural sound” ticked (Settings). The speech engine understands "
               "unfiltered sound better."),
-        ("b", "Transcription model: you pick it the first time Nobu starts - the best one for your computer is "
+        ("b", "Transcription model: you pick it the first time Nabu starts - the best one for your computer is "
               "already ticked. Change it any time in Settings (a new one downloads once)."),
         ("b", "large-v3-turbo: most accurate, needs 8 GB memory and a 4-core processor. medium.en: very "
               "accurate, the same. small.en: good, 4 GB. base.en: basic, fastest, runs on anything."),
@@ -237,10 +239,10 @@ SECTIONS = [
               "page) and plain white or black text are left behind; real colours and highlights stay."),
     ]),
     ("Fonts", [
-        ("b", "72 free fonts come with Nobu. Fonts… (toolbar or ⚙) shows them by style with previews."),
+        ("b", "72 free fonts come with Nabu. Fonts… (toolbar or ⚙) shows them by style with previews."),
         ("b", "Use a font on selected text, or set it as your note, heading or interface font. Settings > Fonts "
               "also sets the text size."),
-        ("b", "Nobu installs its fonts into Windows, so Word has them too."),
+        ("b", "Nabu installs its fonts into Windows, so Word has them too."),
         ("h", "Adding your own"),
         ("b", "Download a font (.ttf, .otf or a .zip), then Fonts… > “+ Add fonts…”. It works straight away."),
         ("h", "Pasting text in other fonts"),
@@ -253,7 +255,7 @@ SECTIONS = [
               "after a paste in a different font."),
         ("b", "Close leaves the text and your choices as they were. Ctrl+Z after Apply brings back the pasted font."),
         ("b", "Change or remove your choices in Settings > Fonts."),
-        ("b", "A font you don't have: Nobu looks for a free copy on Google Fonts and adds it; the window says "
+        ("b", "A font you don't have: Nabu looks for a free copy on Google Fonts and adds it; the window says "
               "whether it was downloaded. Paid fonts (like Book Antiqua) are never downloaded; the text shows in a "
               "similar font. Turn this off in Settings > Fonts."),
         ("h", "Sharing"),
@@ -261,7 +263,7 @@ SECTIONS = [
         ("b", "PDF export needs .ttf fonts; .otf fonts are swapped for a standard font in PDFs."),
     ]),
     ("Colours & themes", [
-        ("b", "Settings > Appearance: Dark, Midnight blue, Ember, Forest, Parchment, Light, High contrast. Nobu "
+        ("b", "Settings > Appearance: Dark, Midnight blue, Ember, Forest, Parchment, Light, High contrast. Nabu "
               "restarts to switch."),
         ("b", "“Make my own colours…”: pick 10 colours with a live preview, starting from any theme."),
         ("b", "In the same window, “Drop highlight” sets the colour and strength of the shade shown when dragging "
@@ -272,22 +274,22 @@ SECTIONS = [
         ("b", "In Trash, right-click > Restore puts items back where they were. Select several first to restore "
               "them together."),
         ("b", "Right-click > Delete permanently, or “Empty trash”, sends items to the Windows Recycle Bin."),
-        ("b", "Nobu also keeps one backup copy of every note (Notes\\.backups)."),
+        ("b", "Nabu also keeps one backup copy of every note (Notes\\.backups)."),
     ]),
     ("Running in the background", [
-        ("b", "Closing the window keeps Nobu listening. Its icon sits by the clock; right-click it > Quit to stop "
+        ("b", "Closing the window keeps Nabu listening. Its icon sits by the clock; right-click it > Quit to stop "
               "completely."),
-        ("b", "Settings can start Nobu when Windows starts, or make closing the window quit instead."),
-        ("b", "Opening Nobu while it's already running just shows the window."),
-        ("b", "Nobu remembers its window size and place, and whether it was maximised."),
+        ("b", "Settings can start Nabu when Windows starts, or make closing the window quit instead."),
+        ("b", "Opening Nabu while it's already running just shows the window."),
+        ("b", "Nabu remembers its window size and place, and whether it was maximised."),
     ]),
     ("Privacy", [
         ("b", "Recordings, text and notes are made and stored only on this computer. No account, no cloud."),
-        ("b", "Nobu blocks itself from the internet while it runs. The only exceptions: downloading speech "
+        ("b", "Nabu blocks itself from the internet while it runs. The only exceptions: downloading speech "
               "engines (first start, or when you pick a new one), and free fonts for pasted text in a font you "
               "don't have (only the font's name is sent, never your writing)."),
-        ("b", "This block applies to Nobu only. Other programs and Windows are not affected."),
-        ("b", "Home > “How is this checked?” shows how many of Nobu's own connection attempts were blocked."),
+        ("b", "This block applies to Nabu only. Other programs and Windows are not affected."),
+        ("b", "Home > “How is this checked?” shows how many of Nabu's own connection attempts were blocked."),
     ]),
     ("Where your files are", [
         ("k", "Notes  —  your notes"),
@@ -296,18 +298,18 @@ SECTIONS = [
         ("k", "fonts  —  fonts you added"),
         ("k", "models  —  speech engines"),
         ("k", "logs  —  diagnostics"),
-        ("b", "To back everything up, copy the whole Nobu Notes folder."),
+        ("b", "To back everything up, copy the whole Nabu Notes folder."),
         ("b", "⚙ > Open Recordings folder / Open log file."),
     ]),
     ("If something's wrong", [
         ("h", "Doesn't react to “%s”" % WAKE_PHRASE),
-        ("b", "The dot under “Nobu Notes” should be green (Listening). Then run Teach Nobu my voice."),
+        ("b", "The dot under “Nabu Notes” should be green (Listening). Then run Teach Nabu my voice."),
         ("h", "Stops while I'm still talking"),
         ("b", "Raise Speech sensitivity or lower the noise filter."),
         ("h", "Gets names wrong"),
         ("b", "Add them to My dictionary."),
         ("h", "“Edit this” or “Cut this” does nothing"),
-        ("b", "Open a note and click on Nobu's window first."),
+        ("b", "Open a note and click on Nabu's window first."),
         ("h", "Anything else"),
         ("b", "⚙ > Open log file shows what happened."),
     ]),
@@ -317,10 +319,10 @@ SECTIONS = [
 class TutorialWindow:
     def __init__(self, root):
         sc = T.ui_scale(root)
-        w = self.win = T.toplevel(root, "How to use Nobu Notes", int(980 * sc), int(680 * sc))
+        w = self.win = T.toplevel(root, "How to use Nabu Notes", int(980 * sc), int(680 * sc))
         top = ttk.Frame(w, padding=(18, 14, 18, 6))
         top.pack(fill="x")
-        ttk.Label(top, text="How to use Nobu Notes", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(top, text="How to use Nabu Notes", style="Title.TLabel").pack(anchor="w")
         bottom = ttk.Frame(w, padding=(18, 6, 18, 14))
         bottom.pack(side="bottom", fill="x")
         ttk.Button(bottom, text="Close", style="Accent.TButton", command=w.destroy).pack(side="right")

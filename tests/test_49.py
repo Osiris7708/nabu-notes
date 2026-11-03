@@ -2,18 +2,18 @@
 drop highlight colour, 40 colour labels."""
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, traceback, json
-H = tempfile.mkdtemp(); os.environ['NOBU_HOME'] = H
-import nobu_models; nobu_models.missing = lambda n: []
-import nobu_audio, nobu_transcribe
+H = tempfile.mkdtemp(); os.environ['NABU_HOME'] = H
+import nabu_models; nabu_models.missing = lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s, a, prompt=None): return []
-nobu_transcribe.Detector = lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector = lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s, *a, **k): k['start_stream'] = False; super().__init__(*a, **k)
-nobu_audio.Engine = E2
-import nobu_main as M, nobu_config as C, nobu_library as lib, nobu_theme as T
+nabu_audio.Engine = E2
+import nabu_main as M, nabu_config as C, nabu_library as lib, nabu_theme as T
 import tkinter as tk
 
 MENUS = []
@@ -151,9 +151,9 @@ def go():
         check("highlight uses the accent colour by default", bg.lower() == T.ACCENT.lower(), bg)
         # ===== drop highlight colour from My colours
         step(app.open_settings)
-        import nobu_ui
+        import nabu_ui
         def theme_editor():
-            te = nobu_ui.ThemeEditor(app.root, app, app.settings_win)
+            te = nabu_ui.ThemeEditor(app.root, app, app.settings_win)
             te.drop_col = "#ff3366"; te.drop_alpha.set(0.5); te._drop_changed()
             te.win.update(); return te
         te = step(theme_editor)
@@ -189,7 +189,7 @@ def go():
         check("picking one of the new colours works", step(pick) == "#2fa9b5")
     except Exception:
         traceback.print_exc()
-    lg = open(os.path.join(H, "logs", "nobu.log"), encoding="utf-8").read()
+    lg = open(os.path.join(H, "logs", "nabu.log"), encoding="utf-8").read()
     bad = [l for l in lg.splitlines() if ("Error" in l or " ERROR " in l) and not any(
         k in l for k in ("tkinterdnd2", "pystray", "tray unavailable", "sounddevice", "could not list microphones"))]
     check("no errors in the log", not bad, "\n".join(bad[:8]))

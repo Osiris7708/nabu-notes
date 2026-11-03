@@ -6,13 +6,13 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import filedialog, ttk
 
-import nobu_fonts as F
-import nobu_library as lib
-import nobu_rich as R
-import nobu_theme as T
-from nobu_config import INBOX_DIR
+import nabu_fonts as F
+import nabu_library as lib
+import nabu_rich as R
+import nabu_theme as T
+from nabu_config import INBOX_DIR
 
-log = logging.getLogger("nobu.share")
+log = logging.getLogger("nabu.share")
 
 
 def _reveal(path):
@@ -21,7 +21,7 @@ def _reveal(path):
             import subprocess
             subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
         else:
-            from nobu_editor import open_path
+            from nabu_editor import open_path
             open_path(os.path.dirname(path))
     except Exception:
         log.exception("reveal failed")
@@ -30,7 +30,7 @@ def _reveal(path):
 # ====================================================================== export
 class ExportDialog:
     def __init__(self, app, paths=None, folder=None):
-        import nobu_export as E
+        import nabu_export as E
         self.app, self.E = app, E
         self.root = app.root
         paths = [p for p in (paths or []) if p and os.path.isfile(p)]
@@ -94,7 +94,7 @@ class ExportDialog:
                                         variable=self.o_embed)
         self.cb_newpage = ttk.Checkbutton(f, text="Start each note on a new page / chapter", variable=self.o_newpage)
         self.cb_titles = ttk.Checkbutton(f, text="Use each note's name as a chapter heading", variable=self.o_titles)
-        self.cb_meta = ttk.Checkbutton(f, text="Include Nobu's grey dates and “Play recording” links",
+        self.cb_meta = ttk.Checkbutton(f, text="Include Nabu's grey dates and “Play recording” links",
                                        variable=self.o_meta)
         for cb in (self.cb_pages, self.cb_embed, self.cb_newpage, self.cb_titles, self.cb_meta):
             cb.pack(anchor="w", pady=1)
@@ -149,7 +149,7 @@ class ExportDialog:
         elif self.scope.get() == "folder":
             name = lib.folder_name(self.folder)
         else:
-            name = "Nobu Notes"
+            name = "Nabu Notes"
         last_dir = self.app.cfg.get("export_dir") or os.path.join(os.path.expanduser("~"), "Documents")
         if not os.path.isdir(last_dir):
             last_dir = os.path.expanduser("~")
@@ -194,7 +194,7 @@ class ExportDialog:
 
 # ====================================================================== import
 def import_dialog(app, folder=None):
-    import nobu_importers as I
+    import nabu_importers as I
     folder = folder or app.current_project or INBOX_DIR
     files = filedialog.askopenfilenames(parent=app.root, title="Choose documents to import into “%s”" % (
         "Unassigned" if lib.is_inbox(folder) else lib.crumbs(folder)), filetypes=I.FILETYPES)
@@ -203,10 +203,10 @@ def import_dialog(app, folder=None):
 
 
 def import_files(app, files, folder, ask=True):
-    import nobu_importers as I
+    import nabu_importers as I
     files = [f for f in files if f.lower().endswith(I.EXTS)]
     if not files:
-        T.info(app.root, "Import", "Nobu can import Word (.docx), OpenDocument (.odt), PDF, web pages, Markdown, "
+        T.info(app.root, "Import", "Nabu can import Word (.docx), OpenDocument (.odt), PDF, web pages, Markdown, "
                "rich text (.rtf) and text files.")
         return
     keep = app.cfg.get("import_keep_fonts", True) is not False
@@ -220,7 +220,7 @@ def import_files(app, files, folder, ask=True):
         v = tk.StringVar(value="keep" if keep else "mine")
         ttk.Radiobutton(fr, text="Keep the document's own fonts and sizes (looks exactly like it did)", value="keep",
                         variable=v).pack(anchor="w", pady=(10, 2))
-        ttk.Radiobutton(fr, text="Use my Nobu fonts (keep bold, italics, headings, colours, pictures)", value="mine",
+        ttk.Radiobutton(fr, text="Use my Nabu fonts (keep bold, italics, headings, colours, pictures)", value="mine",
                         variable=v).pack(anchor="w")
         res = {"go": False}
         bar = ttk.Frame(w, padding=(18, 0, 18, 16))
@@ -295,7 +295,7 @@ class FontBrowser:
         ttk.Button(b2, text="+  Add fonts\u2026", style="Accent.TButton", command=self._add_fonts).pack(side="left")
         ttk.Button(b2, text="Open my fonts folder", command=self._open_user_fonts).pack(side="left", padx=6)
         self.inst = tk.BooleanVar(value=app.cfg.get("install_fonts", True) is not False)
-        ttk.Checkbutton(b2, text="Install Nobu's fonts into Windows too (so Word and other apps have them)",
+        ttk.Checkbutton(b2, text="Install Nabu's fonts into Windows too (so Word and other apps have them)",
                         variable=self.inst, command=self._toggle_install).pack(side="left", padx=12)
 
         mid = ttk.Frame(w, padding=(16, 0))
@@ -354,7 +354,7 @@ class FontBrowser:
             t.insert("end", fam + "\n", ("name", click))
             t.insert("end", (self.sample.get() or fam) + "\n", (tag, click))
         if cat == "yours" and not self.groups.get("yours"):
-            t.insert("end", "Put .ttf or .otf files in the “fonts” folder inside Nobu Notes, then restart Nobu.", "name")
+            t.insert("end", "Put .ttf or .otf files in the “fonts” folder inside Nabu Notes, then restart Nabu.", "name")
 
     def _pick(self, fam):
         self.family = fam
@@ -424,7 +424,7 @@ class FontBrowser:
 
     def _open_user_fonts(self):
         os.makedirs(F.USER_FONTS, exist_ok=True)
-        from nobu_editor import open_path
+        from nabu_editor import open_path
         open_path(F.USER_FONTS)
 
     def _toggle_install(self):

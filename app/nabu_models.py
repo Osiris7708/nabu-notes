@@ -6,9 +6,9 @@ import time
 
 import requests
 
-from nobu_config import MODELS_DIR, model_dir
+from nabu_config import MODELS_DIR, model_dir
 
-log = logging.getLogger("nobu.models")
+log = logging.getLogger("nabu.models")
 
 REPOS = {
     "tiny.en": "Systran/faster-whisper-tiny.en",
@@ -31,7 +31,7 @@ CHOICES = [
     dict(name="base.en", title="Base (English)", quality="basic, fastest", size_mb=145,
          ram_gb=4, uses_gb=0.5, cores=1, cpu="any processor, even an older laptop"),
 ]
-DETECT_MB = 145          # base.en, the small model that listens for "Nobu" (always downloaded too)
+DETECT_MB = 145          # base.en, the small model that listens for "Nabu" (always downloaded too)
 
 
 def computer():
@@ -72,7 +72,7 @@ def first_start():
     return not any(is_ready(c["name"]) for c in CHOICES)
 
 
-MARKER = ".nobu_complete"
+MARKER = ".nabu_complete"
 SKIP = {".gitattributes", "README.md"}
 
 
@@ -151,7 +151,7 @@ def _download(names, progress, cancel=lambda: False):
     """progress(done_bytes, total_bytes, label). Raises on failure."""
     os.makedirs(MODELS_DIR, exist_ok=True)
     session = requests.Session()
-    session.headers["User-Agent"] = "NobuNotes/1.0"
+    session.headers["User-Agent"] = "NabuNotes/1.0"
     plan = []
     total = 0
     for n in names:
@@ -174,7 +174,7 @@ def _download(names, progress, cancel=lambda: False):
 
 
 def download(names, progress, cancel=lambda: False):
-    """The only time Nobu goes online: fetching the speech models (download only, nothing is sent)."""
-    import nobu_offline
-    with nobu_offline.allow_downloads():
+    """The only time Nabu goes online: fetching the speech models (download only, nothing is sent)."""
+    import nabu_offline
+    with nabu_offline.allow_downloads():
         return _download(names, progress, cancel)

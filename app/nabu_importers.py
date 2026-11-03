@@ -1,7 +1,7 @@
-"""Import documents from outside Nobu into a folder as notes, keeping their formatting and pictures.
+"""Import documents from outside Nabu into a folder as notes, keeping their formatting and pictures.
 
 Word (.docx), OpenDocument (.odt), PDF (text), web pages (.html/.htm), Markdown (.md), rich text (.rtf),
-plain text (.txt) and Nobu notes (.nobu)."""
+plain text (.txt) and Nabu notes (.nabu)."""
 import base64
 import io
 import logging
@@ -11,14 +11,14 @@ import shutil
 import urllib.parse
 import zipfile
 
-import nobu_doc as nd
-import nobu_library as lib
-import nobu_rich as R
-from nobu_config import IMAGES_DIR, rel_to_home
+import nabu_doc as nd
+import nabu_library as lib
+import nabu_rich as R
+from nabu_config import IMAGES_DIR, rel_to_home
 
-log = logging.getLogger("nobu.import")
+log = logging.getLogger("nabu.import")
 
-EXTS = (".docx", ".odt", ".pdf", ".html", ".htm", ".md", ".markdown", ".rtf", ".txt", ".text", ".nobu")
+EXTS = (".docx", ".odt", ".pdf", ".html", ".htm", ".md", ".markdown", ".rtf", ".txt", ".text", ".nabu")
 FILETYPES = [("Documents", " ".join("*" + e for e in EXTS)), ("Word", "*.docx"), ("PDF", "*.pdf"),
              ("Text", "*.txt *.md *.rtf"), ("All files", "*.*")]
 
@@ -70,7 +70,7 @@ def fetch_image(src, note_path, base_dir=None):
             ext = "." + (m.group(1) if m else "png").replace("jpeg", "jpg")
             return _save_image_bytes(base64.b64decode(b64), note_path, "pasted", ext)
         if src.startswith(("http://", "https://")):
-            return None     # Nobu stays offline
+            return None     # Nabu stays offline
         p = src
         if p.startswith("file:"):
             p = urllib.parse.unquote(urllib.parse.urlparse(p).path)
@@ -563,7 +563,7 @@ def import_file(src, folder, keep_fonts=True, ctx=None):
     stem = lib.note_stem(os.path.splitext(os.path.basename(src))[0], "Imported")
     os.makedirs(folder, exist_ok=True)
     dest = lib.unique_path(folder, stem)
-    if ext == ".nobu":
+    if ext == ".nabu":
         shutil.copy2(src, dest)
         return dest
     paras = to_paras(src, dest, keep_fonts, ctx)

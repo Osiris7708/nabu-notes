@@ -6,7 +6,7 @@ Storage (a note's "items") keeps text runs with tag lists. Tags:
   paragraph:  st:<style>  al:left|center|right|justify  ls:<multiple>  sb:<pt>  sa:<pt>
               ind:<inches>  fi:<inches>  li:bullet:<level> | li:num:<level>
   blocks:     {"table": {"rows": [[...]]}}   {"pb": 1}  (page break)   {"i": image, "w": px, "h": px}
-              a picture placed anywhere on the page also has "float": {"wrap", "text", "x", "y"} (see nobu_float)
+              a picture placed anywhere on the page also has "float": {"wrap", "text", "x", "y"} (see nabu_float)
               (a picture's "h" is only there when it was stretched; without it the picture keeps its shape)
 "lm" marks list-marker text ("•\\t", "3.\\t") that the editor draws; exporters skip it.
 
@@ -21,7 +21,7 @@ import mimetypes
 import re
 from html.parser import HTMLParser
 
-from nobu_config import abs_from_home
+from nabu_config import abs_from_home
 
 CHAR_FLAGS = ("b", "i", "u", "s", "sup", "sub", "meta", "lm")
 CHAR_KEYS = ("ff", "fs", "fg", "hl", "link")
@@ -751,7 +751,7 @@ class _HTMLToParas(HTMLParser):
                 r1 = p["runs"][-1]
                 if "t" in r1:
                     r1["t"] = r1["t"].rstrip(" ")
-        return _split_soft(self.paras)     # line breaks become separate paragraphs (Nobu has no soft breaks)
+        return _split_soft(self.paras)     # line breaks become separate paragraphs (Nabu has no soft breaks)
 
 
 def _split_soft(paras):

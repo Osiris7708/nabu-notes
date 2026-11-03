@@ -6,9 +6,9 @@ import os
 import re
 import threading
 
-from nobu_config import HOME
+from nabu_config import HOME
 
-log = logging.getLogger("nobu.spell")
+log = logging.getLogger("nabu.spell")
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 PERSONAL = os.path.join(HOME, "spelling.json")
 WORD_RE = re.compile(r"[A-Za-zÀ-ɏ]+(?:['’][A-Za-z]+)*")

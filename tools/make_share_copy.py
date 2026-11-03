@@ -1,12 +1,12 @@
-"""Build the copy of Nobu Notes to give to other people: the program only, none of your writing.
+"""Build the copy of Nabu Notes to give to other people: the program only, none of your writing.
 
     runtime\\python.exe tools\\make_share_copy.py          shows what it would do
-    runtime\\python.exe tools\\make_share_copy.py --yes    replaces "Nobu Notes - Share" and its .zip on the Desktop,
+    runtime\\python.exe tools\\make_share_copy.py --yes    replaces "Nabu Notes - Share" and its .zip on the Desktop,
                                                           then puts the zip on GitHub as that version's release
                                                           (tools\\publish_release.py; add --no-github to skip it)
 
-What goes in: NobuNotes.exe, README.txt, LICENSE, THIRD-PARTY-NOTICES.txt, the debug .bat, the app's code, icon, thesaurus and base fonts,
-and the setup zips (runtime + the add-on and font zips nobu_main unpacks). What never goes in: Notes,
+What goes in: NabuNotes.exe, README.txt, LICENSE, THIRD-PARTY-NOTICES.txt, the debug .bat, the app's code, icon, thesaurus and base fonts,
+and the setup zips (runtime + the add-on and font zips nabu_main unpacks). What never goes in: Notes,
 Recordings, Images, config.json, cache, logs, your own fonts, the downloaded speech models, the unpacked
 runtime, tests, tools, git history and CLAUDE.md.
 """
@@ -19,7 +19,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARENT = os.path.dirname(ROOT)
-NAME = "Nobu Notes - Share"
+NAME = "Nabu Notes - Share"
 DEST = os.path.join(PARENT, NAME)
 ZIP = DEST + ".zip"
 
@@ -32,19 +32,19 @@ def wanted():
         if not os.path.isfile(src):
             sys.exit("Missing: %s" % src)
         out.append((src, rel))
-    for f in ("NobuNotes.exe", "README.txt", "LICENSE", "THIRD-PARTY-NOTICES.txt", "Debug - show errors.bat"):
+    for f in ("NabuNotes.exe", "README.txt", "LICENSE", "THIRD-PARTY-NOTICES.txt", "Debug - show errors.bat"):
         add(os.path.join(ROOT, f), f)
-    for f in sorted(glob.glob(os.path.join(app, "nobu_*.py"))) + [os.path.join(app, "nobu_icon.png")]:
+    for f in sorted(glob.glob(os.path.join(app, "nabu_*.py"))) + [os.path.join(app, "nabu_icon.png")]:
         add(f, os.path.join("app", os.path.basename(f)))
     for sub in ("data", "fonts"):                     # app/fonts: the base fonts only, not the unpacked lib/
         for f in sorted(glob.glob(os.path.join(app, sub, "*"))):
             if os.path.isfile(f):
                 add(f, os.path.join("app", sub, os.path.basename(f)))
-    # the setup zips nobu_main actually unpacks (so old versions are left behind)
-    main = open(os.path.join(app, "nobu_main.py"), encoding="utf-8").read()
+    # the setup zips nabu_main actually unpacks (so old versions are left behind)
+    main = open(os.path.join(app, "nabu_main.py"), encoding="utf-8").read()
     zips = sorted(set(re.findall(r'"((?:addons|fontlib)-v\w+\.zip)"', main)))
     if len(zips) < 2:
-        sys.exit("Could not find the add-on zip names in nobu_main.py")
+        sys.exit("Could not find the add-on zip names in nabu_main.py")
     parts = sorted(glob.glob(os.path.join(ROOT, "setup", "runtime.zip.0*")))
     if not parts:
         sys.exit("Missing setup\\runtime.zip.001 ...")
@@ -55,10 +55,10 @@ def wanted():
 
 def main(argv):
     sys.path.insert(0, os.path.join(ROOT, "app"))
-    from nobu_config import VERSION
+    from nabu_config import VERSION
     files = wanted()
     size = sum(os.path.getsize(s) for s, _ in files)
-    print("Nobu Notes %s: %d files, %.0f MB" % (VERSION, len(files), size / 1e6))
+    print("Nabu Notes %s: %d files, %.0f MB" % (VERSION, len(files), size / 1e6))
     print("  folder: %s\n  zip:    %s" % (DEST, ZIP))
     if os.path.normcase(os.path.abspath(DEST)) == os.path.normcase(ROOT):
         sys.exit("Refusing: the share folder would be this install.")

@@ -2,15 +2,15 @@
 
 Only Google Fonts is used: every font there is free and legal to download, use and share (SIL Open Font
 License, Apache or Ubuntu Font Licence). A font that isn't there (most fonts that come with Windows, Office or
-a Mac are paid fonts, e.g. Book Antiqua) is never downloaded from anywhere else - Nobu just says so.
-This is the second (and last) time Nobu goes online, besides the speech models; Settings can turn it off.
+a Mac are paid fonts, e.g. Book Antiqua) is never downloaded from anywhere else - Nabu just says so.
+This is the second (and last) time Nabu goes online, besides the speech models; Settings can turn it off.
 """
 import logging
 import os
 import re
 import tempfile
 
-log = logging.getLogger("nobu.fontfetch")
+log = logging.getLogger("nabu.fontfetch")
 
 CSS = "https://fonts.googleapis.com/css2?family=%s&display=swap"
 _tried = {}                                        # family (lower case) -> result, so each is looked up once
@@ -19,7 +19,7 @@ _tried = {}                                        # family (lower case) -> resu
 def _ask(url):
     import requests
     # (an ordinary browser name gets .woff2 files; this one gets .ttf, which Windows can install)
-    return requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 6.1) NobuNotes"})
+    return requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 6.1) NabuNotes"})
 
 
 LIST = "https://fonts.google.com/metadata/fonts"
@@ -32,7 +32,7 @@ def catalog():
     way to know.) Kept in cache\\google_fonts.json; must be called inside allow_downloads()."""
     import json
     import time
-    from nobu_config import HOME
+    from nabu_config import HOME
     path = os.path.join(HOME, "cache", "google_fonts.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -66,24 +66,24 @@ def _css_for(name, styles):
 
 
 def fetch(family, install=True):
-    """Look for a free copy of family on Google Fonts and add it to Nobu's fonts (install: into Windows too,
+    """Look for a free copy of family on Google Fonts and add it to Nabu's fonts (install: into Windows too,
     so Word sees it - Settings > "install fonts"). Returns (outcome, text): outcome is "downloaded",
     "not_free" (not on Google Fonts) or "failed"."""
     key = family.strip().lower()
     if key in _tried:
         return _tried[key]
-    import nobu_fonts as F
-    import nobu_offline
+    import nabu_fonts as F
+    import nabu_offline
     result = ("not_free", "")
     try:
-        with nobu_offline.allow_downloads():
+        with nabu_offline.allow_downloads():
             entry = catalog().get(key)
             css, found = (_css_for(entry[0], entry[1]), entry[0]) if entry else (None, None)
             if css:
                 urls = re.findall(r"font-style:\s*(\w+);\s*font-weight:\s*(\d+);[^}]*?src:\s*url\(([^)]+\.ttf)\)", css)
                 if not urls:
                     urls = [("normal", "400", u) for u in re.findall(r"url\(([^)]+\.ttf)\)", css)[:1]]
-                tmp = tempfile.mkdtemp(prefix="nobu-font-")
+                tmp = tempfile.mkdtemp(prefix="nabu-font-")
                 paths = []
                 seen = set()
                 for style, weight, url in urls:
@@ -113,7 +113,7 @@ def fetch(family, install=True):
 
 def missing_families(items, root):
     """Font families used in items that this computer can't show."""
-    import nobu_fonts as F
+    import nabu_fonts as F
     have = {f.lower() for f in F.families(root)}
     out = []
     for it in items:

@@ -9,7 +9,7 @@ import logging
 import os
 import threading
 
-log = logging.getLogger("nobu.hotkeys")
+log = logging.getLogger("nabu.hotkeys")
 IS_WIN = os.name == "nt"
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
@@ -107,7 +107,7 @@ def valid(combo):
 
     Any single key is allowed. Keys Windows depends on (Esc, Enter, Tab, Backspace, Delete...)
     need Ctrl and/or Alt. Keys that normally type something get a warning first, because a
-    shortcut takes the key over in every program while Nobu runs."""
+    shortcut takes the key over in every program while Nabu runs."""
     mods, key = parse(combo)
     if not key:
         return False, "Press a key (alone, or with Ctrl / Alt).", ""
@@ -125,7 +125,7 @@ def valid(combo):
         return False, "That key can't be used as a shortcut - please try another.", ""
     warn = ""
     if not strong and k not in SINGLE_OK:
-        warn = ("While Nobu is running, %s will work as this shortcut everywhere - in other programs and "
+        warn = ("While Nabu is running, %s will work as this shortcut everywhere - in other programs and "
                 "games it won't type or do its normal job." % combo)
     return True, "", warn
 
@@ -197,6 +197,6 @@ class Hotkeys:
             for i in ids:
                 u32.UnregisterHotKey(None, i)
 
-        self.thread = threading.Thread(target=run, name="nobu-hotkeys", daemon=True)
+        self.thread = threading.Thread(target=run, name="nabu-hotkeys", daemon=True)
         self.thread.start()
         ready.wait(2)

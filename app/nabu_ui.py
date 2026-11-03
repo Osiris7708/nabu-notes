@@ -11,11 +11,11 @@ from tkinter import ttk
 
 from PIL import Image, ImageDraw
 
-import nobu_models
-import nobu_theme as T
-from nobu_config import LOGS_DIR, HEARD_DIR, STOP_PHRASE, WAKE_PHRASE
+import nabu_models
+import nabu_theme as T
+from nabu_config import LOGS_DIR, HEARD_DIR, STOP_PHRASE, WAKE_PHRASE
 
-log = logging.getLogger("nobu.ui")
+log = logging.getLogger("nabu.ui")
 
 
 def level_pct(rms):
@@ -31,7 +31,7 @@ def play_wav(path):
             return
         except Exception:
             pass
-    from nobu_editor import open_path
+    from nabu_editor import open_path
     open_path(path)
 
 
@@ -51,22 +51,22 @@ class ModelChooser:
         self.root = root
         self.result = None
         self.done = False
-        ram, cores = nobu_models.computer()
-        self.best = nobu_models.recommend(ram, cores)
+        ram, cores = nabu_models.computer()
+        self.best = nabu_models.recommend(ram, cores)
         self.choice = tk.StringVar(value=self.best)
-        w = self.win = T.toplevel(root, "Nobu Notes — choose a speech model")
+        w = self.win = T.toplevel(root, "Nabu Notes — choose a speech model")
         w.protocol("WM_DELETE_WINDOW", self.cancel)
         f = ttk.Frame(w, padding=20)
         f.pack(fill="both", expand=True)
-        ttk.Label(f, text="Welcome to Nobu Notes", style="H2.TLabel").pack(anchor="w")
+        ttk.Label(f, text="Welcome to Nabu Notes", style="H2.TLabel").pack(anchor="w")
         ttk.Label(f, wraplength=620, justify="left", style="Muted.TLabel", text=(
-            "Choose how Nobu turns your speech into text. It's downloaded once, then everything works offline. "
+            "Choose how Nabu turns your speech into text. It's downloaded once, then everything works offline. "
             "A better model makes fewer mistakes but needs a stronger computer. You can change it later in "
             "Settings.")).pack(anchor="w", pady=(6, 4))
         ttk.Label(f, style="Muted.TLabel", text="This computer: %s memory, %d processor cores." % (
             ("%.0f GB" % ram) if ram else "unknown", cores)).pack(anchor="w", pady=(0, 10))
         self.buttons = {}
-        for c in nobu_models.CHOICES:
+        for c in nabu_models.CHOICES:
             row = ttk.Frame(f)
             row.pack(fill="x", pady=4)
             title = c["title"] + ("   (recommended for this computer)" if c["name"] == self.best else "")
@@ -76,8 +76,8 @@ class ModelChooser:
             ttk.Label(row, text=model_line(c), style="Muted.TLabel", wraplength=600,
                       justify="left").pack(anchor="w", padx=(26, 0))
         ttk.Label(f, wraplength=620, justify="left", style="Muted.TLabel", text=(
-            "A small extra model (about %d MB) that listens for “Nobu” is downloaded too."
-            % nobu_models.DETECT_MB)).pack(anchor="w", pady=(10, 0))
+            "A small extra model (about %d MB) that listens for “Nabu” is downloaded too."
+            % nabu_models.DETECT_MB)).pack(anchor="w", pady=(10, 0))
         b = ttk.Frame(f)
         b.pack(anchor="e", pady=(14, 0))
         ttk.Button(b, text="Not now", command=self.cancel).pack(side="right", padx=(6, 0))
@@ -113,15 +113,15 @@ class SetupWindow:
         self.names = names
         self.cancelled = False
         self.q = queue.Queue()
-        w = self.win = T.toplevel(root, "Nobu Notes — downloading speech models", 580, 270)
+        w = self.win = T.toplevel(root, "Nabu Notes — downloading speech models", 580, 270)
         w.protocol("WM_DELETE_WINDOW", self._cancel)
         f = ttk.Frame(w, padding=20)
         f.pack(fill="both", expand=True)
         ttk.Label(f, text="Getting the offline speech models", style="H2.TLabel").pack(anchor="w")
-        sizes = dict({c["name"]: c["size_mb"] for c in nobu_models.CHOICES}, **{"tiny.en": 75})
+        sizes = dict({c["name"]: c["size_mb"] for c in nabu_models.CHOICES}, **{"tiny.en": 75})
         mb = sum(sizes.get(n, 200) for n in names)
         ttk.Label(f, wraplength=530, justify="left", style="Muted.TLabel", text=(
-            "This needs the internet once (about %d MB). After that Nobu Notes works completely offline. "
+            "This needs the internet once (about %d MB). After that Nabu Notes works completely offline. "
             "You can leave this window open and do something else." % mb)).pack(anchor="w", pady=(6, 14))
         self.bar = ttk.Progressbar(f, maximum=1000, length=530)
         self.bar.pack(fill="x")
@@ -137,9 +137,9 @@ class SetupWindow:
 
     def _work(self):
         try:
-            nobu_models.download(self.names, lambda d, t, l: self.q.put(("p", d, t, l)), lambda: self.cancelled)
+            nabu_models.download(self.names, lambda d, t, l: self.q.put(("p", d, t, l)), lambda: self.cancelled)
             self.q.put(("ok",))
-        except nobu_models.Cancelled:
+        except nabu_models.Cancelled:
             self.q.put(("cancel",))
         except Exception as e:
             log.exception("model download failed")
@@ -153,7 +153,7 @@ class SetupWindow:
             if result in ("ok", "cancel"):
                 self.win.destroy()
                 return result == "ok"
-            if not T.confirm(self.win, "Nobu Notes", "The download stopped:\n\n%s\n\nCheck your internet "
+            if not T.confirm(self.win, "Nabu Notes", "The download stopped:\n\n%s\n\nCheck your internet "
                              "connection and try again." % result, yes="Try again", no="Cancel"):
                 self.win.destroy()
                 return False
@@ -222,7 +222,7 @@ class SettingsDialog:
     def __init__(self, root, app, cfg):
         self.app, self.cfg, self.root = app, cfg, root
         self.orig = {k: cfg[k] for k in self.LIVE}
-        w = self.win = T.toplevel(root, "Nobu Notes — settings", 700, 600)
+        w = self.win = T.toplevel(root, "Nabu Notes — settings", 700, 600)
         w.protocol("WM_DELETE_WINDOW", self.cancel)
         # scrollable body (the settings are taller than many screens)
         body = ttk.Frame(w)
@@ -275,7 +275,7 @@ class SettingsDialog:
                                     "words more accurately without the noise filter)",
                         variable=self.orig_sound).pack(anchor="w", pady=(4, 0))
         ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
-            "The noise filter is still used to listen for \u201cNobu\u201d commands. Untick this to keep "
+            "The noise filter is still used to listen for \u201cNabu\u201d commands. Untick this to keep "
             "noise-filtered sound in your recordings instead.")).pack(anchor="w")
         self.sens = tk.DoubleVar(value=float(cfg["speech_sensitivity"]))
         self._slider(outer, "Speech sensitivity", self.sens, 0, 1, self._sens_text, self._live)
@@ -300,9 +300,9 @@ class SettingsDialog:
         self.dmodel = ttk.Combobox(r, values=["base.en", "tiny.en"], state="readonly", width=12)
         self.dmodel.set(cfg["detect_model"])
         self.dmodel.pack(side="left")
-        ttk.Label(r, text="  base = better at hearing “Nobu”; tiny = lightest", style="Muted.TLabel").pack(side="left")
+        ttk.Label(r, text="  base = better at hearing “Nabu”; tiny = lightest", style="Muted.TLabel").pack(side="left")
         self.bare = tk.BooleanVar(value=cfg["accept_bare_phrase"])
-        ttk.Checkbutton(outer, text="Also accept just “record this” when “Nobu” is misheard",
+        ttk.Checkbutton(outer, text="Also accept just “record this” when “Nabu” is misheard",
                         variable=self.bare).pack(anchor="w", pady=2)
         self.cues = tk.BooleanVar(value=cfg["cue_sounds"])
         ttk.Checkbutton(outer, text="Beep when recording starts and stops", variable=self.cues).pack(anchor="w", pady=2)
@@ -312,13 +312,13 @@ class SettingsDialog:
         ttk.Label(r, text="Dictation (edit) stops", width=22).pack(side="left")
         self._edit_opts = [(4, "after 4 s of quiet"), (6, "after 6 s of quiet"), (8, "after 8 s of quiet"),
                            (12, "after 12 s of quiet"), (20, "after 20 s of quiet"),
-                           (0, "only when I say \u201cNobu, end recording\u201d or press the shortcut")]
+                           (0, "only when I say \u201cNabu, end recording\u201d or press the shortcut")]
         self.edit_end = ttk.Combobox(r, values=[t for _, t in self._edit_opts], state="readonly", width=52)
         cur = float(cfg.get("edit_silence_seconds", 8))
         self.edit_end.set(min(self._edit_opts, key=lambda o: abs(o[0] - cur) if cur else (0 if o[0] == 0 else 99))[1])
         self.edit_end.pack(side="left")
         self.confirm_cut = tk.BooleanVar(value=bool(cfg.get("confirm_cut", True)))
-        ttk.Checkbutton(outer, text="Ask before deleting the passage found by \u201cNobu, cut this\u201d "
+        ttk.Checkbutton(outer, text="Ask before deleting the passage found by \u201cNabu, cut this\u201d "
                                     "(off = delete straight away; Ctrl+Z still brings it back)",
                         variable=self.confirm_cut).pack(anchor="w", pady=2)
         self.confirm_edit = tk.BooleanVar(value=bool(cfg.get("confirm_edit", False)))
@@ -345,7 +345,7 @@ class SettingsDialog:
                                   width=24)
         self.theme.set(T.THEMES.get(cfg.get("theme") or "dark", T.THEMES["dark"])["label"])
         self.theme.pack(side="left")
-        ttk.Label(r, text="  (Nobu restarts to switch)", style="Muted.TLabel").pack(side="left")
+        ttk.Label(r, text="  (Nabu restarts to switch)", style="Muted.TLabel").pack(side="left")
         sw = tk.Frame(outer, bg=T.BG)
         sw.pack(anchor="w", pady=(2, 6))
         for k in self._theme_keys:     # little swatches: page colour + accent
@@ -369,8 +369,8 @@ class SettingsDialog:
                   style="Muted.TLabel").pack(side="left")
 
         section("Fonts")
-        import nobu_fonts
-        fams = nobu_fonts.families(root)
+        import nabu_fonts
+        fams = nabu_fonts.families(root)
         r = row()
         ttk.Label(r, text="Note text font", width=22).pack(side="left")
         self.body_font = ttk.Combobox(r, values=fams, width=30)
@@ -396,14 +396,14 @@ class SettingsDialog:
         ttk.Checkbutton(outer, text="When I paste text in a font I don't have, download it if there's a free copy "
                         "(Google Fonts)", variable=self.fetch_fonts).pack(anchor="w", pady=2)
         # what pasted fonts change into (chosen in the "Fonts in the pasted text" window)
-        import nobu_pastefonts as PF
+        import nabu_pastefonts as PF
         ttk.Label(outer, text="Pasted text in these fonts changes into:").pack(anchor="w", pady=(8, 2))
         self.rule_rows = {}           # pasted font (lower case) -> (name, font box, size box)
         self.rules_removed = set()
         rules = cfg.get("paste_font_rules") or {}
         if not rules:
             ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
-                "Nothing yet. Paste text in another font and Nobu asks what it should change into; your "
+                "Nothing yet. Paste text in another font and Nabu asks what it should change into; your "
                 "choices show here.")).pack(anchor="w")
         choices = PF.font_choices(root)
         for key, rule in sorted(rules.items()):
@@ -429,27 +429,27 @@ class SettingsDialog:
         section("Transcription & program")
         r = row()
         ttk.Label(r, text="Transcription model", width=22).pack(side="left")
-        self.model = ttk.Combobox(r, values=[c["name"] for c in nobu_models.CHOICES], state="readonly", width=15)
+        self.model = ttk.Combobox(r, values=[c["name"] for c in nabu_models.CHOICES], state="readonly", width=15)
         self.model.set(cfg["transcribe_model"])
         self.model.pack(side="left")
-        ram, cores = nobu_models.computer()
+        ram, cores = nabu_models.computer()
         ttk.Label(outer, style="Muted.TLabel", wraplength=600, justify="left", text="\n".join(
-            "%s: %s" % (c["name"], model_line(c)) for c in nobu_models.CHOICES) + (
+            "%s: %s" % (c["name"], model_line(c)) for c in nabu_models.CHOICES) + (
             "\nThis computer: %.0f GB memory, %d cores (best fit: %s). A new model downloads once when you Save."
-            % (ram, cores, nobu_models.recommend(ram, cores)))).pack(anchor="w")
+            % (ram, cores, nabu_models.recommend(ram, cores)))).pack(anchor="w")
         self.tray = tk.BooleanVar(value=cfg["close_to_tray"])
         ttk.Checkbutton(outer, text="Closing the window keeps listening in the system tray",
                         variable=self.tray).pack(anchor="w", pady=2)
         self.auto = tk.BooleanVar(value=cfg["autostart"])
-        ttk.Checkbutton(outer, text="Start Nobu Notes (in the tray) when Windows starts",
+        ttk.Checkbutton(outer, text="Start Nabu Notes (in the tray) when Windows starts",
                         variable=self.auto).pack(anchor="w", pady=2)
         self.reopen = tk.BooleanVar(value=cfg.get("reopen_notes", True) is not False)
-        ttk.Checkbutton(outer, text="Reopen the notes I had open (with their pages and tabs) when Nobu starts",
+        ttk.Checkbutton(outer, text="Reopen the notes I had open (with their pages and tabs) when Nabu starts",
                         variable=self.reopen).pack(anchor="w", pady=2)
 
         b = ttk.Frame(w, padding=(18, 8, 18, 14))
         b.pack(side="bottom", fill="x", before=body)
-        ttk.Button(b, text="Teach Nobu my voice\u2026", command=self._save_then_teach).pack(side="left")
+        ttk.Button(b, text="Teach Nabu my voice\u2026", command=self._save_then_teach).pack(side="left")
         ttk.Button(b, text="My dictionary\u2026", command=self._save_then_dict).pack(side="left", padx=6)
         ttk.Button(b, text="Cancel", command=self.cancel).pack(side="right", padx=(6, 0))
         ttk.Button(b, text="Save", style="Accent.TButton", command=self.save).pack(side="right")
@@ -478,7 +478,7 @@ class SettingsDialog:
 
     def _paste_rules(self):
         """The pasted-font choices after Save: the rows here, plus any chosen in a font window meanwhile."""
-        import nobu_pastefonts as PF
+        import nabu_pastefonts as PF
         rules = dict(self.cfg.get("paste_font_rules") or {})
         for k in self.rules_removed:
             rules.pop(k, None)
@@ -529,7 +529,7 @@ class SettingsDialog:
 
     def _test_done(self, path):
         try:
-            self.test_lbl.config(text="Playing back what Nobu hears…")
+            self.test_lbl.config(text="Playing back what Nabu hears…")
             play_wav(path)
             T.later(self.test_lbl, 6500, lambda: self.test_lbl.config(text=""))
         except tk.TclError:
@@ -568,7 +568,7 @@ class SettingsDialog:
             ed.update_shortcut_hints()
 
     def _capture_hotkey(self, key):
-        from nobu_hotkeys import combo_from_event, valid
+        from nabu_hotkeys import combo_from_event, valid
         w = T.toplevel(self.win, "New shortcut")
         f = ttk.Frame(w, padding=22)
         f.pack(fill="both", expand=True)
@@ -695,7 +695,7 @@ class SettingsDialog:
             self.app._refresh_status()
         if fonts_changed:
             self.app.apply_fonts()
-        if theme_changed and T.confirm(self.root, "Colour theme", "Restart Nobu now to switch to the \u201c%s\u201d theme?"
+        if theme_changed and T.confirm(self.root, "Colour theme", "Restart Nabu now to switch to the \u201c%s\u201d theme?"
                                        % T.THEMES[new_theme]["label"], yes="Restart now", no="Later"):
             self.app.restart()
 
@@ -821,7 +821,7 @@ class ThemeEditor:
         W, H = int(c.cget("width")), int(c.cget("height"))
         c.configure(bg=th["BG"])
         c.create_rectangle(0, 0, W * 0.3, H, fill=th["SIDEBAR"], outline="")
-        c.create_text(12, 16, text="Nobu Notes", anchor="w", fill=th["FG"], font=(T.UI_FAMILY, 10, "bold"))
+        c.create_text(12, 16, text="Nabu Notes", anchor="w", fill=th["FG"], font=(T.UI_FAMILY, 10, "bold"))
         for i, (txt, sel) in enumerate((("Home", False), ("Unassigned", True), ("My Book", False))):
             y = 44 + i * 24
             if sel:
@@ -859,7 +859,7 @@ class ThemeEditor:
             st.save()             # saves all settings and offers the restart
             return
         self.app.cfg.update(theme="custom")
-        if T.confirm(self.root, "My colours", "Restart Nobu now to use your colours?", yes="Restart now",
+        if T.confirm(self.root, "My colours", "Restart Nabu now to use your colours?", yes="Restart now",
                      no="Later"):
             self.app.restart()
 
@@ -867,8 +867,8 @@ class ThemeEditor:
 # ---------------------------------------------------------------- teach my voice
 class TeachWindow:
     """Learn how the speech model hears *your* voice saying each command, then let you test them."""
-    STEPS = [("record", "Nobu, record this", 3), ("stop", "Nobu, end recording", 3),
-             ("edit", "Nobu, edit this", 2), ("cut", "Nobu, cut this", 2)]
+    STEPS = [("record", "Nabu, record this", 3), ("stop", "Nabu, end recording", 3),
+             ("edit", "Nabu, edit this", 2), ("cut", "Nabu, cut this", 2)]
 
     def __init__(self, root, app):
         self.app, self.root = app, root
@@ -878,11 +878,11 @@ class TeachWindow:
         self.aliases = []
         self.samples = {k: [] for k, _, _ in self.STEPS}
         self.rms = []
-        w = self.win = T.toplevel(root, "Teach Nobu your voice", 700, 600)
+        w = self.win = T.toplevel(root, "Teach Nabu your voice", 700, 600)
         w.protocol("WM_DELETE_WINDOW", self.close)
         f = ttk.Frame(w, padding=22)
         f.pack(fill="both", expand=True)
-        self.head = ttk.Label(f, text="Teach Nobu your voice", style="Title.TLabel")
+        self.head = ttk.Label(f, text="Teach Nabu your voice", style="Title.TLabel")
         self.head.pack(anchor="w")
         self.body = ttk.Label(f, text="", wraplength=640, justify="left")
         self.body.pack(anchor="w", pady=(10, 10))
@@ -904,8 +904,8 @@ class TeachWindow:
         self.skip = ttk.Button(b, text="Skip this phrase", command=self._skip)
         ttk.Button(b, text="Close", command=self.close).pack(side="right", padx=6)
         self.body.config(text=(
-            "About two minutes. Nobu first listens to your room for a few seconds. Then you say each voice "
-            "command a few times - record, end, edit and cut - and Nobu remembers exactly how it hears you say "
+            "About two minutes. Nabu first listens to your room for a few seconds. Then you say each voice "
+            "command a few times - record, end, edit and cut - and Nabu remembers exactly how it hears you say "
             "them. At the end you can test them all.\n\n"
             "Tips: say each phrase in one go, the way you normally would, then pause until the counter moves on. "
             "It's fine if it hears you slightly wrong - that's what it learns from."))
@@ -925,7 +925,7 @@ class TeachWindow:
             self.btn.config(state="disabled")
             self.app.engine.command("teach", on=True)
             self.app.engine.command("relearn_noise")
-            self.body.config(text="Please stay quiet while Nobu learns the background noise of your room.")
+            self.body.config(text="Please stay quiet while Nabu learns the background noise of your room.")
             self._count(4)
         elif self.stage == "phrase":
             self._phrase_done()
@@ -968,7 +968,7 @@ class TeachWindow:
         self.skip.pack_forget()
         self.btn.config(state="normal", text="Finish")
         self.body.config(text=(
-            "Now try them out. Say any of the four phrases - Nobu shows what it recognised, using what it just "
+            "Now try them out. Say any of the four phrases - Nabu shows what it recognised, using what it just "
             "learned. If one keeps failing, say it a couple more times here: it keeps learning. Press Finish "
             "when you're happy."))
         self.big.config(text="Try any phrase")
@@ -976,7 +976,7 @@ class TeachWindow:
 
     # ------------------------------------------------------------ hearing
     def on_heard(self, text, aliases, rms, words=None):
-        import nobu_match as M
+        import nabu_match as M
         words = words or []
         if self.stage == "phrase":
             kind, phrase, n = self.STEPS[self.idx]
@@ -999,12 +999,12 @@ class TeachWindow:
                 # learn from a miss when it is clearly one of the phrases with a misheard part
                 key = M.phrase_key(words)
                 for kind, phrase, _n in self.STEPS:
-                    if M._ratio(key, M.norm(phrase.replace("Nobu", "noboo"))) >= 0.6:
+                    if M._ratio(key, M.norm(phrase.replace("Nabu", "naboo"))) >= 0.6:
                         self._learn(kind, words)
                         break
 
     def _learn(self, kind, words):
-        import nobu_match as M
+        import nabu_match as M
         for a in M.learn_aliases(words, kind):
             if a not in self.aliases:
                 self.aliases.append(a)
@@ -1025,7 +1025,7 @@ class TeachWindow:
         return aliases, samples
 
     def _recognise(self, words):
-        import nobu_match as M
+        import nabu_match as M
         cfg = self.app.cfg
         aliases, samples = self._merged()
         args = (cfg["wake_match_threshold"], cfg["accept_bare_phrase"], tuple(aliases))
@@ -1048,9 +1048,9 @@ class TeachWindow:
         self.stage = "done"
         self.big.config(text="All done \u2714")
         learned = sum(len(v) for v in self.samples.values())
-        msg = "Nobu learned %d way%s you say its commands%s." % (
+        msg = "Nabu learned %d way%s you say its commands%s." % (
             learned, "" if learned == 1 else "s",
-            (" and these spellings of \u201cNobu\u201d: " + ", ".join(self.aliases[:8])) if self.aliases else "")
+            (" and these spellings of \u201cNabu\u201d: " + ", ".join(self.aliases[:8])) if self.aliases else "")
         if abs(suggest - cur_gain) >= 3:
             msg += ("\n\nYour voice is coming in %s. Suggested gain: %+d dB (now %+d dB)."
                     % ("quietly" if suggest > cur_gain else "loud", suggest, cur_gain))
@@ -1079,7 +1079,7 @@ class TeachWindow:
 class DiagnosticsWindow:
     def __init__(self, root, app):
         self.app = app
-        w = self.win = T.toplevel(root, "Nobu Notes — what is it hearing?", 720, 520)
+        w = self.win = T.toplevel(root, "Nabu Notes — what is it hearing?", 720, 520)
         f = ttk.Frame(w, padding=14)
         f.pack(fill="both", expand=True)
         self.state = ttk.Label(f, text="", style="H2.TLabel")
@@ -1087,7 +1087,7 @@ class DiagnosticsWindow:
         Meters(f, app).frame.pack(fill="x", pady=6)
         ttk.Label(f, wraplength=680, style="Muted.TLabel", text=(
             "Each time you speak, the line below shows what the wake-word model heard and whether it counted "
-            "(✔). If “Nobu” comes out as something odd, run “Teach Nobu my voice” or lower the "
+            "(✔). If “Nabu” comes out as something odd, run “Teach Nabu my voice” or lower the "
             "strictness in Settings. Detector: %s." % ("neural (Silero)" if app.engine.vad.kind == "neural"
                                                        else "energy (fallback)"))).pack(anchor="w")
         self.box = tk.Text(f, height=14, state="disabled", wrap="word", font=("Consolas", 10), bg=T.PANEL,
@@ -1098,7 +1098,7 @@ class DiagnosticsWindow:
         self.save_var = tk.BooleanVar(value=app.cfg["save_heard_clips"])
         ttk.Checkbutton(r, text="Save what it hears (logs\\heard) for troubleshooting", variable=self.save_var,
                         command=lambda: app.cfg.update(save_heard_clips=bool(self.save_var.get()))).pack(side="left")
-        from nobu_editor import open_path
+        from nabu_editor import open_path
         ttk.Button(r, text="Open folder", command=lambda: (os.makedirs(HEARD_DIR, exist_ok=True),
                                                          open_path(HEARD_DIR))).pack(side="right")
         self._shown = None
@@ -1190,7 +1190,7 @@ _icon_base = []
 def make_icon(state="idle", busy=False):
     col = COLORS["busy"] if (busy and state == "idle") else COLORS.get(state, T.GREEN)
     if not _icon_base:                 # the artwork is loaded once; each state just adds its dot
-        art = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nobu_icon.png")
+        art = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nabu_icon.png")
         try:
             im = Image.open(art).convert("RGBA").resize((64, 64), Image.LANCZOS)
         except Exception:
@@ -1207,16 +1207,16 @@ def make_icon(state="idle", busy=False):
 # ---------------------------------------------------------------- pronunciation dictionary
 class DictionaryWindow:
     def __init__(self, root, app, prefill=None):
-        import nobu_dictionary as D
+        import nabu_dictionary as D
         self.D, self.app, self.root = D, app, root
         self.entries = D.load()
-        w = self.win = T.toplevel(root, "Nobu Notes — my dictionary", 760, 560)
+        w = self.win = T.toplevel(root, "Nabu Notes — my dictionary", 760, 560)
         f = ttk.Frame(w, padding=18)
         f.pack(fill="both", expand=True)
         ttk.Label(f, text="My dictionary", style="Title.TLabel").pack(anchor="w")
         ttk.Label(f, style="Muted.TLabel", wraplength=710, justify="left", text=(
             "Add names and words the way you want them spelled (characters, places, spells…). "
-            "Record yourself saying each one a couple of times: Nobu learns how the speech model hears "
+            "Record yourself saying each one a couple of times: Nabu learns how the speech model hears "
             "you, and from then on swaps those sound-alikes for your spelling in every new transcript, "
             "dictation and cut. The words are also given to the model as a hint.")).pack(anchor="w", pady=(4, 12))
         quick = ttk.Frame(f)
@@ -1342,7 +1342,7 @@ class WordDialog:
         e = ttk.Entry(f, textvariable=self.word, width=40, font=(T.UI_FAMILY, 13))
         e.pack(anchor="w", pady=(4, 14))
         e.focus_set()
-        ttk.Label(f, text="Teach Nobu how you say it", style="H2.TLabel").pack(anchor="w")
+        ttk.Label(f, text="Teach Nabu how you say it", style="H2.TLabel").pack(anchor="w")
         ttk.Label(f, style="Muted.TLabel", wraplength=570, text=(
             "Click Record, then say just the word (or name) once, clearly, the way you will when "
             "dictating. Do it two or three times.")).pack(anchor="w")
@@ -1352,7 +1352,7 @@ class WordDialog:
         self.rec_btn.pack(side="left")
         self.msg = ttk.Label(r, text="", style="Muted.TLabel", wraplength=400)
         self.msg.pack(side="left", padx=10)
-        ttk.Label(f, text="Nobu will replace these with your spelling:", style="Muted.TLabel").pack(anchor="w", pady=(8, 2))
+        ttk.Label(f, text="Nabu will replace these with your spelling:", style="Muted.TLabel").pack(anchor="w", pady=(8, 2))
         lb = ttk.Frame(f)
         lb.pack(fill="both", expand=True)
         self.lb = tk.Listbox(lb, height=4, bg=T.PANEL, fg=T.FG, selectbackground=T.SELECT, relief="flat",

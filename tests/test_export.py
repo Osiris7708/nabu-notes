@@ -1,10 +1,10 @@
 import _here  # finds the app and keeps the test away from your real notes
 import os, sys, shutil, json, tempfile
 H = tempfile.mkdtemp(); os.makedirs(H + "/Images")
-os.environ["NOBU_HOME"] = H
+os.environ["NABU_HOME"] = H
 from PIL import Image
 Image.new("RGB", (300, 150), (200, 60, 60)).save(H + "/Images/red.png")
-import nobu_rich as R, nobu_export as E, nobu_importers as I, nobu_doc as nd, nobu_library as lib
+import nabu_rich as R, nabu_export as E, nabu_importers as I, nabu_doc as nd, nabu_library as lib
 items = [
  {"t": "The Ashen Crown\n", "g": ["st:title"]},
  {"t": "Book one\n", "g": ["st:subtitle"]},
@@ -28,7 +28,7 @@ items = [
 paras = R.items_to_paras(items)
 print([ (p["type"], p.get("style"), p.get("list")) for p in paras])
 os.makedirs(H + "/Notes/Book", exist_ok=True)
-note = H + "/Notes/Book/Ch1.nobu"
+note = H + "/Notes/Book/Ch1.nabu"
 d = nd.empty_doc(); d["items"] = items; nd.save_doc(note, d)
 ctx = R.Ctx("IM FELL English", "Cinzel", 14)
 os.makedirs("out", exist_ok=True)
@@ -49,9 +49,9 @@ def ok(name, cond, extra=""):
     print(("PASS " if cond else "FAIL ") + name, "" if cond else extra, flush=True)
     assert cond, name
 ok("find_urls: addresses in a sentence, without the full stop / comma / bracket after them",
-   [u for _s, _e, u in R.find_urls("See https://example.com/a, (www.nobu.test) and https://x.org/wiki/A_(b).")]
-   == ["https://example.com/a", "https://www.nobu.test", "https://x.org/wiki/A_(b)"],
-   R.find_urls("See https://example.com/a, (www.nobu.test) and https://x.org/wiki/A_(b)."))
+   [u for _s, _e, u in R.find_urls("See https://example.com/a, (www.nabu.test) and https://x.org/wiki/A_(b).")]
+   == ["https://example.com/a", "https://www.nabu.test", "https://x.org/wiki/A_(b)"],
+   R.find_urls("See https://example.com/a, (www.nabu.test) and https://x.org/wiki/A_(b)."))
 ok("find_urls: ordinary words are not links", R.find_urls("version 4.9 is out, e.g. today") == [])
 ok("clean_url makes addresses safe to store", R.clean_url('https://a.org/x y"{}') == "https://a.org/x%20y%22%7B%7D")
 hp = R.html_to_paras('<p>Read <a href="https://example.org/guide">the guide</a> now. <a href="#top">Top</a></p>')
@@ -65,7 +65,7 @@ link_items = [{"t": "Read ", "g": []}, {"t": "the guide", "g": ["link:https://ex
               {"t": " or ", "g": []}, {"t": "https://example.org/raw", "g": ["link:https://example.org/raw"]},
               {"t": ".\n", "g": []}]
 ok("links survive the note format", R.paras_to_items(R.items_to_paras(link_items))[1]["g"] == ["link:https://example.org/guide"])
-lnote = H + "/Notes/Book/Links.nobu"
+lnote = H + "/Notes/Book/Links.nabu"
 d = nd.empty_doc(); d["items"] = link_items; nd.save_doc(lnote, d)
 for fmt in ("docx", "pdf", "epub", "html", "txt"):
     E.export([lnote], fmt, "out/links." + fmt, ctx, {})
@@ -103,7 +103,7 @@ ok("...and a too-wide stretched picture shrinks evenly to the page", abs(w_ - E.
 ok("pasted web pictures with a different shape stay stretched",
    [r.get("h") for p in R.html_to_paras('<img src="x" width="300" height="60"><img src="y" width="300" height="150">',
                                          image_cb=lambda s: "Images/red.png") for r in p["runs"]] == [60, None])
-snote = H + "/Notes/Book/Stretch.nobu"
+snote = H + "/Notes/Book/Stretch.nabu"
 d = nd.empty_doc(); d["items"] = st_items; nd.save_doc(snote, d)
 for fmt in ("docx", "html", "pdf"):
     E.export([snote], fmt, "out/stretch." + fmt, ctx, {})
@@ -128,7 +128,7 @@ ok("floating pictures keep their wrapping and place in the note format",
    [it.get("float") for it in R.paras_to_items(R.items_to_paras(fl_items)) if "i" in it] == [it["float"] for it in fl_items if "i" in it])
 ok("side for flowing layouts: text on the right -> picture on the left; more room decides 'largest'",
    [R.float_side(it["float"], it["w"]) for it in fl_items if "i" in it] == ["left", "right", None, None])
-fnote = H + "/Notes/Book/Float.nobu"
+fnote = H + "/Notes/Book/Float.nabu"
 d = nd.empty_doc(); d["items"] = fl_items; nd.save_doc(fnote, d)
 for fmt in ("docx", "pdf", "epub", "html", "txt"):
     E.export([fnote], fmt, "out/float." + fmt, ctx, {})
@@ -165,21 +165,21 @@ ok("icon: the black border is cut away (square, corners see-through, middle soli
    and art.getpixel((art.width // 2, art.height // 2))[3] == 255, art.size)
 sizes = [s for s, _png in set_icon.write_ico(art, "out/test.ico")]
 ok("icon: the .ico has every size Windows uses", sizes == [16, 24, 32, 48, 64, 128, 256])
-ok("icon: Nobu's own icon is 256 x 256 with see-through corners",
-   Image.open(os.path.join(os.path.dirname(os.path.abspath(R.__file__)), "nobu_icon.png")).getpixel((0, 0))[3] == 0)
+ok("icon: Nabu's own icon is 256 x 256 with see-through corners",
+   Image.open(os.path.join(os.path.dirname(os.path.abspath(R.__file__)), "nabu_icon.png")).getpixel((0, 0))[3] == 0)
 print("icon: all checks passed")
 
 # ---------------------------------------------------------------- GitHub release notes (tools\publish_release.py)
 import publish_release
-import nobu_config as _C
+import nabu_config as _C
 rn = publish_release.notes_for(_C.VERSION)
 ok("release notes: this version's 'what's new' from README.txt, with how to install",
-   "Nobu-Notes-%s.zip" % _C.VERSION in rn and "NEW IN VERSION" not in rn and len(rn) > 200, rn[:300])
-ok("release notes: a version with no README section still gets a line", "Nobu Notes 0.0.1." in publish_release.notes_for("0.0.1"))
+   "Nabu-Notes-%s.zip" % _C.VERSION in rn and "NEW IN VERSION" not in rn and len(rn) > 200, rn[:300])
+ok("release notes: a version with no README section still gets a line", "Nabu Notes 0.0.1." in publish_release.notes_for("0.0.1"))
 print("release notes: all checks passed")
 
 # ---------------------------------------------------------------- speech model choice at first start (v4.9.4)
-import nobu_models as NM
+import nabu_models as NM
 ok("recommendation: a strong computer gets Large v3 Turbo", NM.recommend(16, 8) == "large-v3-turbo")
 ok("...'8 GB' (reported a little under) still counts as 8", NM.recommend(7.8, 4) == "large-v3-turbo")
 ok("...6 GB / 4 cores gets Small, 4 GB / 2 cores Small, 2 GB / 1 core Base",
@@ -214,7 +214,7 @@ ok("page colours: white, black and greys are page colours; red and yellow are no
 print("paste colours: all checks passed")
 
 # ---------------------------------------------------------------- free fonts for pasted text (no internet used here)
-import nobu_fontfetch as FF, nobu_fonts as NF
+import nabu_fontfetch as FF, nabu_fonts as NF
 _real_fams = NF.families
 NF.families = lambda root: ["Arial", "Georgia"]
 ok("fonts the computer doesn't have are found (each once, any capitals)",
@@ -247,7 +247,7 @@ ok("...'Unassigned' is still kept for the inbox", _res)
 print("folder names: all checks passed")
 
 # ---------------------------------------------------------------- pasted fonts change into the writer's choice
-import nobu_pastefonts as PF
+import nabu_pastefonts as PF
 _it = [{"t": "One", "g": ["ff:Book Antiqua", "fs:12"]}, {"t": "\n", "g": ["ff:Book Antiqua", "fs:12", "ls:1.62"]},
        {"t": "Two", "g": ["ff:Arial", "fs:10", "b"]}, {"t": "plain", "g": []}]
 _rules = {"book antiqua": PF.make_rule("Book Antiqua", "Georgia", "13"), "arial": PF.make_rule("Arial", PF.FONT_MINE, PF.SIZE_MINE)}
@@ -277,3 +277,42 @@ if os.path.exists(_lib):
     ok("every font in the font library is credited", all(f in _notes for f in _fams), [f for f in _fams if f not in _notes])
 ok("the licence is MIT", open(os.path.join(_root, "LICENSE"), encoding="utf-8").read().startswith("MIT License"))
 print("licence: all checks passed")
+
+# ---------------------------------------------------------------- moving over from Nobu Notes (before 5.0)
+import nabu_config as _C5
+_old = os.path.join(lib.NOTES_DIR, "Old Book")
+os.makedirs(os.path.join(_old, "Part ＂1＂"), exist_ok=True)
+json.dump({"format": "nobu-note", "version": 2, "items": [{"t": "Hello\n", "g": []}]}, open(os.path.join(_old, "Ch 1.nobu"), "w"))
+json.dump({"format": "nobu-note", "version": 2, "items": []}, open(os.path.join(_old, "Part ＂1＂", "Ch 2.nobu"), "w"))
+json.dump({"order": ["Ch 1.nobu", "Part ＂1＂"]}, open(os.path.join(_old, ".nobufolder"), "w"))
+os.makedirs(os.path.join(lib.NOTES_DIR, ".backups"), exist_ok=True)
+open(os.path.join(lib.NOTES_DIR, ".backups", "Ch 1.nobu.bak"), "w").write("{}")
+_tb = os.path.join(lib.TRASH_DIR, "20261101-120000 Gone", "item")
+os.makedirs(_tb, exist_ok=True)
+open(os.path.join(_tb, "Gone.nobu"), "w").write("{}")
+json.dump({"from": "Notes/Old Book/Gone.nobu", "audio": []}, open(os.path.join(os.path.dirname(_tb), "info.json"), "w"))
+_moved = lib.move_from_nobu()
+_all = [f for d, _s, fs in os.walk(lib.NOTES_DIR) for f in fs]
+ok("old .nobu notes, backups, folder order and Trash become .nabu (nothing left behind)",
+   _moved == 5 and not [f for f in _all if "nobu" in f.lower()] and os.path.exists(os.path.join(_old, "Ch 1.nabu"))
+   and os.path.exists(os.path.join(_old, "Part ＂1＂", "Ch 2.nabu")), (_moved, _all))
+ok("...the folder order and the Trash record name the new files",
+   json.load(open(os.path.join(_old, ".nabufolder"), encoding="utf-8"))["order"] == ["Ch 1.nabu", "Part ＂1＂"]
+   and json.load(open(os.path.join(os.path.dirname(_tb), "info.json")))["from"] == "Notes/Old Book/Gone.nabu")
+ok("...the notes still open and list as before", lib.title(os.path.join(_old, "Ch 1.nabu")) == "Ch 1"
+   and nd.load_doc(os.path.join(_old, "Ch 1.nabu"))["items"][0]["t"] == "Hello\n")
+ok("...doing it again changes nothing", lib.move_from_nobu() == 0)
+ok("note paths in settings are renamed", lib.renamed_values({"recent_notes": ["Notes/A/B.nobu"], "zoom": 1.2}) ==
+   {"recent_notes": ["Notes/A/B.nabu"], "zoom": 1.2})
+_cp = os.path.join(H, "old-config.json")
+json.dump({"config_version": 2, "zoom": 1.1}, open(_cp, "w"))
+_new = os.path.join(H, "new-config.json")
+json.dump({"config_version": _C5.CONFIG_VERSION, "zoom": 1.1}, open(_new, "w"))
+ok("settings saved by Nobu Notes are recognised; new ones and a first start are not",
+   _C5.Config(path=_cp).from_nobu and not _C5.Config(path=_new).from_nobu
+   and not _C5.Config(path=os.path.join(H, "none.json")).from_nobu)
+import nabu_match as _M
+ok("the wake word is 'Nabu' (said naboo) in its usual spellings",
+   all(_M.wake_score([w])[0] >= 0.5 for w in ("naboo", "nabu", "nahboo", "gnaboo"))
+   and _M.wake_score(["na"])[0] == 0 and _M.wake_score(["nah", "boo"])[0] >= 0.5)
+print("rename from Nobu: all checks passed")

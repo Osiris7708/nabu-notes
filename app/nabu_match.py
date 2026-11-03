@@ -1,7 +1,7 @@
 """Fuzzy matching of the spoken commands against what the small model heard.
 
-The wake word is pronounced "no boo". Whisper writes that many ways
-("No boo", "No, boo.", "Nobu", "Noboo", "Know Boo", "No Bu" ...), so we compare
+The wake word "Nabu" is pronounced "naboo". Whisper writes that many ways
+("Naboo", "Nabu", "Na boo", "Nah, boo.", "Gnaboo", "Navu" ...), so we compare
 the 1-2 words before "record this" / "end recording" against a set of known
 spellings plus the ones learned from the user's own voice.
 
@@ -15,12 +15,12 @@ from collections import namedtuple
 Word = namedtuple("Word", "text start end")
 
 ALIASES = {
-    "noboo", "nobu", "nobo", "nobuu", "knobu", "knoboo", "knowboo", "knowbu", "nowboo", "nowbu",
-    "nooboo", "noobu", "noboh", "nabu", "naboo", "newboo", "newbu", "nubu", "noboom", "noboot",
-    "nobue", "nobuo", "novu", "novo", "nebu", "noeboo", "nobooh", "nobou", "noobo", "noobie",
-    "nobody", "noble", "nobel", "noboe", "nubo", "nboo", "nobook",
+    "naboo", "nabu", "nabo", "nabuu", "nabooh", "naboh", "nabou", "nabue", "naboe", "nabby",
+    "nahboo", "nahbu", "naaboo", "naabu", "nabboo", "nabbu", "knaboo", "knabu", "gnaboo", "gnabu",
+    "naboom", "naboot", "nabook", "navu", "navoo", "nebu", "neboo", "nubu", "nuboo", "nboo",
+    "nabble", "nabob", "nuevo", "nubo", "nabooo",
 }
-TARGETS = ("noboo", "nobu")
+TARGETS = ("naboo", "nabu")
 STOPWORDS = {"the", "a", "an", "and", "i", "to", "of", "it", "so", "we", "you", "he", "she", "they",
              "um", "uh", "oh", "ok", "okay", "hey", "please", "now", "then", "just"}
 _THIS = {"this", "that", "it", "dis", "thus", "these", "his", "is", "this's", "thiss", "diss"}
@@ -45,7 +45,7 @@ def _ratio(a, b):
 
 
 def wake_score(prev_tokens, extra=()):
-    """How much the 1-2 tokens before the command look like 'No boo' (0..1).
+    """How much the 1-2 tokens before the command look like 'Naboo' (0..1).
 
     Returns (score, number_of_tokens_used)."""
     extra = set(extra)
@@ -60,10 +60,10 @@ def wake_score(prev_tokens, extra=()):
             s = 1.0
         elif c in ALIASES:
             s = 0.95
-        elif c in STOPWORDS or c in ("no", "not", "know", "now", "new", "nope", "nah"):
+        elif c in STOPWORDS or c in ("no", "not", "know", "now", "new", "nope", "nah", "na", "nay"):
             s = 0.0
         elif not c.startswith(("n", "kn", "gn")):
-            # "no boo" always starts with an n sound; avoids e.g. "do not" -> "donot"
+            # "naboo" always starts with an n sound; avoids e.g. "a boot" -> "aboot"
             s = max(_ratio(c, e) for e in extra) - 0.05 if extra else 0.0
         else:
             s = max(_ratio(c, t) for t in TARGETS)
@@ -86,11 +86,11 @@ def _find_pair(tokens, first_ok, second_ok):
 
 
 def match_wake(words, threshold=0.5, accept_bare=True, extra=()):
-    """Look for 'No boo, record this'. Returns (matched, phrase_end_time, score)."""
+    """Look for 'Naboo, record this'. Returns (matched, phrase_end_time, score)."""
     toks = _tokens(words)
     if not toks:
         return False, 0.0, 0.0
-    # whisper sometimes glues words: "recordthis", "nobooRecord"
+    # whisper sometimes glues words: "recordthis", "nabooRecord"
     for k, (t, s, e) in enumerate(toks):
         if t in ("recordthis", "recordthat"):
             score, _ = wake_score([p[0] for p in toks[max(0, k - 2):k]], extra)
@@ -114,7 +114,7 @@ _CUT = {"cut", "cuts", "cutt", "kut", "cutting"}
 
 
 # ---------------------------------------------------------------- learned phrases
-# "Teach Nobu my voice" stores how the speech model writes each command when *you* say it
+# "Teach Nabu my voice" stores how the speech model writes each command when *you* say it
 # (e.g. "nowgrouprecordthis"). Those exact-ish spellings are then accepted as the command.
 SAMPLE_MIN_RATIO = 0.86
 
@@ -147,7 +147,7 @@ def _sample_match(toks, samples, kinds):
 
 
 def match_command(words, threshold=0.5, accept_bare=True, extra=(), in_note=False, samples=None):
-    """Recognise 'No boo, record this' / 'edit this' / 'cut this'.
+    """Recognise 'Naboo, record this' / 'edit this' / 'cut this'.
 
     edit/cut are only considered when in_note is True and always need the wake word.
     Returns (kind or None, phrase_end_time, score)."""
@@ -179,7 +179,7 @@ def match_command(words, threshold=0.5, accept_bare=True, extra=(), in_note=Fals
 
 
 def match_stop(words, threshold=0.5, accept_bare=True, extra=(), samples=None):
-    """Look for 'No boo, end recording' (also 'stop recording').
+    """Look for 'Naboo, end recording' (also 'stop recording').
 
     Returns (matched, cut_time, score); cut_time is where the command starts."""
     toks = _tokens(words)
@@ -207,9 +207,9 @@ def match_stop(words, threshold=0.5, accept_bare=True, extra=(), samples=None):
 
 
 
-CANON = {"record": ("noboorecordthis", "noburecordthis"), "edit": ("nobooeditthis", "nobueditthis"),
-         "cut": ("noboocutthis", "nobucutthis"), "stop": ("nobooendrecording", "nobuendrecording",
-                                                         "nobustoprecording")}
+CANON = {"record": ("naboorecordthis", "naburecordthis"), "edit": ("nabooeditthis", "nabueditthis"),
+         "cut": ("naboocutthis", "nabucutthis"), "stop": ("nabooendrecording", "nabuendrecording",
+                                                         "nabustoprecording")}
 
 
 def _best_window(toks, targets):
@@ -254,7 +254,7 @@ def consistent(first, second):
 
 
 def learn_aliases(words, kind="record"):
-    """From an utterance of the wake/stop phrase, return the spellings of 'No boo' it contains."""
+    """From an utterance of the wake/stop phrase, return the spellings of 'Naboo' it contains."""
     toks = [t for t, _, _ in _tokens(words)]
     if not toks:
         return []
@@ -267,7 +267,7 @@ def learn_aliases(words, kind="record"):
             idx = k
             break
         if kind == "stop" and (t.startswith("record") or _ratio(t, "recording") >= 0.75):
-            idx = k - 1 if k > 0 and toks[k - 1] in _STOP_VERBS else k     # "nobu END recording"
+            idx = k - 1 if k > 0 and toks[k - 1] in _STOP_VERBS else k     # "nabu END recording"
             break
         if kind == "record" and (_is_record(t) or t.startswith("record") or t in ("recordthis", "recordthat")):
             idx = k

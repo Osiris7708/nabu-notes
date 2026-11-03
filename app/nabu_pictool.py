@@ -2,7 +2,7 @@
 
   * click a picture ............. a blue frame appears around it, with a square on each corner and side
   * drag the picture ............ it comes loose from its line (a floating picture, text flowing round it -
-                                  see nobu_float) and follows the mouse anywhere on the page. Near the left
+                                  see nabu_float) and follows the mouse anywhere on the page. Near the left
                                   edge, the middle or the right edge it snaps there (hold Alt: no snapping).
   * Ctrl + drag ................. move it within the text instead: a see-through copy follows the mouse and
                                   a blue line shows where it will land (Esc while dragging: leave it)
@@ -18,9 +18,9 @@ import tkinter as tk
 
 from PIL import Image
 
-import nobu_doc as nd
-import nobu_rich as R
-import nobu_theme as T
+import nabu_doc as nd
+import nabu_rich as R
+import nabu_theme as T
 
 DRAG_START = 5            # pixels the mouse must move before a press becomes a drag
 SNAP = 12                 # page pixels: this close to the left edge, the middle or the right edge, a picture snaps

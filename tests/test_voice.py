@@ -4,11 +4,11 @@ The transcriber is faked, so no speech model is needed. The engine parts need a 
 recording of the wake phrase (see _here.voice_sample) and are skipped without one."""
 import _here  # finds the app and keeps the test away from your real notes
 import os, tempfile, time, wave
-os.environ["NOBU_HOME"] = tempfile.mkdtemp()
+os.environ["NABU_HOME"] = tempfile.mkdtemp()
 import numpy as np
-import nobu_config as C
-import nobu_audio as A
-from nobu_match import Word, match_wake, match_stop, learn_aliases
+import nabu_config as C
+import nabu_audio as A
+from nabu_match import Word, match_wake, match_stop, learn_aliases
 
 OK = []
 def check(name, cond, info=""):
@@ -22,23 +22,24 @@ def W(s, t0=0.0, dt=0.3):
     return out
 
 # ------------------------------------------------------------ phrase matching (no audio needed)
-yes = ["No boo, record this.", "No, boo. Record this.", "Nobu record this", "Noboo, record this", "Know Boo record this",
-       "No Bu, record this", "Now boo, record this", "Hey, no boo, record this.", "Record this.", "No book record this",
-       "Number, record this", "Noble, record this", "Nope record this", "No boo. Record these.", "Nobooh record this"]
-KNOWN_MISSES = {"Number, record this", "Nope record this"}      # too far from "Nobu" - accepted on purpose
-no = ["I will record this later", "Please record the meeting", "No boo, end recording", "The record this year was broken",
+yes = ["Naboo, record this.", "Nah, boo. Record this.", "Nabu record this", "Na boo, record this", "Gnaboo record this",
+       "Na Bu, record this", "Nah boo, record this", "Hey, naboo, record this.", "Record this.", "Na book record this",
+       "Number, record this", "Nabble, record this", "Nope record this", "Naboo. Record these.", "Nabooh record this",
+       "Navu, record this", "Knaboo record this"]
+KNOWN_MISSES = {"Number, record this", "Nope record this"}      # too far from "Nabu" - accepted on purpose
+no = ["I will record this later", "Please record the meeting", "Naboo, end recording", "The record this year was broken",
       "no record of this", "Do not record this", "and record this"]
 misses = {s for s in yes if not match_wake(W(s))[0]}
 check("wake phrase heard in all its usual mishearings", misses <= KNOWN_MISSES, misses - KNOWN_MISSES)
 check("ordinary sentences never start a recording", not [s for s in no if match_wake(W(s))[0]],
       [s for s in no if match_wake(W(s))[0]])
-sy = ["No boo, end recording.", "No, boo, end recording", "Nobu stop recording",
-      "and the dragon fell. No boo, end recording", "End recording", "Know boo and recording"]
+sy = ["Naboo, end recording.", "Nah, boo, end recording", "Nabu stop recording",
+      "and the dragon fell. Naboo, end recording", "End recording", "Gnaboo and recording"]
 sn = ["She said end recording was not the way", "the end of the recording"]
 check("stop phrase heard", not [s for s in sy if not match_stop(W(s))[0]], [s for s in sy if not match_stop(W(s))[0]])
 check("ordinary sentences never stop a recording", not [s for s in sn if match_stop(W(s))[0]])
-check("stop phrase at the end of a sentence is found", match_stop(W("and the dragon fell. No boo, end recording"))[0])
-check("Teach learns a new way of saying Nobu", learn_aliases(W("Gnu Boo, record this")) == ["boo", "gnuboo"]
+check("stop phrase at the end of a sentence is found", match_stop(W("and the dragon fell. Naboo, end recording"))[0])
+check("Teach learns a new way of saying Nabu", learn_aliases(W("Gnu Boo, record this")) == ["boo", "gnuboo"]
       and learn_aliases(W("Noobah record this")) == ["noobah"] and learn_aliases(W("the record this")) == [])
 check("...and uses it", match_wake(W("Gnu Boo, record this"), extra=["gnuboo"])[0])
 
@@ -85,7 +86,7 @@ else:
     def secs(k):
         with wave.open(k["path"]) as w:
             return w.getnframes() / w.getframerate()
-    WK = lambda: W("No boo, record this", 0.5, 0.4)
+    WK = lambda: W("Naboo, record this", 0.5, 0.4)
 
     ev, det, eng = run([noise(2), SPEECH, noise(1.0), talk(20), noise(10)], [WK()])
     f = finished(ev)
@@ -99,7 +100,7 @@ else:
     check("thinking pauses do not stop a recording", len(f) == 1 and secs(f[0]) >= 20, [(k["reason"], secs(k)) for k in f])
 
     ev, det, eng = run([noise(2), SPEECH, noise(1), talk(6), noise(1.2), SPEECH, noise(1.5)],
-                       [WK(), W("blah"), W("No boo end recording", 0, 0.3)])
+                       [WK(), W("blah"), W("Naboo end recording", 0, 0.3)])
     f = finished(ev)
     check("saying the stop phrase stops the recording", len(f) == 1 and f[0]["reason"] == "phrase", f)
 
@@ -108,7 +109,7 @@ else:
 
     det = FakeDet([W("Gnu boo record this")]); eng, ev = engine(det); eng._command("teach", {"on": True})
     feed(eng, np.concatenate([noise(2), SPEECH, noise(1.5)]))
-    check("Teach Nobu my voice hears the phrase", [n for n, k in ev] == ["teach_heard"]
+    check("Teach Nabu my voice hears the phrase", [n for n, k in ev] == ["teach_heard"]
           and ev[0][1].get("aliases") == ["boo", "gnuboo"], ev)
 
     ev, det, eng = run([noise(2), SPEECH, noise(1.0), talk(3), noise(10)], [W("Now grew, wreck or this", 0.5, 0.4)], [WK()])

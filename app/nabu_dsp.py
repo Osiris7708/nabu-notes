@@ -12,7 +12,7 @@ import os
 
 import numpy as np
 
-log = logging.getLogger("nobu.dsp")
+log = logging.getLogger("nabu.dsp")
 
 SR = 16000
 N_FFT = 512

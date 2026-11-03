@@ -1,4 +1,4 @@
-"""Run Nobu's tests and print a short pass/fail summary.
+"""Run Nabu's tests and print a short pass/fail summary.
 
     runtime\\python.exe tests\\run_tests.py            every test (about 10 minutes; windows will flash up)
     runtime\\python.exe tests\\run_tests.py --quick    only the fast tests that open no windows
@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # name: (opens windows?, what it checks)
 TESTS = {
     "test_compile": (False, "every file is valid Python and imports"),
-    "test_offline": (False, "Nobu cannot reach the internet"),
+    "test_offline": (False, "Nabu cannot reach the internet"),
     "test_voice":   (False, "wake/stop phrases and the recording engine"),
     "test_export":  (False, "export to Word, PDF, EPUB, web page and text, then import back"),
     "test_audit":   (True,  "every button, slider, menu entry and dialog does its job"),
@@ -41,7 +41,7 @@ TESTS = {
 TIMEOUT = 600
 
 
-def nobu_running():
+def nabu_running():
     try:
         socket.create_connection(("127.0.0.1", 47651), timeout=0.5).close()
         return True
@@ -92,19 +92,19 @@ def main(argv):
              if (not quick or not gui) and (not words or any(w in n for w in words))]
     if not names:
         print("No tests match", words); return 2
-    if any(TESTS[n][0] for n in names) and nobu_running():
-        print("Nobu Notes is running. Quit it first (right-click the tray icon > Quit),\n"
+    if any(TESTS[n][0] for n in names) and nabu_running():
+        print("Nabu Notes is running. Quit it first (right-click the tray icon > Quit),\n"
               "because the window tests use the same shortcuts and one-copy check.")
         return 2
 
     logs = os.path.join(HERE, "last-run")
     shutil.rmtree(logs, ignore_errors=True); os.makedirs(logs)
-    scratch = tempfile.mkdtemp(prefix="nobu-tests-")
+    scratch = tempfile.mkdtemp(prefix="nabu-tests-")
     # PYTHONUNBUFFERED: several tests end with os._exit(), which skips writing out buffered output - through
     # a pipe that lost every line they printed (their RESULT too), so they "passed" whatever they found.
     env = dict(os.environ, PYTHONNOUSERSITE="1", PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1",
                PYTHONUNBUFFERED="1", TMP=scratch, TEMP=scratch, TMPDIR=scratch)
-    env.pop("NOBU_HOME", None)
+    env.pop("NABU_HOME", None)
 
     results, t_all = [], time.time()
     for n in names:

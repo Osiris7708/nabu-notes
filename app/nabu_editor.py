@@ -15,16 +15,16 @@ from tkinter import colorchooser, filedialog, ttk
 
 from PIL import Image
 
-import nobu_clip
-import nobu_doc as nd
-import nobu_float
-import nobu_pictool
-import nobu_library as lib
-import nobu_rich as R
-import nobu_theme as T
-from nobu_config import abs_from_home
+import nabu_clip
+import nabu_doc as nd
+import nabu_float
+import nabu_pictool
+import nabu_library as lib
+import nabu_rich as R
+import nabu_theme as T
+from nabu_config import abs_from_home
 
-log = logging.getLogger("nobu.editor")
+log = logging.getLogger("nabu.editor")
 
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff")
 PAPER = T.PAPER      # set from the colour theme when this module is first imported
@@ -48,8 +48,8 @@ SYMBOLS = [("Punctuation", "— – … “ ” ‘ ’ « » ¡ ¿ • · ¶ §
            ("Accented", "á à â ä ã å æ ç é è ê ë í ì î ï ñ ó ò ô ö õ ø œ ú ù û ü ý ÿ ß Á É Í Ó Ú Ñ Ä Ö Ü Æ Ø ð þ"),
            ("Runes", "ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ ᚷ ᚹ ᚺ ᚾ ᛁ ᛃ ᛇ ᛈ ᛉ ᛊ ᛏ ᛒ ᛖ ᛗ ᛚ ᛜ ᛞ ᛟ")]
 BULLETS = ["•", "◦", "▪"]
-VOICE_EDIT = "Nobu, edit this"
-VOICE_CUT = "Nobu, cut this"
+VOICE_EDIT = "Nabu, edit this"
+VOICE_CUT = "Nabu, cut this"
 
 
 def open_path(path):
@@ -312,7 +312,7 @@ class NoteEditor:
         self._fr_find = self._fr_entry = None
         self._added_job = self._cut_job = self._fonts_job = None
         self._drop_caret = self._drop_hint = None    # blue line + label while files from Explorer are over the page
-        self.font_win = None           # the "Fonts in the pasted text" window (nobu_pastefonts), while open
+        self.font_win = None           # the "Fonts in the pasted text" window (nabu_pastefonts), while open
         self.meta = {}             # colour label, 'titled' flag ... (kept as they are when saving)
         self.page_marks = []
         self.zoom_mode = cfg.get("zoom") or "Fit width"
@@ -320,11 +320,11 @@ class NoteEditor:
         self.dpi = float(self.root.winfo_fpixels("1i"))
         self.ctx = R.Ctx(getattr(app, "body_family", "IM FELL English"), getattr(app, "heading_family", "Eagle Lake"),
                          float(cfg["font_size"]))
-        self.pictool = None        # moving / resizing pictures with the mouse (nobu_pictool)
+        self.pictool = None        # moving / resizing pictures with the mouse (nabu_pictool)
         self._styled = set()       # colour / highlight / link tags already set up (and raised, once)
         self._sel_up = False       # "sel" is above every raised tag (raising a tag makes Tk measure the whole note)
         self._margins_up = False   # the page-margin tags have been raised (once is enough)
-        self.flow = None           # pictures placed anywhere, with the text flowing round them (nobu_float)
+        self.flow = None           # pictures placed anywhere, with the text flowing round them (nabu_float)
         self._build_ui()
 
     # ------------------------------------------------------------------ measurements
@@ -663,10 +663,10 @@ class NoteEditor:
         try:
             if not self.font_cb.winfo_exists():
                 return
-            import nobu_fonts
-            cats = nobu_fonts.by_category(self.root)
+            import nabu_fonts
+            cats = nabu_fonts.by_category(self.root)
             fams = []
-            for c, _ in nobu_fonts.CATEGORIES:
+            for c, _ in nabu_fonts.CATEGORIES:
                 fams += cats.get(c, [])
             self.font_cb.configure(values=fams)
         except Exception:
@@ -725,8 +725,8 @@ class NoteEditor:
         t.bind("<Double-Button-1>", self._on_double_click)
         t.bind("<MouseWheel>", lambda e: T.later(self.frame, None, self._draw_gutters), add="+")
         t.bind("<Control-MouseWheel>", self._wheel_zoom)
-        self.pictool = nobu_pictool.PictureTool(self)
-        self.flow = nobu_float.FloatLayer(self)
+        self.pictool = nabu_pictool.PictureTool(self)
+        self.flow = nabu_float.FloatLayer(self)
         for seq in ("<Configure>", "<Map>"):          # (shown again: count the pages it skipped while hidden)
             t.bind(seq, lambda e: self._schedule_pages() if self._pages_later and t.winfo_width() >= self.px(2.0)
                    else None, add="+")
@@ -737,14 +737,14 @@ class NoteEditor:
         """Count every change to the page's text (typing, Tk's own key handling, pictures, tables...).
         The cached copy of the note is reused only while this count hasn't moved, so nothing can be missed.
         Done in Tcl, so errors and speed are exactly as before."""
-        self._vervar = "nobu_ver" + str(self.text).replace(".", "_").replace("!", "")
+        self._vervar = "nabu_ver" + str(self.text).replace(".", "_").replace("!", "")
         self.text.tk.call("set", "::" + self._vervar, 0)
         self._watch_widget(self.text)
 
     def _watch_widget(self, t):
         """Route a Text widget's commands through a tiny Tcl proc that counts edits."""
         w = str(t)
-        orig = w + "_nobu"
+        orig = w + "_nabu"
         t.tk.call("rename", w, orig)
         t.tk.eval("""
             proc %(w)s {args} {
@@ -1608,7 +1608,7 @@ class NoteEditor:
                            command=lambda n=name, w=wrap, s=side: self.set_wrap(n, w, s))
         m.add_cascade(label="Text wrapping", menu=wm)
         pm = T.menu(m)
-        for spot, label in nobu_float.FloatLayer.SPOTS:
+        for spot, label in nabu_float.FloatLayer.SPOTS:
             pm.add_command(label=label, command=lambda n=name, s=spot: self.place_on_page(n, s))
         m.add_cascade(label="Place on page", menu=pm)
         m.add_separator()
@@ -1656,7 +1656,7 @@ class NoteEditor:
                 x, y = 0, 0
             t.delete(idx, "%s +1c" % idx)
             self.images.pop(name, None)
-            x = max(0, min(nobu_float.TEXT_W - info["w"], x))
+            x = max(0, min(nabu_float.TEXT_W - info["w"], x))
             new = fl.add(info["rel"], info["w"], info.get("h"),
                          {"wrap": wrap, "text": side or "largest", "x": x, "y": max(0, y)}, anchor)
             self._mark_changed()
@@ -1851,7 +1851,7 @@ class NoteEditor:
                     me = self._marker_end(line)
                     skip = int(me.split(".")[1]) if me else 0     # list number / bullet
                     urls = [(s, e) for s, e, _u in R.find_urls(txt)] if "." in txt else []   # web addresses aren't words
-                    for m in nobu_spell_words(txt):
+                    for m in nabu_spell_words(txt):
                         budget -= 0.01
                         if m.start() < skip or any(s <= m.start() < e for s, e in urls):
                             continue
@@ -1986,7 +1986,7 @@ class NoteEditor:
         alone = len(pics) == 1 and not any(it.get("t", "").strip() or "table" in it for it in items)
         try:
             src = (lambda rel: "file:///" + abs_from_home(rel).replace("\\", "/"))
-            nobu_clip.set_rich(text, R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx),
+            nabu_clip.set_rich(text, R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx),
                                picture=abs_from_home(pics[0]) if alone else None)   # just a picture: copy it as one
         except Exception:
             log.exception("rich copy failed")
@@ -2010,18 +2010,18 @@ class NoteEditor:
         except tk.TclError:
             text = None
         items = None
-        from_nobu = False              # copied from a Nobu note: its fonts are left alone
+        from_nabu = False              # copied from a Nabu note: its fonts are left alone
         if not plain:
             ci = getattr(self.app, "clip_items", None)
             if ci and text is not None and ci[0] == text:
                 items = ci[1]
-                from_nobu = True
+                from_nabu = True
             else:
-                h = nobu_clip.get_html()
+                h = nabu_clip.get_html()
                 if h:
                     try:
-                        import nobu_importers
-                        paras = R.html_to_paras(h, image_cb=lambda src: nobu_importers.fetch_image(src, self.path))
+                        import nabu_importers
+                        paras = R.html_to_paras(h, image_cb=lambda src: nabu_importers.fetch_image(src, self.path))
                         items = R.paras_to_items(paras)
                         if items and items[-1].get("t") == "\n" and "\n" not in (text or "")[-1:]:
                             items = items[:-1]
@@ -2048,25 +2048,25 @@ class NoteEditor:
             t.delete("sel.first", "sel.last")
         start = t.index("insert")
         orig = items
-        if not from_nobu:
-            import nobu_pastefonts as PF
+        if not from_nabu:
+            import nabu_pastefonts as PF
             items = PF.apply_rules(items, self.app.cfg.get("paste_font_rules") or {})
-        t.mark_set("nobu_pa", start)            # the pasted text, in case the font window changes it again
-        t.mark_gravity("nobu_pa", "left")
+        t.mark_set("nabu_pa", start)            # the pasted text, in case the font window changes it again
+        t.mark_gravity("nabu_pa", "left")
         self._insert_items(items, "insert")
-        t.mark_set("nobu_pb", "insert")
-        t.mark_gravity("nobu_pb", "left")
+        t.mark_set("nabu_pb", "insert")
+        t.mark_gravity("nabu_pb", "left")
         self._autolink(start, t.index("insert"))
         self._finish_insert(start, t.index("insert"))
-        if not from_nobu:
+        if not from_nabu:
             self.pasted_fonts(orig, items)
 
     def pasted_fonts(self, orig, items):
         """After a paste from another program (orig: as copied, items: as changed by the writer's choices).
         The fonts of the last paste are remembered; a font that wasn't in it opens the font window.
         Fonts the computer doesn't have are looked up online (free ones only), unless Settings says not to."""
-        import nobu_fontfetch as FF
-        import nobu_pastefonts as PF
+        import nabu_fontfetch as FF
+        import nabu_pastefonts as PF
         cfg = self.app.cfg
         body = (self.ctx.body or "").lower()
         fams = [f for f in PF.families_in(orig) if f.lower() != body]
@@ -2076,8 +2076,8 @@ class NoteEditor:
             cfg.update(last_paste_fonts=[f.lower() for f in fams])    # emptied and refilled by each paste
             if new:
                 win = self.font_win = PF.PasteFontsWindow(self, fams, lambda rules: self._repaste_fonts(orig, rules))
-                import nobu_fonts
-                have = {f.lower() for f in nobu_fonts.families(self.root)}
+                import nabu_fonts
+                have = {f.lower() for f in nabu_fonts.families(self.root)}
                 rules = cfg.get("paste_font_rules") or {}
                 for f in fams:
                     done = FF._tried.get(f.lower())
@@ -2094,7 +2094,7 @@ class NoteEditor:
         cfg = self.app.cfg
         if cfg.get("fetch_fonts", True) is False:
             return
-        import nobu_fontfetch as FF
+        import nabu_fontfetch as FF
         fams = [f for f in FF.missing_families(items, self.root) if f.lower() not in FF._tried]
         if not fams:
             return
@@ -2112,8 +2112,8 @@ class NoteEditor:
         threading.Thread(target=work, name="font-fetch", daemon=True).start()
 
     def _fonts_fetched(self, results, win=None):
-        import nobu_fontfetch as FF
-        import nobu_pastefonts as PF
+        import nabu_fontfetch as FF
+        import nabu_pastefonts as PF
         if any(r[1] == "downloaded" for r in results):
             for ed in self.app.ws.editors():
                 try:
@@ -2129,10 +2129,10 @@ class NoteEditor:
 
     def _repaste_fonts(self, orig, rules):
         """The font window's Apply: put the text just pasted in again, changed by the new choices (one undo step)."""
-        import nobu_pastefonts as PF
+        import nabu_pastefonts as PF
         t = self.text
         try:
-            a, b = t.index("nobu_pa"), t.index("nobu_pb")
+            a, b = t.index("nabu_pa"), t.index("nabu_pb")
         except tk.TclError:
             return
         if t.compare(a, ">=", b):
@@ -2145,7 +2145,7 @@ class NoteEditor:
             self.flow.remove(n)
         t.mark_set("insert", a)
         self._insert_items(items, "insert")
-        t.mark_set("nobu_pb", "insert")
+        t.mark_set("nabu_pb", "insert")
         self._autolink(a, t.index("insert"))
         self._finish_insert(a, t.index("insert"))
         mine = {f.lower() for f in PF.families_in(orig)}
@@ -2162,7 +2162,7 @@ class NoteEditor:
     @staticmethod
     def _has_words(items, text):
         """Is there real writing on the clipboard? "Copy image" in a web browser also gives the picture's
-        web address (as text, and as HTML Nobu can't load offline) - then the picture itself should win."""
+        web address (as text, and as HTML Nabu can't load offline) - then the picture itself should win."""
         if items is not None:
             return any(it.get("t", "").strip() or "i" in it or "table" in it for it in items)
         s = (text or "").strip()
@@ -2179,7 +2179,7 @@ class NoteEditor:
     # ------------------------------------------------------------------ pictures
     def _next_img_name(self):
         self._img_counter += 1
-        return "nobuimg%d" % self._img_counter
+        return "nabuimg%d" % self._img_counter
 
     def _text_inset(self):
         """place() inside the Text counts from inside its border and padding (the page margins); bbox() and
@@ -2207,12 +2207,12 @@ class NoteEditor:
         Returns (photo, width, height); height is None when the picture keeps its own shape."""
         img = nd.load_picture(rel)
         w0, h0 = img.size
-        width = max(nobu_pictool.MIN_W, int(round(width or min(w0, 480))))
-        height = max(nobu_pictool.MIN_H, int(round(height))) if height else None
+        width = max(nabu_pictool.MIN_W, int(round(width or min(w0, 480))))
+        height = max(nabu_pictool.MIN_H, int(round(height))) if height else None
         k = self.img_scale()
         dw = max(20, int(width * k))
         dh = max(10, int(height * k)) if height else max(1, round(h0 * dw / w0))
-        return nobu_pictool.tk_photo(img.resize((dw, dh), Image.LANCZOS)), width, height
+        return nabu_pictool.tk_photo(img.resize((dw, dh), Image.LANCZOS)), width, height
 
     def place_image(self, rel, width=None, index="insert", height=None):
         photo, width, height = self._make_photo(rel, width, height)
@@ -2238,7 +2238,7 @@ class NoteEditor:
             return self._add_image(nd.import_image(src, self.path), index)
         except Exception as e:
             log.exception("insert image failed")
-            T.info(self.root, "Nobu Notes", "Could not add that picture.\n\n%s" % e)
+            T.info(self.root, "Nabu Notes", "Could not add that picture.\n\n%s" % e)
 
     def insert_image_dialog(self):
         if not self.path:
@@ -2319,11 +2319,11 @@ class NoteEditor:
         if t.compare(dest, "==", src) or t.compare(dest, "==", "%s +1c" % src):
             return None
         self._push_undo()
-        t.mark_set("nobu_move", dest)
+        t.mark_set("nabu_move", dest)
         t.delete(src, "%s +1c" % src)
         self.images.pop(name, None)
-        new = self._add_image(info["rel"], "nobu_move", info["w"], info.get("h"))
-        t.mark_unset("nobu_move")
+        new = self._add_image(info["rel"], "nabu_move", info["w"], info.get("h"))
+        t.mark_unset("nabu_move")
         self._restyle(src, src)
         self._restyle(t.index(new), t.index(new))
         return new
@@ -2368,7 +2368,7 @@ class NoteEditor:
             rel = nd.save_pil_image(img.crop((l, t, r, b)), self.path, base + "_cropped", ext)
         except Exception as e:
             log.exception("crop failed")
-            T.info(self.root, "Nobu Notes", "Could not crop that picture.\n\n%s" % e)
+            T.info(self.root, "Nabu Notes", "Could not crop that picture.\n\n%s" % e)
             return False
         self._push_undo()
         h = info["h"] * (b - t) / H if info.get("h") else None          # the kept part stays the same scale
@@ -2391,18 +2391,18 @@ class NoteEditor:
         src = (lambda rel: "file:///" + abs_from_home(rel).replace("\\", "/"))
         self.app.clip_items = None
         try:
-            return nobu_clip.set_rich("", R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx),
+            return nabu_clip.set_rich("", R.to_html(paras, self.ctx, img_src=src, for_word=True), R.to_rtf(paras, self.ctx),
                                       picture=abs_from_home(info["rel"]))
         except Exception:
             log.exception("copy picture failed")
-            T.info(self.root, "Nobu Notes", "Could not copy that picture.")
+            T.info(self.root, "Nabu Notes", "Could not copy that picture.")
             return False
 
     def crop_dialog(self, name):
         if name not in self.images:
             return None
-        import nobu_crop
-        return nobu_crop.CropWindow(self, name)
+        import nabu_crop
+        return nabu_crop.CropWindow(self, name)
 
     def delete_image(self, name):
         self._push_undo()
@@ -2489,7 +2489,7 @@ class NoteEditor:
             return
         if not t.winfo_ismapped() or t.winfo_width() < self.px(2.0):
             # A tab that isn't showing is squashed to a pixel wide: every letter would be a line of its own,
-            # and counting its "pages" froze Nobu at start (5 notes reopened). Count them when it's shown.
+            # and counting its "pages" froze Nabu at start (5 notes reopened). Count them when it's shown.
             self._pages_later = True
             return
         self._pages_later = False
@@ -2688,7 +2688,7 @@ class NoteEditor:
         t.tag_bind(tag, "<Leave>", lambda e: t.config(cursor="xterm"))
 
     def open_link(self, url):
-        """Opens in your web browser (that's a separate program - Nobu itself stays offline)."""
+        """Opens in your web browser (that's a separate program - Nabu itself stays offline)."""
         if R.is_web_link(url):
             open_path(url)
 
@@ -2735,19 +2735,19 @@ class NoteEditor:
         if os.path.exists(p):
             open_path(p)
         else:
-            T.info(self.root, "Nobu Notes", "That recording file was not found:\n%s" % p)
+            T.info(self.root, "Nabu Notes", "That recording file was not found:\n%s" % p)
 
     # ------------------------------------------------------------------ serialization
     def serialize(self):
-        d = {"format": "nobu-note", "version": 2, "items": self._items_now()}
+        d = {"format": "nabu-note", "version": 2, "items": self._items_now()}
         for k, v in self.meta.items():
             d.setdefault(k, v)
         return d
 
     def _insert_items(self, items, index):
         t = self.text
-        t.mark_set("nobu_ins", index)
-        t.mark_gravity("nobu_ins", "right")
+        t.mark_set("nabu_ins", index)
+        t.mark_gravity("nabu_ins", "right")
         floats = []
         for it in items:
             tags = tuple(R.upgrade_tags(it.get("g", [])))
@@ -2759,30 +2759,30 @@ class NoteEditor:
                 elif tg.startswith("link:"):
                     self._ensure_link_tag(tg)
             if "t" in it:
-                t.insert("nobu_ins", it["t"], tags)
+                t.insert("nabu_ins", it["t"], tags)
             elif "i" in it and it.get("float") and self.flow:
                 try:
-                    floats.append(self.flow.add(it["i"], it.get("w"), it.get("h"), it["float"], "nobu_ins", "left"))
+                    floats.append(self.flow.add(it["i"], it.get("w"), it.get("h"), it["float"], "nabu_ins", "left"))
                 except Exception:
                     log.warning("missing image %s", it.get("i"))
             elif "i" in it:
                 try:
-                    name = self.place_image(it["i"], it.get("w"), "nobu_ins", it.get("h"))
+                    name = self.place_image(it["i"], it.get("w"), "nabu_ins", it.get("h"))
                     for tg in tags:
                         t.tag_add(tg, name)
                 except Exception:
                     log.warning("missing image %s", it.get("i"))
-                    t.insert("nobu_ins", "[missing picture: %s]" % os.path.basename(it.get("i", "")), ("meta",))
+                    t.insert("nabu_ins", "[missing picture: %s]" % os.path.basename(it.get("i", "")), ("meta",))
             elif "table" in it:
                 blk = TableBlock(self, it["table"].get("rows"))
-                t.window_create("nobu_ins", window=blk.frame, align="top")
+                t.window_create("nabu_ins", window=blk.frame, align="top")
                 self.blocks[str(blk.frame)] = blk
             elif "pb" in it:
                 blk = PageBreakBlock(self)
-                t.window_create("nobu_ins", window=blk.frame, align="top")
+                t.window_create("nabu_ins", window=blk.frame, align="top")
                 self.blocks[str(blk.frame)] = blk
-        t.mark_set("insert", "nobu_ins")
-        t.mark_unset("nobu_ins")
+        t.mark_set("insert", "nabu_ins")
+        t.mark_unset("nabu_ins")
         for n in floats:                   # (pinned now; from here on they move down with their paragraph)
             t.mark_gravity(n, "right")
 
@@ -2829,7 +2829,7 @@ class NoteEditor:
         try:
             doc = nd.load_doc(path)
         except Exception as e:
-            T.info(self.root, "Nobu Notes", "Could not open that note.\n\n%s" % e)
+            T.info(self.root, "Nabu Notes", "Could not open that note.\n\n%s" % e)
             return False
         self.hide_action()
         self.ctx = R.Ctx(getattr(self.app, "body_family", self.ctx.body),
@@ -3150,7 +3150,7 @@ class NoteEditor:
         return "\n".join(lines)
 
     def _drop_over(self, ev):
-        from nobu_dragdrop import ExplorerHint, explorer_files
+        from nabu_dragdrop import ExplorerHint, explorer_files
         t = self.text
         try:
             idx = t.index("@%d,%d" % (ev.x_root - t.winfo_rootx(), ev.y_root - t.winfo_rooty()))
@@ -3209,16 +3209,16 @@ class NoteEditor:
         t = self.text
         s = self._sel()
         a, b = s if s else (t.index("insert"), t.index("insert"))
-        t.mark_set("nobu_da", a)
-        t.mark_gravity("nobu_da", "left")
-        t.mark_set("nobu_db", b)
-        t.mark_gravity("nobu_db", "right")
+        t.mark_set("nabu_da", a)
+        t.mark_gravity("nabu_da", "left")
+        t.mark_set("nabu_db", b)
+        t.mark_gravity("nabu_db", "right")
         t.tag_remove("dictspot", "1.0", "end")
         if a != b:
             t.tag_add("dictspot", a, b)
-        self._show_action("●  Dictating%s…  Pause, or say “Nobu, end recording”, to finish."
+        self._show_action("●  Dictating%s…  Pause, or say “Nabu, end recording”, to finish."
                           % (" (will replace the highlighted text)" if a != b else " at the cursor"),
-                          [("Stop   (Nobu, end recording)", lambda: self.app.stop_manual_record(), False)])
+                          [("Stop   (Nabu, end recording)", lambda: self.app.stop_manual_record(), False)])
 
     def dictation_waiting(self):
         self._show_action("Transcribing your dictation…", [])
@@ -3226,7 +3226,7 @@ class NoteEditor:
     def insert_dictation(self, note_path, paragraphs):
         text = " ".join(p for p in paragraphs if p).strip()
         same = self.path and os.path.normcase(self.path) == os.path.normcase(note_path or "")
-        if text and same and self.cfg.get("confirm_edit") and "nobu_da" in self.text.mark_names():
+        if text and same and self.cfg.get("confirm_edit") and "nabu_da" in self.text.mark_names():
             shown = text if len(text) <= 220 else text[:220] + "\u2026"
             self._show_action("Dictated: \u201c%s\u201d \u2014 insert it?" % shown, [
                 ("Insert", lambda: self._insert_dictation_now(note_path, paragraphs), False),
@@ -3237,7 +3237,7 @@ class NoteEditor:
     def _discard_dictation(self):
         t = self.text
         t.tag_remove("dictspot", "1.0", "end")
-        for m in ("nobu_da", "nobu_db"):
+        for m in ("nabu_da", "nabu_db"):
             if m in t.mark_names():
                 t.mark_unset(m)
         self.hide_action()
@@ -3252,12 +3252,12 @@ class NoteEditor:
         if not text:
             self.app.set_status("Dictation: no words were recognised.")
             return
-        if not same or "nobu_da" not in t.mark_names():
+        if not same or "nabu_da" not in t.mark_names():
             nd.append_items_to_file(note_path, [{"t": text + "\n", "g": []}])
             self.app.set_status("Dictation added to the end of “%s”." % lib.title(note_path))
             return
         self._push_undo()
-        a, b = t.index("nobu_da"), t.index("nobu_db")
+        a, b = t.index("nabu_da"), t.index("nabu_db")
         if t.compare(a, "<", b):
             t.delete(a, b)
         before = t.get(a + "-1c", a) if t.compare(a, ">", "1.0") else "\n"
@@ -3272,7 +3272,7 @@ class NoteEditor:
         t.see(end)
         t.tag_add("justadded", a, end)
         self._added_job = T.later(t, 2500, lambda: t.tag_remove("justadded", "1.0", "end"))
-        t.mark_unset("nobu_da", "nobu_db")
+        t.mark_unset("nabu_da", "nabu_db")
         self._finish_insert(a, end)
         self.app.set_status("Dictation inserted.")
 
@@ -3347,7 +3347,7 @@ class NoteEditor:
         t.tag_remove("cutmatch", "1.0", "end")
         same = self.path and os.path.normcase(self.path) == os.path.normcase(note_path or "")
         if not same:
-            self.app.set_status("Cut cancelled: the note was closed before Nobu finished listening.")
+            self.app.set_status("Cut cancelled: the note was closed before Nabu finished listening.")
             return
         if not spoken.strip():
             self._show_action("Cut: no words were recognised. Try again and recite a few words of the passage.",
@@ -3359,8 +3359,8 @@ class NoteEditor:
                               [("OK", self.hide_action, False)])
             return
         a, b, score = res
-        t.mark_set("nobu_ca", a)
-        t.mark_set("nobu_cb", b)
+        t.mark_set("nabu_ca", a)
+        t.mark_set("nabu_cb", b)
         t.tag_add("cutmatch", a, b)
         t.see(a)
         if not self.cfg.get("confirm_cut", True):      # Settings: delete straight away (Ctrl+Z undoes)
@@ -3373,7 +3373,7 @@ class NoteEditor:
     def _do_cut(self):
         t = self.text
         try:
-            a, b = t.index("nobu_ca"), t.index("nobu_cb")
+            a, b = t.index("nabu_ca"), t.index("nabu_cb")
         except tk.TclError:
             return self._cancel_cut()
         self._push_undo()
@@ -3396,7 +3396,7 @@ class NoteEditor:
         self.root.unbind("<Escape>")
 
     def apply_dictionary(self, entries):
-        import nobu_dictionary
+        import nabu_dictionary
         if not self.path or not entries:
             return 0
         self._push_undo()
@@ -3404,7 +3404,7 @@ class NoteEditor:
         segs = [(val, ix) for key, val, ix in t.dump("1.0", "end-1c", text=True)]
         changes = 0
         for val, ix in reversed(segs):
-            new = nobu_dictionary.apply(val, entries)
+            new = nabu_dictionary.apply(val, entries)
             if new != val:
                 tags = t.tag_names(ix)
                 end = t.index("%s+%dc" % (ix, len(val)))
@@ -3419,6 +3419,6 @@ class NoteEditor:
         return changes
 
 
-def nobu_spell_words(txt):
-    import nobu_spell
-    return nobu_spell.WORD_RE.finditer(txt)
+def nabu_spell_words(txt):
+    import nabu_spell
+    return nabu_spell.WORD_RE.finditer(txt)

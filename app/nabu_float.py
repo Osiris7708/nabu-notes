@@ -9,7 +9,7 @@ added above. Its "float" settings (saved in the note):
            of its paragraph
 
 How the text flows round it: Tk can only give a whole line of text (a paragraph) one pair of margins, so
-where the text passes the top or bottom of a picture Nobu adds an invisible line break - a "\\n" tagged
+where the text passes the top or bottom of a picture Nabu adds an invisible line break - a "\\n" tagged
 "softnl". Those are never saved, copied or exported, and they are all worked out again (reflow) right after
 every change, so the text moves smoothly as you type, drag or resize. The lines beside a picture get a
 "W|..." tag whose margins (and spacing) keep them clear of it.
@@ -17,10 +17,10 @@ every change, so the text moves smoothly as you type, drag or resize. The lines 
 import logging
 import tkinter as tk
 
-import nobu_rich as R
-import nobu_theme as T
+import nabu_rich as R
+import nabu_theme as T
 
-log = logging.getLogger("nobu.float")
+log = logging.getLogger("nabu.float")
 
 WRAPS = ("square", "topbottom", "front")
 GAP = 12            # page pixels between a picture and the text round it
@@ -64,10 +64,10 @@ class FloatLayer:
         """A floating picture pinned at index. opts: wrap / text / x / y (see the top of this file)."""
         ed = self.ed
         self._counter += 1
-        name = "nobufl%d" % self._counter
+        name = "nabufl%d" % self._counter
         while name in ed.images:
             self._counter += 1
-            name = "nobufl%d" % self._counter
+            name = "nabufl%d" % self._counter
         photo, width, height = ed._make_photo(rel, width, height)
         f = {"wrap": opts.get("wrap", "square"), "text": opts.get("text", "largest"),
              "x": max(0, int(round(opts.get("x", 0)))), "y": max(0, int(round(opts.get("y", 0))))}
@@ -91,7 +91,7 @@ class FloatLayer:
             info["label"].destroy()
         except tk.TclError:
             pass
-        for m in (name, "nobufe_" + name):
+        for m in (name, "nabufe_" + name):
             try:
                 self.t.mark_unset(m)
             except tk.TclError:
@@ -104,7 +104,7 @@ class FloatLayer:
             try:
                 info["label"].destroy()
                 self.t.mark_unset(n)
-                self.t.mark_unset("nobufe_" + n)
+                self.t.mark_unset("nabufe_" + n)
             except tk.TclError:
                 pass
 
@@ -273,7 +273,7 @@ class FloatLayer:
         """The stretch of text a picture's wrapping affects: (its paragraph's start, end of its last line)."""
         t = self.t
         a = self.par_start(t.index(n))
-        e = "nobufe_" + n
+        e = "nabufe_" + n
         b = t.index("%s lineend +1c" % (t.index(e) if e in t.mark_names() else a))
         return a, b
 
@@ -333,8 +333,8 @@ class FloatLayer:
             for k in range(len(rs) - 2, -1, -2):
                 if not inside(rs[k], rs[k + 1]):
                     continue
-                t.mark_set("nobu_par%d" % k, self.par_start(rs[k]))
-                pars.append("nobu_par%d" % k)
+                t.mark_set("nabu_par%d" % k, self.par_start(rs[k]))
+                pars.append("nabu_par%d" % k)
                 t.delete(rs[k], rs[k + 1])
             for m in pars:                     # each paragraph keeps its first line's formatting throughout
                 p = t.index(m)
@@ -439,7 +439,7 @@ class FloatLayer:
             bottom = top + h
             for a in active:
                 if a["y1"] <= top:             # (this picture's stretch of text ends here)
-                    t.mark_set("nobufe_" + a["name"], s)
+                    t.mark_set("nabufe_" + a["name"], s)
             active = [a for a in active if a["y1"] > top]
             if not active:
                 self._split_if_needed(s, None)
@@ -459,7 +459,7 @@ class FloatLayer:
                 continue                       # (look at the same line again, now below the picture)
             if last:
                 for a in active:
-                    t.mark_set("nobufe_" + a["name"], "end -1c")
+                    t.mark_set("nabufe_" + a["name"], "end -1c")
                 if pending:
                     s = self.par_start(t.index(pending[0]))
                     top, prev = 0, None

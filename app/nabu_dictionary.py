@@ -13,7 +13,7 @@ import os
 import re
 import threading
 
-from nobu_config import HOME
+from nabu_config import HOME
 
 PATH = os.path.join(HOME, "dictionary.json")
 _lock = threading.RLock()

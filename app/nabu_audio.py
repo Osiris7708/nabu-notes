@@ -16,10 +16,10 @@ import wave
 
 import numpy as np
 
-from nobu_dsp import Frontend, SpeechDetector
-from nobu_match import consistent, learn_aliases, match_command, match_stop, near_miss, words_text
+from nabu_dsp import Frontend, SpeechDetector
+from nabu_match import consistent, learn_aliases, match_command, match_stop, near_miss, words_text
 
-log = logging.getLogger("nobu.audio")
+log = logging.getLogger("nabu.audio")
 
 SR = 16000
 BLOCK = 800                 # 50 ms
@@ -31,12 +31,12 @@ MIN_SPEECH_BLOCKS = 5       # ignore sounds shorter than 0.25 s
 STOP_TAIL_BLOCKS = 90       # look at the last 4.5 s of an utterance for the stop phrase
 MAX_REC_UTTER_BLOCKS = 240  # keep 12 s for stop-phrase checking
 TEACH_MAX_BLOCKS = 140      # 7 s
-TEACH_HANG_BLOCKS = 22      # while teaching, a 1.1 s pause ends a phrase (so "Nobu ... record this" stays one)
+TEACH_HANG_BLOCKS = 22      # while teaching, a 1.1 s pause ends a phrase (so "Nabu ... record this" stays one)
 CAPTURE_MAX_BLOCKS = 120    # 6 s for a dictionary pronunciation sample
 # A second, more careful listen for things that sounded *almost* like a command: the small
 # model is told which words to expect, which fixes most "said it twice" moments.
-WAKE_HINT = "Nobu, record this. Nobu, edit this. Nobu, cut this."
-STOP_HINT = "Nobu, end recording."
+WAKE_HINT = "Nabu, record this. Nabu, edit this. Nabu, cut this."
+STOP_HINT = "Nabu, end recording."
 
 
 class Block(np.ndarray):
@@ -145,7 +145,7 @@ class Engine:
         if self._running:
             return
         self._running = True
-        self.thread = threading.Thread(target=self._run, name="nobu-engine", daemon=True)
+        self.thread = threading.Thread(target=self._run, name="nabu-engine", daemon=True)
         self.thread.start()
         if self._use_stream:
             self.q.put(("cmd", "open", {}))

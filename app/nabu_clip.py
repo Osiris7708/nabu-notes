@@ -4,7 +4,7 @@ import ctypes
 import logging
 import os
 
-log = logging.getLogger("nobu.clip")
+log = logging.getLogger("nabu.clip")
 IS_WIN = os.name == "nt"
 
 if IS_WIN:
@@ -57,8 +57,8 @@ def _picture_data(path):
     """The picture as a Windows bitmap (DIB, which every program can paste) and as PNG (keeps see-through parts)."""
     import io
     from PIL import Image
-    import nobu_doc
-    img = nobu_doc.load_picture(path)
+    import nabu_doc
+    img = nabu_doc.load_picture(path)
     png = io.BytesIO()
     img.save(png, "PNG")
     if img.mode in ("RGBA", "LA", "P"):

@@ -1,15 +1,15 @@
-"""The offline guarantee: once Nobu starts, it cannot reach the internet, but it can still
+"""The offline guarantee: once Nabu starts, it cannot reach the internet, but it can still
 talk to itself on this computer (the one-copy-at-a-time check uses that)."""
 import _here  # finds the app and keeps the test away from your real notes
 import socket
-import nobu_offline
+import nabu_offline
 
 OK = []
 def check(name, cond, info=""):
     OK.append(bool(cond))
     print(("PASS  " if cond else "FAIL  ") + name + ("" if cond else "   -> %s" % (info,)))
 
-nobu_offline.install()
+nabu_offline.install()
 try:
     socket.create_connection(("1.1.1.1", 443), timeout=3).close()
     blocked, why = False, "connected"

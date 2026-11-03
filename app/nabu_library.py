@@ -2,20 +2,23 @@ r"""The note library on disk.
 
 Notes\                 library root
   Unassigned\          new transcripts land here (the inbox)
-  <Project>\           one folder per book / campaign, holding .nobu notes
+  <Project>\           one folder per book / campaign, holding .nabu notes
   .trash\              deleted things go here, never destroyed outright
 """
 import datetime
 import json
+import logging
 import os
 import re
 import shutil
 
-import nobu_doc as nd
-from nobu_config import INBOX_DIR, NOTES_DIR, TRASH_DIR, abs_from_home, rel_to_home
+import nabu_doc as nd
+from nabu_config import INBOX_DIR, NOTES_DIR, TRASH_DIR, abs_from_home, rel_to_home
+
+log = logging.getLogger("nabu.library")
 
 INBOX_NAME = "Unassigned"
-EXT = ".nobu"
+EXT = ".nabu"
 
 
 def safe_name(s, fallback="Untitled"):
@@ -35,7 +38,7 @@ _RESERVED = {"CON", "PRN", "AUX", "NUL"} | {"COM%d" % i for i in range(1, 10)} |
 
 
 def note_stem(name, fallback="Untitled"):
-    """The file name (without .nobu) for a note title; any symbols are kept (as look-alikes)."""
+    """The file name (without .nabu) for a note title; any symbols are kept (as look-alikes)."""
     s = re.sub(r"[\x00-\x1f\x7f]+", " ", name or "")
     s = re.sub(r"\s+", " ", s).strip()
     s = "".join(_TO_FILE.get(c, c) for c in s)[:110].strip()
@@ -497,7 +500,7 @@ def restore(bundle):
 
 
 def to_recycle_bin(paths):
-    """Permanently remove from Nobu: send to the Windows Recycle Bin (recoverable there)."""
+    """Permanently remove from Nabu: send to the Windows Recycle Bin (recoverable there)."""
     paths = [os.path.abspath(p) for p in paths if os.path.exists(p)]
     if not paths:
         return True
@@ -521,6 +524,71 @@ def to_recycle_bin(paths):
         else:
             os.remove(p)
     return True
+
+
+def renamed_path(s):
+    """A path or file name from before 5.0 (Nobu Notes) as it is now: .nobu -> .nabu."""
+    for old, new in ((".nobu.bak", ".nabu.bak"), (".nobufolder", FOLDER_META), (".nobu", EXT)):
+        if s.lower().endswith(old):
+            return s[:-len(old)] + new
+    return s
+
+
+def renamed_values(v):
+    """renamed_path on every text inside lists and dicts (settings, folder order, Trash records)."""
+    if isinstance(v, str):
+        return renamed_path(v)
+    if isinstance(v, list):
+        return [renamed_values(x) for x in v]
+    if isinstance(v, dict):
+        return {k: renamed_values(x) for k, x in v.items()}
+    return v
+
+
+def move_from_nobu():
+    """Nabu Notes was called Nobu Notes until 5.0: notes were .nobu files and folders kept their order in
+    .nobufolder. Rename them all (backups and Trash too) and fix the names stored inside the order and
+    Trash files. Returns how many files were renamed."""
+    n = 0
+    for dirpath, _dirs, files in os.walk(NOTES_DIR):
+        for name in files:
+            new = renamed_path(name)
+            if new == name:
+                continue
+            src, dst = os.path.join(dirpath, name), os.path.join(dirpath, new)
+            try:
+                if new == FOLDER_META:
+                    with open(src, encoding="utf-8") as f:
+                        data = renamed_values(json.load(f))
+                    with open(dst, "w", encoding="utf-8") as f:
+                        json.dump(data, f, ensure_ascii=False)
+                    os.remove(src)
+                elif not os.path.exists(dst):
+                    os.replace(src, dst)
+                else:
+                    log.warning("not renamed (%s already exists): %s", new, src)
+                    continue
+                n += 1
+            except (OSError, ValueError):
+                log.exception("could not rename %s", src)
+    for dirpath, _dirs, files in os.walk(TRASH_DIR):          # what the Trash remembers about each item
+        if "info.json" in files:
+            p = os.path.join(dirpath, "info.json")
+            try:
+                with open(p, encoding="utf-8") as f:
+                    data = json.load(f)
+                fixed = renamed_values(data)
+                if fixed != data:
+                    with open(p, "w", encoding="utf-8") as f:
+                        json.dump(fixed, f, ensure_ascii=False, indent=1)
+            except (OSError, ValueError):
+                log.exception("could not update %s", p)
+    _info_cache.clear()
+    try:
+        os.remove(_cache_file())            # the note previews are worked out again
+    except OSError:
+        pass
+    return n
 
 
 def migrate_trash():
@@ -552,7 +620,7 @@ def migrate_trash():
         if ".trash" in dp or ".backups" in dp:
             continue
         for f in files:
-            if f.endswith(".nobu.bak"):
+            if f.endswith(".nabu.bak"):
                 try:
                     os.remove(os.path.join(dp, f))
                 except OSError:
@@ -627,14 +695,14 @@ COLOR_FAMILIES = [
                        ("Slate", "#a0a8b8")]),
 ]
 COLORS = [c for _f, cols in COLOR_FAMILIES for c in cols]
-FOLDER_META = ".nobufolder"
+FOLDER_META = ".nabufolder"
 _info_cache = {}        # path -> (mtime, size, info); kept on disk between runs (cache\noteinfo.json)
 _cache_state = {"loaded": False, "dirty": 0}
 _EMPTY_INFO = {"color": None, "preview": "", "audio": False, "titled": False}
 
 
 def _cache_file():
-    from nobu_config import HOME
+    from nabu_config import HOME
     return os.path.join(HOME, "cache", "noteinfo.json")
 
 

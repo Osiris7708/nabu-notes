@@ -1,18 +1,18 @@
 """v4.7.1 bug hunt: drive the app with real (synthesized) mouse/keyboard events."""
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, traceback, json
-H = tempfile.mkdtemp(); os.environ['NOBU_HOME'] = H
-import nobu_models; nobu_models.missing = lambda n: []
-import nobu_audio, nobu_transcribe
+H = tempfile.mkdtemp(); os.environ['NABU_HOME'] = H
+import nabu_models; nabu_models.missing = lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s, a, prompt=None): return []
-nobu_transcribe.Detector = lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector = lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s, *a, **k): k['start_stream'] = False; super().__init__(*a, **k)
-nobu_audio.Engine = E2
-import nobu_main as M, nobu_config as C, nobu_library as lib, nobu_theme as T, nobu_workspace as WS
+nabu_audio.Engine = E2
+import nabu_main as M, nabu_config as C, nabu_library as lib, nabu_theme as T, nabu_workspace as WS
 import tkinter as tk
 
 MENUS = []
@@ -138,7 +138,7 @@ def go():
             tv.event_generate("<ButtonRelease-1>", x=x2, y=y2, rootx=rx + x2, rooty=ry + y2, state=0x100)
             tv.update()
         step(lambda: drag_into(n2, ch)); idle(0.4)
-        moved = os.path.join(ch, 'Chapter Two.nobu')
+        moved = os.path.join(ch, 'Chapter Two.nabu')
         check("mouse-drag a note into a sub-folder", os.path.exists(moved) and not os.path.exists(n2))
         check("its open page follows the move", step(lambda: app.editor.path) == moved, step(lambda: app.editor.path))
         n2 = moved
@@ -227,9 +227,9 @@ def go():
         t1, t2 = step(start_dict)
         check("dictation goes into the note it was started in", "Dictated sentence." in t1 and "Dictated" not in t2)
         # ===== import default folder
-        import nobu_share
+        import nabu_share
         got = {}
-        nobu_share.import_dialog = lambda app_, folder=None: got.update(folder=folder)
+        nabu_share.import_dialog = lambda app_, folder=None: got.update(folder=folder)
         step(app.show_home); step(lambda: app.import_dialog())
         check("gear > Import from Home goes to Unassigned", got.get("folder") == C.INBOX_DIR)
         step(lambda: app.show_project(other)); step(lambda: app.import_dialog())
@@ -247,7 +247,7 @@ def go():
     except Exception:
         traceback.print_exc()
     try:
-        lg = open(os.path.join(H, "logs", "nobu.log"), encoding="utf-8").read()
+        lg = open(os.path.join(H, "logs", "nabu.log"), encoding="utf-8").read()
         errs = [l for l in lg.splitlines() if (" ERROR " in l or "Error" in l) and "tkinterdnd2" not in l and "pystray" not in l
                 and "tray unavailable" not in l]
         print("UI ERRORS IN LOG:", len(errs))

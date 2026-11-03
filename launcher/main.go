@@ -1,7 +1,7 @@
-// NobuNotes.exe - tiny launcher.
+// NabuNotes.exe - tiny launcher.
 //
 // First run: unpacks the bundled Python runtime from setup\runtime.zip.001, .002, ...
-// Every run: starts runtime\pythonw.exe app\nobu_main.py with no console window.
+// Every run: starts runtime\pythonw.exe app\nabu_main.py with no console window.
 package main
 
 import (
@@ -27,7 +27,7 @@ func msgBox(title, text string, flags uintptr) {
 }
 
 func fail(text string) {
-	msgBox("Nobu Notes", text, 0x10) // MB_ICONERROR
+	msgBox("Nabu Notes", text, 0x10) // MB_ICONERROR
 	os.Exit(1)
 }
 
@@ -122,7 +122,7 @@ func unpack(setupDir, dest string) error {
 func main() {
 	exe, err := os.Executable()
 	if err != nil {
-		fail("Cannot work out where Nobu Notes is installed.")
+		fail("Cannot work out where Nabu Notes is installed.")
 	}
 	if r, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = r
@@ -130,13 +130,13 @@ func main() {
 	home := filepath.Dir(exe)
 	rt := filepath.Join(home, "runtime")
 	py := filepath.Join(rt, "pythonw.exe")
-	script := filepath.Join(home, "app", "nobu_main.py")
+	script := filepath.Join(home, "app", "nabu_main.py")
 
 	if _, err := os.Stat(script); err != nil {
-		fail("The program files are missing:\n" + script + "\n\nKeep NobuNotes.exe together with the 'app' and 'setup' folders.")
+		fail("The program files are missing:\n" + script + "\n\nKeep NabuNotes.exe together with the 'app' and 'setup' folders.")
 	}
 	if _, err := os.Stat(py); err != nil {
-		msgBox("Nobu Notes", "Welcome! Nobu Notes will now unpack its components.\n\nThis happens only once and takes about a minute. "+
+		msgBox("Nabu Notes", "Welcome! Nabu Notes will now unpack its components.\n\nThis happens only once and takes about a minute. "+
 			"Click OK, then wait - the program opens by itself when it is ready.", 0x40)
 		if err := unpack(filepath.Join(home, "setup"), rt); err != nil {
 			fail("Could not unpack the components:\n\n" + err.Error())
@@ -156,11 +156,11 @@ func main() {
 		}
 		env = append(env, e)
 	}
-	env = append(env, "NOBU_HOME="+home, "NOBU_EXE="+exe, "PYTHONNOUSERSITE=1", "PYTHONIOENCODING=utf-8")
+	env = append(env, "NABU_HOME="+home, "NABU_EXE="+exe, "PYTHONNOUSERSITE=1", "PYTHONIOENCODING=utf-8")
 	cmd.Env = env
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	if err := cmd.Start(); err != nil {
-		fail("Could not start Nobu Notes:\n\n" + err.Error())
+		fail("Could not start Nabu Notes:\n\n" + err.Error())
 	}
 	cmd.Process.Release()
 }

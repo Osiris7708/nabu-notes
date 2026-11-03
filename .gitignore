@@ -12,11 +12,11 @@
 # ---- Claude's working notes for this install (kept on this computer, not published) ----
 /CLAUDE.md
 
-# ---- Big files, or files rebuilt when Nobu starts ----
+# ---- Big files, or files rebuilt when Nabu starts ----
 /runtime/
 /models/
 /setup/
-/NobuNotes.exe
+/NabuNotes.exe
 /app/fonts/lib/
 /app/data/
 __pycache__/

@@ -8,12 +8,12 @@ brings a fresh font.
   font: "" keep the pasted font, "*" use the note's own font, else a family name.
   size: 0 keep the pasted size, -1 use the note's own size, else points.
   They stay until changed in the window or in Settings > Fonts.
-Text copied from another Nobu note is never changed or asked about.
+Text copied from another Nabu note is never changed or asked about.
 """
 import tkinter as tk
 from tkinter import ttk
 
-import nobu_theme as T
+import nabu_theme as T
 
 FONT_KEEP = "Keep the pasted font"
 FONT_MINE = "My note font"
@@ -73,10 +73,10 @@ def fresh(fams, last):
 
 
 def font_choices(root):
-    import nobu_fonts
-    cats = nobu_fonts.by_category(root)
+    import nabu_fonts
+    cats = nabu_fonts.by_category(root)
     fams = []
-    for c, _ in nobu_fonts.CATEGORIES:
+    for c, _ in nabu_fonts.CATEGORIES:
         fams += cats.get(c, [])
     return [FONT_KEEP, FONT_MINE] + fams
 
@@ -147,7 +147,7 @@ class PasteFontsWindow:
         f = ttk.Frame(win, padding=18)
         f.pack(fill="both", expand=True)
         ttk.Label(f, wraplength=620, justify="left", text=(
-            "This paste has a font your last paste didn't. Pick what each font should change into. Nobu "
+            "This paste has a font your last paste didn't. Pick what each font should change into. Nabu "
             "remembers it for every paste in that font until you change it here or in Settings > Fonts.")
                   ).pack(anchor="w", pady=(0, 12))
         grid = ttk.Frame(f)

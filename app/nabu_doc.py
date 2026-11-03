@@ -1,33 +1,33 @@
-"""Note file format (.nobu) and helpers that work without any window.
+"""Note file format (.nabu) and helpers that work without any window.
 
-A note is JSON: {"format": "nobu-note", "version": 1, "items": [...]} where an
+A note is JSON: {"format": "nabu-note", "version": 1, "items": [...]} where an
 item is {"t": "text", "g": [tags]} or {"i": "Images/x.png", "w": 400, "g": [tags]}.
-Image paths are relative to the Nobu Notes folder, so the folder can be moved.
+Image paths are relative to the Nabu Notes folder, so the folder can be moved.
 """
 import json
 import os
 import shutil
 import time
 
-from nobu_config import HOME, IMAGES_DIR, abs_from_home, rel_to_home
+from nabu_config import HOME, IMAGES_DIR, abs_from_home, rel_to_home
 
 AUDIO_PREFIX = "audio|"
 
 
 def persistent(tag):
-    import nobu_rich
-    return nobu_rich.persistent(tag) or tag in ("h1", "h2", "center")
+    import nabu_rich
+    return nabu_rich.persistent(tag) or tag in ("h1", "h2", "center")
 
 
 def empty_doc():
-    return {"format": "nobu-note", "version": 2, "items": []}
+    return {"format": "nabu-note", "version": 2, "items": []}
 
 
 def load_doc(path):
     with open(path, "r", encoding="utf-8") as f:
         d = json.load(f)
     if not isinstance(d, dict) or "items" not in d:
-        raise ValueError("Not a Nobu note file")
+        raise ValueError("Not a Nabu note file")
     return d
 
 
@@ -60,11 +60,11 @@ def audio_files(doc):
 
 def welcome_items():
     return [
-        {"t": "Nobu Notes\n", "g": ["st:title"]},
+        {"t": "Nabu Notes\n", "g": ["st:title"]},
         {"t": "Your voice-to-text notebook for writing.\n", "g": ["st:subtitle"]},
         {"t": "How it works\n", "g": ["st:h1"]},
-        {"t": "Say  “Nobu, record this”  (said “no-boo”) and start talking. Recording stops after 8 seconds of "
-              "silence, or when you say  “Nobu, end recording”. Each recording becomes a note in "
+        {"t": "Say  “Nabu, record this”  (said “naboo”) and start talking. Recording stops after 8 seconds of "
+              "silence, or when you say  “Nabu, end recording”. Each recording becomes a note in "
               "Unassigned, ready to file into a book or campaign.\n", "g": []},
         {"t": "Writing\n", "g": ["st:h1"]},
         {"t": "The page works like Word: styles, fonts, sizes, colours, lists, tables, pictures, page breaks, "
@@ -167,7 +167,7 @@ def save_pil_image(img, note_path, name=None, ext=".png"):
     return rel_to_home(dest)
 
 
-def to_html(doc, title="Nobu Note"):
-    import nobu_rich as R
+def to_html(doc, title="Nabu Note"):
+    import nabu_rich as R
     return R.to_html(R.items_to_paras(doc.get("items", [])), R.Ctx(), full_page=True, title=title)
 

@@ -1,17 +1,17 @@
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile
-H=tempfile.mkdtemp(); os.environ['NOBU_HOME']=H
-import tkinter as tk, nobu_theme as T, nobu_rich as R, nobu_doc as nd, nobu_library as lib, nobu_spell
+H=tempfile.mkdtemp(); os.environ['NABU_HOME']=H
+import tkinter as tk, nabu_theme as T, nabu_rich as R, nabu_doc as nd, nabu_library as lib, nabu_spell
 root=tk.Tk(); T.apply(root,'Eagle Lake')
 class Cfg(dict):
     def get(s,k,d=None): return dict.get(s,k,d)
     def set_temp(s,**k): pass
 class App:
     body_family='IM FELL English'; heading_family='Eagle Lake'; clip_items=None
-    speller=nobu_spell.Speller()
+    speller=nabu_spell.Speller()
     def set_status(s,m): pass
     def __getattr__(s,n): return lambda *a,**k: None
-import nobu_editor as NE
+import nabu_editor as NE
 app=App(); ed=NE.NoteEditor(root, app, Cfg(font_size=12, zoom='100%')); ed.frame.pack(fill='both',expand=True)
 p=lib.create_note(H+'/Notes/B','T',[{"t":"Hello world\n","g":[]}]); ed.load(p); root.update()
 txt=lambda: "".join(i.get("t","") for i in ed.serialize()["items"])

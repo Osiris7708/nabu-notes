@@ -1,18 +1,19 @@
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile
-H=tempfile.mkdtemp(); os.environ['NOBU_HOME']=H
-import tkinter as tk, nobu_theme as T, nobu_rich as R, nobu_doc as nd, nobu_library as lib
+H=tempfile.mkdtemp(); os.environ['NABU_HOME']=H
+import tkinter as tk, nabu_theme as T, nabu_rich as R, nabu_doc as nd, nabu_library as lib
 root=tk.Tk(); T.apply(root,'Varnyx')
 class Cfg(dict):
     def get(s,k,d=None): return dict.get(s,k,d)
     def set_temp(s,**k): pass
-import nobu_spell
+import nabu_spell
 class App:
     body_family='IM FELL English'; heading_family='Varnyx'; clip_items=None
-    speller=nobu_spell.Speller()
+    cfg=Cfg()             # the app's settings (pasted-font choices etc.)
+    speller=nabu_spell.Speller()
     def set_status(s,m): print('STATUS',m)
     def __getattr__(s,n): return lambda *a,**k: None
-import nobu_editor as NE
+import nabu_editor as NE
 app=App(); ed=NE.NoteEditor(root, app, Cfg(font_size=14, zoom='100%'))
 ed.frame.pack(fill='both',expand=True)
 p=lib.create_note(H+'/Notes/B','T',[{"t":"Hello world. The quick brown fox jumps over the lazy dog.\n","g":[]}])
@@ -43,7 +44,7 @@ ed.undo(); print('UNDO', repr(t.get('1.0','1.end')))
 t.tag_add('sel','1.0','1.5'); ed.toggle_flag('b'); ed.copy(); t.tag_remove('sel','1.0','end'); t.mark_set('insert','1.end'); ed.paste()
 print('PASTE', repr(t.get('1.0','1.end')), t.tag_names('1.end-2c'))
 # html paste via html_to_paras
-import nobu_clip; nobu_clip.get_html=lambda: '<p><b>Bold</b> and <i style="color:#ff0000">red italic</i></p><ul><li>one</li><li>two</li></ul>'
+import nabu_clip; nabu_clip.get_html=lambda: '<p><b>Bold</b> and <i style="color:#ff0000">red italic</i></p><ul><li>one</li><li>two</li></ul>'
 app.clip_items=None; root.clipboard_clear(); root.clipboard_append('Bold and red italic\none\ntwo')
 t.mark_set('insert','end-1c'); ed.paste()
 print([ (p['list'], [(r.get('t'),r.get('b'),r.get('i'),r.get('fg')) for r in p['runs']]) for p in R.items_to_paras(ed.serialize()['items'])][-4:])

@@ -1,16 +1,16 @@
-"""Give Nobu Notes a new icon, everywhere it appears.
+"""Give Nabu Notes a new icon, everywhere it appears.
 
     runtime\\python.exe tools\\set_icon.py picture.png
 
 From one square picture (an app-icon style rounded square; anything outside it, like a black border, is cut
 away and becomes see-through) this makes:
-  app\\nobu_icon.png            256 x 256: the window corner, taskbar, pop-out windows, dialogs and the tray icon
-  launcher\\nobu_icon_source.png  the picture itself (1024 x 1024), kept so the icon can be made again
-  launcher\\nobu.ico             16 - 256 pixels: the icon built into NobuNotes.exe
-and puts the new icon into NobuNotes.exe itself (Windows' resource update; no need to rebuild the launcher).
+  app\\nabu_icon.png            256 x 256: the window corner, taskbar, pop-out windows, dialogs and the tray icon
+  launcher\\nabu_icon_source.png  the picture itself (1024 x 1024), kept so the icon can be made again
+  launcher\\nabu.ico             16 - 256 pixels: the icon built into NabuNotes.exe
+and puts the new icon into NabuNotes.exe itself (Windows' resource update; no need to rebuild the launcher).
 Windows remembers icons for a while: if Explorer still shows the old one, it updates on its own.
-(If the launcher is ever rebuilt with Go, make launcher\\rsrc_windows_amd64.syso from nobu.ico first:
- go run github.com/akavel/rsrc -ico nobu.ico -o rsrc_windows_amd64.syso)
+(If the launcher is ever rebuilt with Go, make launcher\\rsrc_windows_amd64.syso from nabu.ico first:
+ go run github.com/akavel/rsrc -ico nabu.ico -o rsrc_windows_amd64.syso)
 """
 import ctypes
 import io
@@ -111,7 +111,7 @@ def patch_exe(exe, imgs):
     old = _icon_ids(exe)                            # (the old icon may have had more sizes: those go too)
     h = k32.BeginUpdateResourceW(exe, False)
     if not h:
-        raise OSError("can't open %s to change its icon (is Nobu Notes running?)" % exe)
+        raise OSError("can't open %s to change its icon (is Nabu Notes running?)" % exe)
     ok = True
     group = struct.pack("<HHH", 0, 1, len(imgs))
     for n, (s, png) in enumerate(imgs, 1):
@@ -133,15 +133,15 @@ def main(argv):
         return 1
     art = cut_out(argv[0])
     big = art.resize((1024, 1024), Image.LANCZOS) if art.width > 1024 else art
-    big.save(os.path.join(ROOT, "launcher", "nobu_icon_source.png"))
-    art.resize((256, 256), Image.LANCZOS).save(os.path.join(ROOT, "app", "nobu_icon.png"))
-    imgs = write_ico(art, os.path.join(ROOT, "launcher", "nobu.ico"))
-    print("made app\\nobu_icon.png, launcher\\nobu.ico and launcher\\nobu_icon_source.png")
-    exe = os.path.join(ROOT, "NobuNotes.exe")
+    big.save(os.path.join(ROOT, "launcher", "nabu_icon_source.png"))
+    art.resize((256, 256), Image.LANCZOS).save(os.path.join(ROOT, "app", "nabu_icon.png"))
+    imgs = write_ico(art, os.path.join(ROOT, "launcher", "nabu.ico"))
+    print("made app\\nabu_icon.png, launcher\\nabu.ico and launcher\\nabu_icon_source.png")
+    exe = os.path.join(ROOT, "NabuNotes.exe")
     if os.name == "nt" and os.path.isfile(exe):
         patch_exe(exe, imgs)
         refresh_icons()
-        print("NobuNotes.exe has the new icon")
+        print("NabuNotes.exe has the new icon")
     return 0
 
 

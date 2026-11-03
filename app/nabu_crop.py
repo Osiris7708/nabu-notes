@@ -11,9 +11,9 @@ from tkinter import ttk
 
 from PIL import Image, ImageEnhance
 
-import nobu_doc as nd
-import nobu_theme as T
-from nobu_pictool import tk_photo as _photo
+import nabu_doc as nd
+import nabu_theme as T
+from nabu_pictool import tk_photo as _photo
 
 GRAB = 9          # how close (screen pixels) to an edge counts as grabbing it
 MIN_SIDE = 8      # the smallest box, in screen pixels

@@ -1,13 +1,13 @@
-"""Paths and settings for Nobu Notes. Everything lives next to the program."""
+"""Paths and settings for Nabu Notes. Everything lives next to the program."""
 import json
 import os
 import threading
 
-VERSION = "4.9.5"
+VERSION = "5.0.0"
 
 
 def _find_home():
-    h = os.environ.get("NOBU_HOME")
+    h = os.environ.get("NABU_HOME")
     if h:
         return os.path.abspath(h)
     return os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
@@ -23,11 +23,11 @@ MODELS_DIR = os.path.join(HOME, "models")
 LOGS_DIR = os.path.join(HOME, "logs")
 HEARD_DIR = os.path.join(LOGS_DIR, "heard")
 CONFIG_PATH = os.path.join(HOME, "config.json")
-EXE_PATH = os.path.join(HOME, "NobuNotes.exe")
+EXE_PATH = os.path.join(HOME, "NabuNotes.exe")
 
-WAKE_PHRASE = "Nobu, record this"
-STOP_PHRASE = "Nobu, end recording"
-CONFIG_VERSION = 2
+WAKE_PHRASE = "Nabu, record this"
+STOP_PHRASE = "Nabu, end recording"
+CONFIG_VERSION = 3
 
 DEFAULTS = {
     "silence_stop_seconds": 8.0,
@@ -37,9 +37,9 @@ DEFAULTS = {
     "noise_reduction": 0.6,        # 0 = off, 1 = strongest (for listening/detection)
     "transcribe_original": True,   # recordings keep the natural sound (more accurate transcripts)
     "speech_sensitivity": 0.5,     # 0..1, higher = treats quieter sounds as speech
-    "wake_match_threshold": 0.5,   # lower = more forgiving about how "No boo" is heard
-    "accept_bare_phrase": True,    # accept just "record this" if "No boo" was misheard
-    "wake_aliases": [],            # learned by "Teach Nobu my voice"
+    "wake_match_threshold": 0.5,   # lower = more forgiving about how "Nabu" is heard
+    "accept_bare_phrase": True,    # accept just "record this" if "Nabu" was misheard
+    "wake_aliases": [],            # learned by "Teach Nabu my voice"
     "cue_sounds": True,
     "close_to_tray": True,
     "autostart": False,
@@ -61,21 +61,21 @@ DEFAULTS = {
     "maximized": False,
     "sidebar_width": 0,             # 0 = automatic
     "open_tabs": [],                # the notes that were open (pages and their tabs), reopened next start
-    "reopen_notes": True,           # Settings: reopen those notes when Nobu starts
+    "reopen_notes": True,           # Settings: reopen those notes when Nabu starts
     "zoom": "Fit width",
     "theme": "dark",
     "custom_theme": {},             # your own colours (Settings > Appearance > Custom)
     "phrase_samples": {},           # how the speech model writes each command in your voice (Teach)
-    "edit_silence_seconds": 8,      # dictation ("Nobu, edit this") stops after this much quiet; 0 = never
-    "confirm_cut": True,            # ask before deleting a passage found by "Nobu, cut this"
+    "edit_silence_seconds": 8,      # dictation ("Nabu, edit this") stops after this much quiet; 0 = never
+    "confirm_cut": True,            # ask before deleting a passage found by "Nabu, cut this"
     "confirm_edit": False,          # show dictated text for approval before inserting it
     "hotkey_record": "Ctrl+Alt+R",  # start/stop a recording (works from any program)
     "hotkey_edit": "Ctrl+Alt+E",    # start/stop dictating into the open note
     "hotkey_cut": "Ctrl+Alt+X",     # cut a passage by voice in the open note
-    "install_fonts": True,          # also install Nobu's fonts into Windows (for Word etc.)
+    "install_fonts": True,          # also install Nabu's fonts into Windows (for Word etc.)
     "import_keep_fonts": True,
     "fetch_fonts": True,            # pasted text in a font you don't have: download it if it's free (Google Fonts)
-    "paste_font_rules": {},         # pasted font (lower case) -> what it changes into (see nobu_pastefonts)
+    "paste_font_rules": {},         # pasted font (lower case) -> what it changes into (see nabu_pastefonts)
     "last_paste_fonts": [],         # the fonts of the last paste (a fresh font opens the font window)
     "export_format": "docx",
     "export_dir": "",
@@ -96,6 +96,7 @@ class Config:
         self.path = path
         self._lock = threading.RLock()
         self._data = dict(DEFAULTS)
+        self.from_nobu = False
         self.load()
 
     def load(self):
@@ -113,6 +114,8 @@ class Config:
                 saved = {}
             if not isinstance(saved, dict):
                 saved = {}
+            # settings from before 5.0, when the app was called Nobu Notes (App._move_from_nobu)
+            self.from_nobu = bool(saved) and int(saved.get("config_version", 1)) < 3
             if int(saved.get("config_version", 1)) < 2:
                 saved = self._migrate_v1(saved)
             self._data.update({k: v for k, v in saved.items() if k != "config_version"})

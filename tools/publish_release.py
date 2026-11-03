@@ -1,11 +1,11 @@
-"""Put the copy for other people on GitHub (private repository Osiris7708/nobu-notes): one release per version,
+"""Put the copy for other people on GitHub (private repository Osiris7708/nabu-notes): one release per version,
 with the zip attached and that version's "what's new" text from README.txt.
 
     runtime\\python.exe tools\\publish_release.py      (make_share_copy.py --yes runs this by itself)
 
   * uploads the code (git push of main)
-  * release "v<version>" titled "Nobu Notes <version>", notes = README's "NEW IN VERSION <version>" section,
-    file Nobu-Notes-<version>.zip (the share zip from the Desktop)
+  * release "v<version>" titled "Nabu Notes <version>", notes = README's "NEW IN VERSION <version>" section,
+    file Nabu-Notes-<version>.zip (the share zip from the Desktop)
   * the same version again (a rebuilt zip): its zip and notes are replaced, nothing is duplicated
 Needs GitHub CLI, signed in once (gh auth login). Nothing personal goes up: the code is what git tracks
 (.gitignore keeps notes, recordings, pictures and settings out) and the zip is the share copy.
@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ZIP = os.path.join(os.path.dirname(ROOT), "Nobu Notes - Share.zip")
+ZIP = os.path.join(os.path.dirname(ROOT), "Nabu Notes - Share.zip")
 
 
 def _exe(name, fallback):
@@ -39,8 +39,8 @@ def notes_for(version):
     with open(os.path.join(ROOT, "README.txt"), encoding="utf-8") as f:
         text = f.read()
     m = re.search(r"^NEW IN VERSION %s\b[^\n]*\n-+\n(.*?)(?=^NEW IN VERSION |\Z)" % re.escape(version), text, re.M | re.S)
-    body = m.group(1).strip() if m else "Nobu Notes %s." % version
-    return ("Download **Nobu-Notes-%s.zip** below, unzip it and double-click NobuNotes.exe. Updating? Quit Nobu "
+    body = m.group(1).strip() if m else "Nabu Notes %s." % version
+    return ("Download **Nabu-Notes-%s.zip** below, unzip it and double-click NabuNotes.exe. Updating? Quit Nabu "
             "(tray icon > Quit), unzip over the old folder - notes and settings are kept.\n\n```\n%s\n```\n"
             % (version, body))
 
@@ -49,7 +49,7 @@ def publish(version=None):
     """Returns (ok, message)."""
     if version is None:
         sys.path.insert(0, os.path.join(ROOT, "app"))
-        from nobu_config import VERSION as version
+        from nabu_config import VERSION as version
     if not GH or not GIT:
         return False, "GitHub CLI or git is not installed"
     code, out = _run(GH, "auth", "status")
@@ -60,10 +60,10 @@ def publish(version=None):
     code, out = _run(GIT, "push", "origin", "main")
     if code != 0:
         return False, "could not upload the code: " + out[-300:]
-    tag, title = "v" + version, "Nobu Notes " + version
-    tmp = tempfile.mkdtemp(prefix="nobu-release-")
+    tag, title = "v" + version, "Nabu Notes " + version
+    tmp = tempfile.mkdtemp(prefix="nabu-release-")
     try:
-        asset = os.path.join(tmp, "Nobu-Notes-%s.zip" % version)
+        asset = os.path.join(tmp, "Nabu-Notes-%s.zip" % version)
         shutil.copy2(ZIP, asset)
         notes = os.path.join(tmp, "notes.md")
         with open(notes, "w", encoding="utf-8") as f:

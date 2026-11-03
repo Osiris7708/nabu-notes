@@ -1,20 +1,20 @@
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, subprocess, traceback, datetime, json
-H=tempfile.mkdtemp(); os.environ['NOBU_HOME']=H
-json.dump({"config_version":2,"custom_vocabulary":"Kryptik, Varnholt\nMoraine"}, open(H+'/config.json','w'))
-import nobu_models; nobu_models.missing=lambda n: []
-import nobu_audio, nobu_transcribe
+H=tempfile.mkdtemp(); os.environ['NABU_HOME']=H
+json.dump({"config_version":3,"custom_vocabulary":"Kryptik, Varnholt\nMoraine"}, open(H+'/config.json','w'))
+import nabu_models; nabu_models.missing=lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s,a): return []
-nobu_transcribe.Detector=lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector=lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s,*a,**k): k['start_stream']=False; super().__init__(*a,**k)
-nobu_audio.Engine=E2
-import nobu_main as M, nobu_library as lib, nobu_dictionary
+nabu_audio.Engine=E2
+import nabu_main as M, nabu_library as lib, nabu_dictionary
 app=M.App(); app._server=M._claim_instance()
-print('DICT', [e['word'] for e in nobu_dictionary.load()], repr(app.cfg.get('custom_vocabulary')))
+print('DICT', [e['word'] for e in nabu_dictionary.load()], repr(app.cfg.get('custom_vocabulary')))
 def step(fn):
     ev=threading.Event(); r={}
     def go():

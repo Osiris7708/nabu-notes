@@ -1,17 +1,17 @@
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, traceback, json
-H=tempfile.mkdtemp(); os.environ['NOBU_HOME']=H
-import nobu_models; nobu_models.missing=lambda n: []
-import nobu_audio, nobu_transcribe
+H=tempfile.mkdtemp(); os.environ['NABU_HOME']=H
+import nabu_models; nabu_models.missing=lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s,a,prompt=None): return []
-nobu_transcribe.Detector=lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector=lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s,*a,**k): k['start_stream']=False; super().__init__(*a,**k)
-nobu_audio.Engine=E2
-import nobu_main as M, nobu_config as C, nobu_hotkeys as HK
+nabu_audio.Engine=E2
+import nabu_main as M, nabu_config as C, nabu_hotkeys as HK
 # --- Windows key states: 0x8 = Num Lock, 0x20000 = Alt, 0x4 Ctrl, 0x1 Shift
 class Ev:
     def __init__(s,k,st): s.keysym=k; s.state=st

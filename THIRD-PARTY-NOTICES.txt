@@ -1,9 +1,9 @@
 THIRD-PARTY NOTICES
 ===================
 
-Nobu Notes' own code is under the MIT licence (LICENSE). It comes with, or uses, the
+Nabu Notes' own code is under the MIT licence (LICENSE). It comes with, or uses, the
 following work by other people. Each keeps its own licence; all of them allow it to be
-shared as part of Nobu Notes. Thank you to everyone who made them.
+shared as part of Nabu Notes. Thank you to everyone who made them.
 
 Where the licence texts are, in an installed copy:
   runtime\LICENSE_PYTHON.txt ......................... Python and Tcl/Tk
@@ -16,7 +16,7 @@ PROGRAM PARTS
 -------------
 Python 3.11 and Tcl/Tk ........ Python Software Foundation License; Tcl/Tk licence (BSD style)
                                 https://www.python.org
-Go (NobuNotes.exe launcher) ... BSD 3-Clause, Copyright (c) 2009 The Go Authors
+Go (NabuNotes.exe launcher) ... BSD 3-Clause, Copyright (c) 2009 The Go Authors
                                 https://go.dev/LICENSE
 faster-whisper ................ MIT (includes the Silero VAD model, MIT, Silero Team)
 CTranslate2 ................... MIT. Ships Intel OpenMP (libiomp5md.dll) and NVIDIA cuDNN
@@ -65,5 +65,5 @@ Each font's copyright and licence is in its OFL-*.txt or APACHE-*.txt file.
 DOWNLOADED, NOT INCLUDED
 ------------------------
 Speech models (Whisper, OpenAI, MIT; CTranslate2 conversions by SYSTRAN, MIT) are downloaded
-from Hugging Face the first time Nobu starts. Free fonts for pasted text are downloaded from
+from Hugging Face the first time Nabu starts. Free fonts for pasted text are downloaded from
 Google Fonts (open-source fonts only, each under its own licence).

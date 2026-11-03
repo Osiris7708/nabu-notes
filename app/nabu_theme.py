@@ -251,7 +251,7 @@ _popups = []
 
 
 def menu(parent):
-    """A menu in Nobu's colours. Right-click / drop-down menus are made fresh each time, so the ones
+    """A menu in Nabu's colours. Right-click / drop-down menus are made fresh each time, so the ones
     already closed are cleared away here (only one can be open at once) instead of piling up."""
     m = tk.Menu(parent, tearoff=0, bg=PANEL, fg=FG, activebackground=SELECT,
                 activeforeground=SELECT_FG, bd=0, relief="flat", font=UI_FONT)
@@ -278,7 +278,7 @@ def ui_scale(widget):
 
 
 def _anchor(parent):
-    """The window you're working in (Nobu's main window, a note in its own window, a dialog...):
+    """The window you're working in (Nabu's main window, a note in its own window, a dialog...):
     new windows open over it - on the same monitor - instead of in the middle of the main screen."""
     try:
         f = parent.focus_get()
@@ -297,7 +297,7 @@ def _anchor(parent):
 def _place_over(win, W, H, dy=4):
     """Top-left corner for a W x H window centred over the window it was opened from."""
     sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
-    a = getattr(win, "_nobu_over", None)
+    a = getattr(win, "_nabu_over", None)
     try:
         if a is not None and a.winfo_exists() and a.winfo_viewable() and a.winfo_width() > 50:
             ax, ay, aw, ah = a.winfo_rootx(), a.winfo_rooty(), a.winfo_width(), a.winfo_height()
@@ -334,10 +334,10 @@ def toplevel(root, title, w=None, h=None, modal=False):
         k = ui_scale(root)
         win.geometry("%dx%d" % (int(w * k), int(h * k)))
     try:
-        win.iconphoto(False, root._nobu_icon)  # noqa
+        win.iconphoto(False, root._nabu_icon)  # noqa
     except Exception:
         pass
-    win._nobu_over = _anchor(root)
+    win._nabu_over = _anchor(root)
     win.transient(root if root.winfo_viewable() else None)
     dark_titlebar(win)
     if modal:

@@ -2,18 +2,18 @@
 Dialogs that would wait for a person are answered automatically."""
 import _here  # finds the app and keeps the test away from your real notes
 import sys, os, tempfile, threading, time, traceback, json, glob
-H = tempfile.mkdtemp(); os.environ['NOBU_HOME'] = H
-import nobu_models; nobu_models.missing = lambda n: []
-import nobu_audio, nobu_transcribe
+H = tempfile.mkdtemp(); os.environ['NABU_HOME'] = H
+import nabu_models; nabu_models.missing = lambda n: []
+import nabu_audio, nabu_transcribe
 class D:
     def warm(s): pass
     def reload(s): pass
     def detect(s, a, prompt=None): return []
-nobu_transcribe.Detector = lambda c: D()
-class E2(nobu_audio.Engine):
+nabu_transcribe.Detector = lambda c: D()
+class E2(nabu_audio.Engine):
     def __init__(s, *a, **k): k['start_stream'] = False; super().__init__(*a, **k)
-nobu_audio.Engine = E2
-import nobu_main as M, nobu_config as C, nobu_library as lib, nobu_theme as T, nobu_editor as NE, nobu_rich as R
+nabu_audio.Engine = E2
+import nabu_main as M, nabu_config as C, nabu_library as lib, nabu_theme as T, nabu_editor as NE, nabu_rich as R
 import tkinter as tk
 from tkinter import ttk, filedialog, colorchooser
 
@@ -93,7 +93,7 @@ def step(fn):
     app.ui(go); ev.wait(90); return r.get('v', r.get('e'))
 def idle(t=0.3):
     time.sleep(t); step(lambda: app.root.update())
-LOG = os.path.join(H, "logs", "nobu.log")
+LOG = os.path.join(H, "logs", "nabu.log")
 def log_errors():
     lg = open(LOG, encoding="utf-8").read()
     return [l for l in lg.splitlines() if (" ERROR " in l or "UI error" in l) and not any(
@@ -306,12 +306,12 @@ def go():
         nerr = clean_since(nerr, "right-click menu")
 
         # ================================================================ pictures: paste and crop
-        import nobu_clip
+        import nabu_clip
         from PIL import ImageGrab
-        real_grab, real_html = ImageGrab.grabclipboard, nobu_clip.get_html
+        real_grab, real_html = ImageGrab.grabclipboard, nabu_clip.get_html
         CLIP = {"img": None, "html": None}
         ImageGrab.grabclipboard = lambda *a, **k: CLIP["img"]
-        nobu_clip.get_html = lambda: CLIP["html"]
+        nabu_clip.get_html = lambda: CLIP["html"]
         def paste_with(img, html=None, text=None):
             CLIP["img"], CLIP["html"] = img, html
             app.clip_items = None
@@ -337,7 +337,7 @@ def go():
         n_before = step(lambda: len(ed.images))
         step(lambda: paste_with(None, None, None))
         check("pasting with an empty clipboard does nothing", step(lambda: len(ed.images)) == n_before)
-        ImageGrab.grabclipboard, nobu_clip.get_html = real_grab, real_html
+        ImageGrab.grabclipboard, nabu_clip.get_html = real_grab, real_html
         # crop: the right-click entry
         pic = step(lambda: [n for n, i in ed.images.items() if i["rel"].endswith("pic.png")][0])
         def rclick_pic():
@@ -418,7 +418,7 @@ def go():
         nerr = clean_since(nerr, "copy picture")
 
         # ================================================================ web links (v4.9.2)
-        nobu_clip.get_html = lambda: CLIP["html"]
+        nabu_clip.get_html = lambda: CLIP["html"]
         ImageGrab.grabclipboard = lambda *a, **k: None
         def links_in(a_="1.0", b_="end"):
             out = []
@@ -438,9 +438,9 @@ def go():
             start = ed.text.index("insert")
             ed.paste(plain=plain)
             return links_in(start)
-        got = step(lambda: paste_text("See https://example.com/page, and www.nobu.test."))
+        got = step(lambda: paste_text("See https://example.com/page, and www.nabu.test."))
         check("pasted web addresses become links", got == [("https://example.com/page", "https://example.com/page"),
-                                                       ("https://www.nobu.test", "www.nobu.test")], got)
+                                                       ("https://www.nabu.test", "www.nabu.test")], got)
         got = step(lambda: paste_text("Read the guide now",
                                       '<p>Read <a href="https://example.org/guide">the guide</a> now</p>'))
         check("pasted web text keeps its links", got == [("https://example.org/guide", "the guide")], got)
@@ -496,11 +496,11 @@ def go():
         r0 = step(lambda: str(ed.text.tag_ranges("link:https://example.com/page")[0]))
         step(lambda: (ed.text.tag_remove("sel", "1.0", "end"), ed.text.tag_add("sel", r0, "%s +5c" % r0), ed.clear_formatting()))
         check("Clear formatting keeps links (like Word)", "link:https://example.com/page" in step(lambda: ed.text.tag_names("%s +1c" % r0)))
-        ImageGrab.grabclipboard, nobu_clip.get_html = real_grab, real_html
+        ImageGrab.grabclipboard, nabu_clip.get_html = real_grab, real_html
         step(lambda: (ed.text.tag_remove("sel", "1.0", "end"), ed.text.tag_add("sel", r0, "%s lineend" % r0), ed.copy(),
                       ed.text.tag_remove("sel", "1.0", "end")))
         if os.name == "nt":
-            check("Copy keeps the link (for Word, email...)", 'href="https://example.com/page"' in (nobu_clip.get_html() or ""))
+            check("Copy keeps the link (for Word, email...)", 'href="https://example.com/page"' in (nabu_clip.get_html() or ""))
         nerr = clean_since(nerr, "web links")
 
         # ================================================================ move and resize pictures with the mouse (v4.9.3)
@@ -660,7 +660,7 @@ def go():
         check("drag the bottom: taller, same width", w == 270 and h == 150, (w, h))
         w, h, pw, ph = step(lambda: drag_edge("t", 0, round(40 * sc)))
         check("drag the top down: shorter", w == 270 and h == 110, (w, h))
-        step(lambda: ed._undo.clear())       # (Nobu keeps only the last 80 steps: count from none)
+        step(lambda: ed._undo.clear())       # (Nabu keeps only the last 80 steps: count from none)
         n_undo = step(lambda: len(ed._undo))
         w, h, pw, ph = step(lambda: drag_edge("br", round(54 * sc), 0))
         check("drag a corner: bigger, keeping the shape", w == 324 and abs(h - 132) <= 1, (w, h))
@@ -932,7 +932,7 @@ def go():
         check("Move to ▾ lists the folders", any("The Hollow Crown" in l for l in labels(last_menu())))
         ASK[:] = ["Chapter Uno"]; step(lambda: hdr("Rename").invoke()); idle(0.2)
         a = step(lambda: ed.path)
-        check("Rename button renames the note", os.path.basename(a) == "Chapter Uno.nobu", a)
+        check("Rename button renames the note", os.path.basename(a) == "Chapter Uno.nabu", a)
         MENUS.clear(); step(lambda: hdr("⋯").invoke()); mm = last_menu()
         INFOS.clear(); step(lambda: invoke_label(mm, "Word count"))
         check("⋯ > Word count shows the count", INFOS and "Words" in INFOS[-1])
@@ -948,14 +948,14 @@ def go():
         step(lambda: app.open_note(b)); idle(0.3)
         p0 = step(lambda: app.ws.panes[0])
         check("a second note opens as a tab", step(lambda: len(p0.eds)) == 2)
-        # a tab that isn't showing is a pixel wide: counting its pages (every letter a line) froze Nobu at start
+        # a tab that isn't showing is a pixel wide: counting its pages (every letter a line) froze Nabu at start
         hidden = step(lambda: next(e for e in p0.eds if e is not p0.cur))
         def hidden_pages():
             t0 = time.time()
             hidden._paginate()
             return time.time() - t0, hidden._pages_later
         dt, later = step(hidden_pages)
-        check("a hidden tab doesn't count its pages (that froze Nobu at start)", dt < 0.3 and later, (dt, later))
+        check("a hidden tab doesn't count its pages (that froze Nabu at start)", dt < 0.3 and later, (dt, later))
         step(lambda: app.open_note(hidden.path)); idle(1.0)          # (an open note: its tab comes to the front)
         check("...it counts them as soon as it is shown", not step(lambda: hidden._pages_later))
         step(lambda: app.open_note(b)); idle(0.3)
@@ -1039,7 +1039,7 @@ def go():
             MENUS.clear(); tv = app.tree; tv.see(iid); tv.update(); bb = tv.bbox(iid)
             tv.event_generate("<Button-3>", x=bb[0] + 40, y=bb[1] + 3, rootx=0, rooty=0); return last_menu()
         ASK[:] = ["Inside note"]; step(lambda: invoke_label(tree_menu(ash), "New note here"))
-        check("folder menu: New note here", os.path.isfile(os.path.join(ash, "Inside note.nobu")))
+        check("folder menu: New note here", os.path.isfile(os.path.join(ash, "Inside note.nabu")))
         ASK[:] = ["Locations"]; step(lambda: invoke_label(tree_menu(ash), "New sub-folder here"))
         check("folder menu: New sub-folder here", os.path.isdir(os.path.join(ash, "Locations")))
         OPENED.clear(); step(lambda: invoke_label(tree_menu(ash), "Show in Windows Explorer"))
@@ -1100,7 +1100,7 @@ def go():
         # ================================================================ folder list & Unassigned buttons
         step(lambda: app.show_project(book)); f = app.projview
         ASK[:] = ["List note"]; step(lambda: btn(f, "+  New note").invoke()); idle(0.2)
-        check("folder list: + New note", os.path.isfile(os.path.join(book, "List note.nobu")))
+        check("folder list: + New note", os.path.isfile(os.path.join(book, "List note.nabu")))
         step(lambda: app.show_project(book))
         ASK[:] = ["Maps"]; step(lambda: btn(f, "+  New sub-folder").invoke())
         check("folder list: + New sub-folder", os.path.isdir(os.path.join(book, "Maps")))
@@ -1121,14 +1121,14 @@ def go():
         # Unassigned
         step(app.show_inbox); fi = app.inbox
         ASK[:] = ["Inbox thought"]; step(lambda: btn(fi, "+  New note").invoke())
-        inb = os.path.join(C.INBOX_DIR, "Inbox thought.nobu")
+        inb = os.path.join(C.INBOX_DIR, "Inbox thought.nabu")
         check("Unassigned: + New note", os.path.isfile(inb))
         step(app.show_inbox); step(lambda: fi._tv.selection_set(inb))
         MENUS.clear(); step(lambda: btn(fi, "Move selected").invoke())
         step(lambda: invoke_label(last_menu(), "▪  The Hollow Crown II") if "▪  The Hollow Crown II" in labels(last_menu())
              else last_menu().nametowidget(last_menu().entrycget(entry(last_menu(), "▪  The Hollow Crown II"), "menu")).invoke(0))
-        check("Unassigned: Move selected to project", os.path.isfile(os.path.join(book, "Inbox thought.nobu")))
-        step(app.show_inbox); c2 = os.path.join(C.INBOX_DIR, "Loose idea.nobu"); step(lambda: fi._tv.selection_set(c2))
+        check("Unassigned: Move selected to project", os.path.isfile(os.path.join(book, "Inbox thought.nabu")))
+        step(app.show_inbox); c2 = os.path.join(C.INBOX_DIR, "Loose idea.nabu"); step(lambda: fi._tv.selection_set(c2))
         step(lambda: btn(fi, "Delete").invoke())
         check("Unassigned: Delete (to Trash)", not os.path.exists(c2))
         nerr = clean_since(nerr, "lists")
@@ -1150,7 +1150,7 @@ def go():
 
         # ================================================================ Home page buttons
         step(app.show_home)
-        for name in ("Review transcripts", "Teach Nobu my voice", "My dictionary", "Microphone & noise filter",
+        for name in ("Review transcripts", "Teach Nabu my voice", "My dictionary", "Microphone & noise filter",
                      "What is it hearing?", "Fonts…"):
             step(lambda: btn(app.home, name).invoke()); idle(0.2)
         check("Home: Review transcripts went to Unassigned, others opened their windows",
@@ -1171,7 +1171,7 @@ def go():
             step(lambda: invoke_label(gm, l)); idle(0.1)
         check("every ⚙ menu entry runs", True)
         step(lambda: [w.destroy() for w in app.root.winfo_children() if isinstance(w, tk.Toplevel) and w.title()
-                      not in ("", "Nobu Notes — settings") and w.winfo_viewable()])
+                      not in ("", "Nabu Notes — settings") and w.winfo_viewable()])
         nerr = clean_since(nerr, "home & gear")
 
         # ================================================================ Settings: every slider, box and checkbox
@@ -1185,13 +1185,13 @@ def go():
               not any("Re-learn" in x for x in texts), texts)
         notes = step(lambda: " ".join(str(w.cget("text")) for w in widgets(sd.win, (ttk.Label,))))
         check("...and Settings says so", "keeps learning that sound by itself" in notes)
-        check("the window has the Nobu icon (256 x 256, see-through corners)",
-              step(lambda: (app.root._nobu_icon.width(), app.root._nobu_icon.height(),
-                            app.root._nobu_icon.transparency_get(0, 0))) == (256, 256, True))
+        check("the window has the Nabu icon (256 x 256, see-through corners)",
+              step(lambda: (app.root._nabu_icon.width(), app.root._nabu_icon.height(),
+                            app.root._nabu_icon.transparency_get(0, 0))) == (256, 256, True))
         # first start: choose the speech model (v4.9.4)
-        import nobu_ui, nobu_models
+        import nabu_ui, nabu_models
         def chooser(pick=None, cancel=False):
-            c = nobu_ui.ModelChooser(app.root)
+            c = nabu_ui.ModelChooser(app.root)
             c.win.update()
             names = list(c.buttons)
             ticked = c.choice.get()
@@ -1204,7 +1204,7 @@ def go():
                 btn(c.win, "Download and start").invoke()
             return names, ticked, c.run(), text
         names, ticked, got, text = step(lambda: chooser("small.en"))
-        best = nobu_models.recommend(*nobu_models.computer())
+        best = nabu_models.recommend(*nabu_models.computer())
         check("first start: choose from the 4 speech models", names == ["large-v3-turbo", "medium.en", "small.en", "base.en"], names)
         check("...the best one for this computer is already ticked", ticked == best and "recommended for this computer" in text,
               (ticked, best))
@@ -1212,7 +1212,7 @@ def go():
               and text.count("download") >= 4 and "processor" in text and "This computer:" in text)
         check("...Download and start gives the one picked", got == "small.en", got)
         names, ticked, got, text = step(lambda: chooser(cancel=True))
-        check("...Not now gives nothing (Nobu closes, nothing downloaded)", got is None)
+        check("...Not now gives nothing (Nabu closes, nothing downloaded)", got is None)
         vals = step(lambda: [list(c.cget("values")) for c in widgets(sd.win, (ttk.Combobox,))
                              if "large-v3-turbo" in c.cget("values")])
         settings_text = step(lambda: " ".join(str(w.cget("text")) for w in widgets(sd.win, (ttk.Label,))))
@@ -1296,7 +1296,7 @@ def go():
         check("Fonts: Make it my heading font", app.cfg["heading_font"] == fam0)
         step(lambda: (fb.size.set(30), fb._refresh()))
         step(lambda: btn(fb.win, "Open my fonts folder").invoke())
-        step(lambda: btn(fb.win, "Install Nobu").invoke())
+        step(lambda: btn(fb.win, "Install Nabu").invoke())
         check("Fonts: install-into-Windows box", app.cfg["install_fonts"] is False)
         step(lambda: fb.win.destroy())
         # diagnostics
@@ -1319,8 +1319,8 @@ def go():
             out = os.path.join(H, "out." + ext)
             FILES["save"] = out
             def run_export():
-                import nobu_share
-                d = nobu_share.ExportDialog(app, [note])
+                import nabu_share
+                d = nabu_share.ExportDialog(app, [note])
                 d.fmt.set(key); d._sync()
                 if ext == "txt":
                     d.web_kind.set("txt"); d._sync()
@@ -1338,7 +1338,7 @@ def go():
         # import
         src = os.path.join(H, "story.txt"); open(src, "w").write("An imported story.\n\nSecond paragraph.")
         step(lambda: app.import_files([src], book)); idle(0.3)
-        check("Import a document", os.path.isfile(os.path.join(book, "story.nobu")))
+        check("Import a document", os.path.isfile(os.path.join(book, "story.nabu")))
         nerr = clean_since(nerr, "export & import")
 
         # ================================================================ dialogs: danger = Enter is safe
@@ -1446,11 +1446,11 @@ def go():
         check("...a blue line and the label show while over the page, and go away after",
               step(explorer_over) == ((True, True), False, None))
         # pasted fonts: the font window opens only for a fresh font, and the choices made in it stick
-        import nobu_fontfetch as FF, nobu_clip, nobu_pastefonts as PF
-        real_fetch, real_html, FF._tried = FF.fetch, nobu_clip.get_html, {}
+        import nabu_fontfetch as FF, nabu_clip, nabu_pastefonts as PF
+        real_fetch, real_html, FF._tried = FF.fetch, nabu_clip.get_html, {}
         FF.fetch = lambda fam, install=True: ("not_free", "") if fam == "Book Antiqua X" else ("downloaded", fam)
         HTML = {"h": ""}
-        nobu_clip.get_html = lambda: HTML["h"]
+        nabu_clip.get_html = lambda: HTML["h"]
         def para(fam, words):
             return '<p style="font-family:\'%s\';font-size:12pt">%s</p>' % (fam, words)
         def paste_fonts(html, text):
@@ -1464,7 +1464,7 @@ def go():
             t_ = app.editor.text
             i_ = t_.search(words, "end", backwards=True)
             return set(g for it in app.editor._range_items(i_, "%s+%dc" % (i_, len(words))) for g in it.get("g", []))
-        step(lambda: app.cfg.update(last_paste_fonts=[], paste_font_rules={}))
+        step(lambda: app.cfg.update(last_paste_fonts=[], paste_font_rules={}, fetch_fonts=True))   # (Settings above turned it off)
         fw = step(lambda: paste_fonts(para("Book Antiqua X", "Chapter one words."), "Chapter one words."))
         check("pasting a fresh font opens the font window, one row per font",
               fw is not None and step(lambda: list(fw.rows)) == ["book antiqua x"], fw and fw.rows)
@@ -1496,9 +1496,9 @@ def go():
               and "courier new" not in (app.cfg.get("paste_font_rules") or {}), (ga, gb))
         fw4 = step(lambda: paste_fonts(para("Book Antiqua X", "Chapter three."), "Chapter three."))
         check("a font that was in the last paste doesn't open the window", fw4 is None)
-        check("text copied from a Nobu note is left alone (no window)", step(lambda: (
-            setattr(app, "clip_items", ("Nobu words", [{"t": "Nobu words", "g": ["ff:Fresh Font Z"]}])),
-            app.root.clipboard_clear(), app.root.clipboard_append("Nobu words"), app.editor.paste(),
+        check("text copied from a Nabu note is left alone (no window)", step(lambda: (
+            setattr(app, "clip_items", ("Nabu words", [{"t": "Nabu words", "g": ["ff:Fresh Font Z"]}])),
+            app.root.clipboard_clear(), app.root.clipboard_append("Nabu words"), app.editor.paste(),
             app.editor.font_win is None or not app.editor.font_win.alive())[-1]))
         # Settings > Fonts lists the choices: change one, remove one
         step(app.open_settings); sd = app.settings_win
@@ -1517,7 +1517,7 @@ def go():
         step(lambda: app.editor._look_up_fonts([{"t": "a", "g": ["ff:Book Antiqua X"]}])); idle(0.4)
         check("...and Settings can turn the font lookup off (nothing is looked up)", CALLS == [], CALLS)
         step(lambda: app.cfg.update(fetch_fonts=True, paste_font_rules={}, last_paste_fonts=[]))
-        FF.fetch, nobu_clip.get_html, FF._tried = real_fetch, real_html, {}
+        FF.fetch, nabu_clip.get_html, FF._tried = real_fetch, real_html, {}
         # closed menus don't pile up
         def menus_after_many():
             for _ in range(25):

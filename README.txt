@@ -1,14 +1,23 @@
-NOBU NOTES  (version 4.9.5)
+NABU NOTES  (version 5.0.0)
 ===========================
 
-Say  "Nobu, record this"  and start talking.  ("Nobu" is said "no-boo".)
-Say  "Nobu, end recording"  (or stay quiet for 8 seconds) to finish.
+Say  "Nabu, record this"  and start talking.  ("Nabu" is said "naboo".)
+Say  "Nabu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
 
-NEW IN VERSION 4.9.5
+NEW IN VERSION 5.0.0
 --------------------
-- Licence: Nobu Notes is free and open under the MIT licence (see LICENSE). The fonts,
+- New name: Nobu Notes is now Nabu Notes, said "naboo". Say "Nabu, record this" to start
+  and "Nabu, end recording" to stop (and "Nabu, edit this" / "Nabu, cut this").
+  The program is NabuNotes.exe, and notes are now .nabu files.
+- Updating from Nobu Notes: copy the new files over your old Nobu Notes folder and start
+  NabuNotes.exe. The first time, it moves everything over by itself: your notes (.nobu
+  becomes .nabu), folders, backups, Trash, settings, the "start with Windows" option, and
+  shortcuts to the old NobuNotes.exe on your desktop and Start menu. The old program files
+  are removed. Nothing you wrote is changed. Then run gear > Teach Nabu my voice once, so
+  it learns how you say the new name (what it learned for the old name is cleared).
+- Licence: Nabu Notes is free and open under the MIT licence (see LICENSE). The fonts,
   thesaurus and other parts it comes with are credited, with their own licences, in
   THIRD-PARTY-NOTICES.txt.
 - Pasting keeps the font. Text pasted from another program now keeps its font and size on
@@ -23,9 +32,9 @@ NEW IN VERSION 4.9.5
   by itself - no window. Pasting chapter after chapter in the same font asks only once; the
   window comes back only after a paste in a different font, with your choices filled in, so
   you can change them. Close leaves everything as it was. Your choices are also listed in
-  Settings > Fonts, where you can change or remove them. (Text copied from another Nobu note
+  Settings > Fonts, where you can change or remove them. (Text copied from another Nabu note
   is never changed.)
-- Fonts you don't have: paste text in a font this computer doesn't have and Nobu looks for a
+- Fonts you don't have: paste text in a font this computer doesn't have and Nabu looks for a
   free, legal copy on Google Fonts. If there is one, it's downloaded and added to your fonts
   (and the pasted text shows in it straight away). The font window says either way. Paid
   fonts, like Book Antiqua, are never downloaded - the text keeps the font's name, so it
@@ -40,18 +49,18 @@ NEW IN VERSION 4.9.5
 
 NEW IN VERSION 4.9.4
 --------------------
-- Choose your speech model the first time Nobu starts. Four choices, with what each needs:
+- Choose your speech model the first time Nabu starts. Four choices, with what each needs:
     Large v3 Turbo .... the most accurate. 1.6 GB download. 8 GB memory, a 4-core processor.
     Medium (English) .. very accurate. 1.5 GB download. 8 GB memory, a 4-core processor.
     Small (English) ... good, faster. 480 MB download. 4 GB memory, any 2-core processor.
     Base (English) .... basic, fastest. 145 MB download. 4 GB memory, any processor.
-  Nobu looks at your computer's memory and processor and ticks the best one it runs well.
+  Nabu looks at your computer's memory and processor and ticks the best one it runs well.
   (Before, a new install always got Medium.) Change it any time in Settings, which now shows
   the same details. Updating an install that already has its models? Nothing to choose.
 
 NEW IN VERSION 4.9.3
 --------------------
-- New icon (the window, the taskbar, the tray and NobuNotes.exe itself). If Explorer still
+- New icon (the window, the taskbar, the tray and NabuNotes.exe itself). If Explorer still
   shows the old icon for a while, that's Windows' icon memory - it updates on its own.
 - Drag a picture anywhere on the page: as soon as you drag it, it comes loose from its line
   and follows the mouse, with the text flowing round it. Near the left edge, the middle or the
@@ -61,23 +70,23 @@ NEW IN VERSION 4.9.3
   Bottom left or Bottom right of the page it's on.
 - Settings: the "Re-learn room noise" button is gone. It did nothing you could see, because
   the noise filter already learns your room's sound by itself whenever you're not talking
-  (Settings now says so). "Teach Nobu my voice" still starts by learning the room afresh.
+  (Settings now says so). "Teach Nabu my voice" still starts by learning the room afresh.
 - Place pictures anywhere on the page, with the text flowing round them line by line (like
   Word's text wrapping). Right-click a picture > Text wrapping:
     In line with text ............ as before: the picture sits in a line of text
     Square - text on the right ... the picture on the left, the text running down its right side
     Square - text on the left .... the other way round
-    Square - side with more room . Nobu picks the side with more space
+    Square - side with more room . Nabu picks the side with more space
     Top and bottom ............... text above and below it only
     In front of text ............. the picture sits over the words; the text ignores it
   Then drag the picture anywhere: the text moves out of its way as you drag. Arrow keys nudge
   it (Shift + arrow: one pixel). Its sides and corners resize it as before. It is pinned to the
   paragraph next to it, so it moves down when you write above it. Word files get real floating
   pictures with the same wrapping; PDFs, e-books and web pages flow the text round them too.
-  Copying text copies its floating pictures with it. Older versions of Nobu show these
+  Copying text copies its floating pictures with it. Older versions of Nabu show these
   pictures as ordinary in-line pictures.
 - Opening a folder with thousands of notes in the sidebar is instant (it used to freeze for
-  several seconds the first time while Nobu read every note for its colour label; the labels
+  several seconds the first time while Nabu read every note for its colour label; the labels
   now appear a moment later).
 - Move and resize pictures with the mouse: click a picture to select it - a blue frame with
   squares on its corners and sides appears right around it (also on cropped pictures).
@@ -113,14 +122,14 @@ NEW IN VERSION 4.9.2
 
 NEW IN VERSION 4.9.1  (a full check of every button, slider and menu)
 --------------------
-- The notes you had open come back - with their pages and tabs - when Nobu starts.
+- The notes you had open come back - with their pages and tabs - when Nabu starts.
   (Settings > Transcription & program > "Reopen the notes I had open". On by default.)
-- Nobu remembers if its window was maximised.
+- Nabu remembers if its window was maximised.
 - Esc cancels a drag (notes, folders or tabs): nothing moves.
 - Ctrl+Tab / Ctrl+Shift+Tab switch tabs. Ctrl+W also works with Caps Lock on.
 - New windows and questions open over the window you're working in (also a note in its own
   window, or a second screen), not always in the middle of the main screen.
-- When Nobu asks before deleting something, Enter now means "no". Tab to the delete button.
+- When Nabu asks before deleting something, Enter now means "no". Tab to the delete button.
 - The mouse wheel scrolls the Settings page; it no longer changes a drop-down or number box
   that happens to be under the pointer. The Home page scrolls with the wheel anywhere on it.
 - Tooltips wait a moment before showing, so they don't flash as you move across the toolbar.
@@ -131,8 +140,8 @@ NEW IN VERSION 4.9.1  (a full check of every button, slider and menu)
 - Dictionary: asks before removing words; Enter saves a word.
 - Fixed:
   * raised/lowered text (x² x₂) now stays in the right place when you zoom;
-  * pictures are no longer kept locked by Nobu after they're shown;
-  * timers of a closed window (Teach Nobu, a note's own window) could fire later by mistake;
+  * pictures are no longer kept locked by Nabu after they're shown;
+  * timers of a closed window (Teach Nabu, a note's own window) could fire later by mistake;
   * the "What is it hearing?" list no longer jumps back to the top every half second;
   * the sidebar level meter can't stop updating after a hiccup;
   * right-click menus no longer pile up in memory;
@@ -148,17 +157,17 @@ NEW IN VERSION 4.9
 - The shade that shows where a dragged note will land no longer flickers. Its colour and strength
   can be changed: Settings > Appearance > Make my own colours > Drop highlight.
 - 40 colour labels for books, folders and notes (was 12), shown as a grid.
-- The tutorial (gear > How to use Nobu) is rewritten: every feature, short and plain.
+- The tutorial (gear > How to use Nabu) is rewritten: every feature, short and plain.
 
 NEW IN VERSION 4.8
 ------------------
 - Tabs: every note you open gets a tab above the page (close with its x, middle-click or Ctrl+W).
-- Snapping inside Nobu: drag a tab onto the LEFT or RIGHT part of the page and the page splits with
+- Snapping inside Nabu: drag a tab onto the LEFT or RIGHT part of the page and the page splits with
   that note on that side (a blue shadow shows where). Drag it onto the middle of a page or onto its
   tabs to make it a tab there. Up to 6 pages side by side; "Join into one page" puts them back.
 - Notes you haven't opened yet work the same way: drag one from the sidebar, Unassigned or a folder
   list onto the left / middle / right of the page area and it opens there when you let go - or drop
-  it well outside Nobu's window to open it in its own window. Dropping a folder there opens it.
+  it well outside Nabu's window to open it in its own window. Dropping a folder there opens it.
 - Clicking a book's or folder's name in the sidebar now closes it again (click = open, click = close).
 
 NEW IN VERSION 4.7
@@ -170,10 +179,10 @@ NEW IN VERSION 4.7
   drag it from the sidebar onto the open page). Drag the dotted bars between them to resize;
   double-click a bar or "Even widths" to make them equal. Up to 6.
 - Snapping: drag a note's name (top of its page) to the left or right side of the page area and
-  it snaps there (a blue shadow shows where). Inside the Nobu window it never pops out by accident.
-- Pop-out windows: drag a note's name well away from the Nobu window and it opens in its own
+  it snaps there (a blue shadow shows where). Inside the Nabu window it never pops out by accident.
+- Pop-out windows: drag a note's name well away from the Nabu window and it opens in its own
   window. Drag its name - or the window itself by its title bar - to the left or right edge of
-  Nobu's page and it snaps back in on that side (or press the button).
+  Nabu's page and it snaps back in on that side (or press the button).
 - Trash: Restore and Delete permanently are on the right-click menu (the buttons are gone).
 - Shift-click / Ctrl-click several books, folders or notes in the sidebar, then right-click to
   colour, move, export, open side by side or delete them all at once.
@@ -198,23 +207,23 @@ NEW IN VERSION 4.6
 ------------------
 - Keyboard shortcuts that work from any program (press once to start, again to stop):
     Ctrl+Alt+R  start / stop a recording
-    Ctrl+Alt+E  dictate into the open note   (same as "Nobu, edit this")
-    Ctrl+Alt+X  cut a passage by voice       (same as "Nobu, cut this")
+    Ctrl+Alt+E  dictate into the open note   (same as "Nabu, edit this")
+    Ctrl+Alt+X  cut a passage by voice       (same as "Nabu, cut this")
   Change them in gear > Microphone, noise & settings > "Dictation, cuts & shortcuts"
   (click a shortcut and press the new key). Any single key works (F9, Insert, a number-pad
-  key, even a letter - keys that normally type ask first, since Nobu takes them over everywhere
+  key, even a letter - keys that normally type ask first, since Nabu takes them over everywhere
   while it runs). Esc, Enter, Tab, Backspace, Delete and Print Screen need Ctrl or Alt with them;
   the Windows key and Windows' own shortcuts can't be used. Changes are saved at once and kept after restarts.
 - Same settings section: when dictation stops (after 4-20 s of quiet, or only when you
-  say "Nobu, end recording" / press the shortcut), whether "cut this" asks before deleting,
+  say "Nabu, end recording" / press the shortcut), whether "cut this" asks before deleting,
   and whether dictated text is shown for you to confirm before it goes in.
 - Better at hearing the voice commands the first time:
-  * "Teach Nobu my voice" now trains all four commands (record, end, edit, cut), remembers
+  * "Teach Nabu my voice" now trains all four commands (record, end, edit, cut), remembers
     exactly how it hears you say each one, and ends with a test where you can keep
     practising until every command gets a tick.
-  * When something sounds almost like a command, Nobu listens to it a second time, more
+  * When something sounds almost like a command, Nabu listens to it a second time, more
     carefully, before giving up.
-  Run "Teach Nobu my voice" once after updating to get the full benefit.
+  Run "Teach Nabu my voice" once after updating to get the full benefit.
 - Your own colour theme: Settings > Appearance > "Make my own colours..." (10 colours, live
   preview, start from any theme).
 - Change the title at the top of a note and the note is renamed to match (sidebar, lists).
@@ -234,13 +243,13 @@ NEW IN VERSION 4.5
   with extremely long paragraphs (e.g. pasted text with no line breaks) no longer freeze.
 - Undo works per burst of typing (like Word) plus per new paragraph.
 - The thesaurus uses about 20 MB of memory instead of 130 MB, and the spell checker only
-  loads when you open a note (less memory while Nobu waits in the tray).
+  loads when you open a note (less memory while Nabu waits in the tray).
 - The log no longer records every speech burst (less disk writing).
-- The network guard wording makes clear it only affects Nobu itself.
+- The network guard wording makes clear it only affects Nabu itself.
 
 NEW IN VERSION 4.4
 ------------------
-- Tutorial: Home > Help > "How to use Nobu - the full tutorial" (also in the gear menu).
+- Tutorial: Home > Help > "How to use Nabu - the full tutorial" (also in the gear menu).
 - Drag & drop in the sidebar: drag any note or folder onto a folder to put it inside; onto
   the top/bottom edge of another item (blue line) to place it above/below; next to a
   book/campaign to make it a book/campaign; onto "Unassigned" to send notes back; onto
@@ -262,9 +271,9 @@ NEW IN VERSION 4.3
   app\fonts\lib.
 - Colour themes (gear > Microphone, noise & settings > Appearance): Dark (classic),
   Midnight blue, Ember (warm dark), Forest, Parchment (light), Light and High contrast.
-  Nobu restarts itself to switch.
-- Private by design: the Home page now says so, and Nobu enforces it - while it runs, Nobu's
-  own network connections are blocked (logged in logs\nobu.log). This only affects Nobu;
+  Nabu restarts itself to switch.
+- Private by design: the Home page now says so, and Nabu enforces it - while it runs, Nabu's
+  own network connections are blocked (logged in logs\nabu.log). This only affects Nabu;
   Windows and your other programs are not touched. The only exceptions are downloading the
   speech models (first start / changing models), which only downloads, and (since 4.9.5) free
   fonts for pasted text in a font you don't have.
@@ -294,10 +303,10 @@ NEW IN VERSION 4.1
 - Note text is 12 pt by default (headings scale with it). Change it in Settings > Fonts.
 - Mouse wheel ON the page scrolls; mouse wheel BESIDE the page (the dark margins) zooms.
   Ctrl + wheel on the page zooms too.
-- NobuNotes.exe has its own icon (quill, book and voice waves). If Windows still shows
+- NabuNotes.exe has its own icon (quill, book and voice waves). If Windows still shows
   the old icon for a while, that's its icon cache - it updates on its own.
 
-NEW IN VERSION 4 - NOBU IS NOW A WRITING APP TOO
+NEW IN VERSION 4 - NABU IS NOW A WRITING APP TOO
 -----------------------------------------------
 The page
 - Notes are laid out like a Word page: 8.5" wide with 1" margins, so lines break where
@@ -324,8 +333,8 @@ The toolbar (it wraps onto more rows when the window is narrow)
   Date. Right-click a table cell to add / delete rows and columns.
 - Ctrl+Z / Ctrl+Y undo and redo everything, formatting included.
 - Anything you can also do by voice has the phrase written under it, e.g.
-  "Dictate here (Nobu, edit this)", "Cut by voice (Nobu, cut this)",
-  "Record (Nobu, record this)".
+  "Dictate here (Nabu, edit this)", "Cut by voice (Nabu, cut this)",
+  "Record (Nabu, record this)".
 
 Spell check and thesaurus (both work offline)
 - Misspelled words get a red underline. Right-click one for suggestions, "Add to
@@ -334,28 +343,28 @@ Spell check and thesaurus (both work offline)
 - Right-click any word > "Synonyms for ..." to swap it for a synonym.
 
 Copy and paste
-- Copying from Nobu into Word, Google Docs or an email keeps fonts, sizes, colours and
-  pictures. Pasting from Word or a web page into Nobu keeps them too. Right-click >
+- Copying from Nabu into Word, Google Docs or an email keeps fonts, sizes, colours and
+  pictures. Pasting from Word or a web page into Nabu keeps them too. Right-click >
   "Paste as plain text" when you only want the words.
 
 Fonts
-- 64 free fonts come with Nobu (gear > Fonts..., or "Fonts..." on the toolbar):
+- 64 free fonts come with Nabu (gear > Fonts..., or "Fonts..." on the toolbar):
   Fantasy & medieval, Book & manuscript, Handwriting & script, Gothic & horror,
   Typewriter, Clean & modern - plus every font already on Windows.
-- Nobu also installs its fonts into Windows for your user account (no admin needed), so
+- Nabu also installs its fonts into Windows for your user account (no admin needed), so
   Word and other programs show the same fonts. Untick this in the font browser if you
   don't want it.
-- Your own fonts: put .ttf / .otf files in the "fonts" folder and restart Nobu.
+- Your own fonts: put .ttf / .otf files in the "fonts" folder and restart Nabu.
 
 Export / share  (button at the top of a note, in every folder, or right-click)
 - Choose a note, the selected notes, or a whole folder (with its sub-folders), then:
-    Word document (.docx)  - editable; Nobu's styles become Word styles, and the fonts are
+    Word document (.docx)  - editable; Nabu's styles become Word styles, and the fonts are
                              packed inside the file so it looks the same on their PC.
     PDF (.pdf)             - looks identical everywhere; best for sending and printing.
     E-book (.epub)         - one chapter per note, for e-readers and book apps.
     Web page (.html) or plain text (.txt).
 - Options: page numbers, each note on a new page, note names as chapter headings, and
-  whether to include Nobu's grey dates / "Play recording" links (left out by default).
+  whether to include Nabu's grey dates / "Play recording" links (left out by default).
 - About Varnyx: its free demo licence is personal-use only and forbids packing it into
   files, so Word files / e-books / web pages leave it out (other people see a standard
   heading font). PDFs keep it exactly.
@@ -365,7 +374,7 @@ Import
   sidebar > "Import documents here", or drag files onto a list). Word (.docx),
   OpenDocument (.odt), PDF (text only), web pages, Markdown, rich text (.rtf) and .txt.
   Each document becomes a note in that folder, with its formatting, tables and pictures.
-  You can keep the document's own fonts, or switch it to your Nobu fonts.
+  You can keep the document's own fonts, or switch it to your Nabu fonts.
 
 First start after this update unpacks the new writing tools (about 15 seconds, once).
 
@@ -381,8 +390,8 @@ NEW IN VERSION 3.2
   Grenze (a sharp, slightly blackletter fantasy face). IM Fell and Grenze are free
   (SIL Open Font License).
   Settings > Fonts lets you pick any font for text, headings and the interface, and the
-  text size. (The interface font fully applies after restarting Nobu.)
-  To add more fonts, put .ttf or .otf files in the "fonts" folder and restart Nobu.
+  text size. (The interface font fully applies after restarting Nabu.)
+  To add more fonts, put .ttf or .otf files in the "fonts" folder and restart Nabu.
   Note: your Varnyx download is a free DEMO for personal use only, and it has no
   punctuation or numbers - that's why it is used for headings only. If you buy the full
   version, drop it into the "fonts" folder in place of the demo.
@@ -391,31 +400,31 @@ NEW IN VERSION 3
 ----------------
 - Right-click any transcript (in Unassigned or a project list): Open & edit text, Rename,
   Move to book / campaign, or Delete. Ctrl/Shift-click to act on several at once.
-- Voice editing inside an open note (only works while a note is open and the Nobu window
+- Voice editing inside an open note (only works while a note is open and the Nabu window
   is in front):
-    "Nobu, edit this"  - dictate; the words go in at the text cursor (or replace the
-                           highlighted text). Finish with a pause or "Nobu, end recording".
-    "Nobu, cut this"   - then recite the passage. Nobu highlights the closest match in red
+    "Nabu, edit this"  - dictate; the words go in at the text cursor (or replace the
+                           highlighted text). Finish with a pause or "Nabu, end recording".
+    "Nabu, cut this"   - then recite the passage. Nabu highlights the closest match in red
                            and asks Delete / Cancel. Ctrl+Z brings it back.
   The same is on the note toolbar: "Dictate here" and "Cut by voice", and on the
   right-click menu inside a note.
 - My dictionary (gear menu, Home, or right-click a selected word > "Add to my dictionary"):
   type the spelling you want (e.g. Kryptik), then press Record and say the word 2-3 times.
-  Nobu learns how the speech model hears you ("kripke", "krip key"...) and from then on
+  Nabu learns how the speech model hears you ("kripke", "krip key"...) and from then on
   replaces those with your spelling in every transcript, dictation and cut. You can also
   type sound-alikes by hand. "Fix the open note now" applies it to an existing note.
 - Trash (left sidebar): deleted notes and projects go here together with their audio.
   Right-click > Restore puts everything back. Right-click > Delete permanently (or
   "Empty trash") sends it to the Windows Recycle Bin.
-- Fixed: "Teach Nobu my voice" from the Settings window now opens properly.
+- Fixed: "Teach Nabu my voice" from the Settings window now opens properly.
 
 FIRST START AFTER UPDATING
 --------------------------
-- If Nobu Notes is already running, right-click its tray icon (near the clock) > Quit,
-  then double-click NobuNotes.exe again.
+- If Nabu Notes is already running, right-click its tray icon (near the clock) > Quit,
+  then double-click NabuNotes.exe again.
 - It downloads one more small speech model (about 145 MB, once) that is much better at
-  hearing "Nobu".
-- Then open the gear button (bottom-left) > "Teach Nobu my voice". It takes a minute:
+  hearing "Nabu".
+- Then open the gear button (bottom-left) > "Teach Nabu my voice". It takes a minute:
   it learns your room's background noise, listens to you say both phrases, and suggests
   a microphone gain. Do this once, and again if you move the microphone.
 
@@ -437,10 +446,10 @@ MICROPHONE, NOISE FILTER AND GAIN  (gear > Microphone, noise & settings)
 - Gain: makes the mic louder or quieter. Keep the top meter mostly green; if it says
   TOO LOUD, lower it.
 - Noise filter: removes steady background noise (PC fan, AC, hum). 60% is a good start.
-  Use "Record a 6-second test" to hear exactly what Nobu hears, and adjust. It learns your
+  Use "Record a 6-second test" to hear exactly what Nabu hears, and adjust. It learns your
   room's sound by itself whenever you're not talking (a fan switched on or off is picked up
   within a second or two), so there is nothing to press when the room changes.
-- Speech sensitivity: how readily a sound counts as your voice. Raise it if Nobu misses
+- Speech sensitivity: how readily a sound counts as your voice. Raise it if Nabu misses
   you; lower it if it reacts to other sounds.
 Slider changes are heard live; press Save to keep them.
 
@@ -450,32 +459,32 @@ A small badge at the top of the screen shows it's recording. If you go quiet it 
 down ("stopping in 5 s unless you keep talking") so you're never cut off by surprise.
 Pauses to think are fine. Only real silence for the set time (8 s) ends it.
 
-IF IT DOESN'T REACT TO "NO BOO, RECORD THIS"
+IF IT DOESN'T REACT TO "NABU, RECORD THIS"
 --------------------------------------------
 1. Gear > "What is it hearing?" - speak the phrase and see what the model heard.
    A tick means it counted. The "After noise filter" bar should jump when you talk.
-2. Run "Teach Nobu my voice" again.
+2. Run "Teach Nabu my voice" again.
 3. In Settings: lower "Wake word strictness" a little, or raise "Speech sensitivity".
 4. For troubleshooting, tick "Save what it hears" in the diagnostics window. Short clips
    are kept in logs\heard so they can be checked.
 
-FOLDERS (all inside "Nobu Notes")
+FOLDERS (all inside "Nabu Notes")
 ---------------------------------
   Notes\Unassigned\   new transcripts
   Notes\<project>\    your books and campaigns
   Recordings\         all audio (.wav, cleaned by the noise filter) + a .txt of each transcript
   Images\             copies of pictures you added
-  models\  logs\      speech models; nobu.log for troubleshooting
-  app\ setup\ runtime\ NobuNotes.exe   the program itself (leave these alone)
+  models\  logs\      speech models; nabu.log for troubleshooting
+  app\ setup\ runtime\ NabuNotes.exe   the program itself (leave these alone)
 
 TRANSCRIPTION SPEED
 -------------------
-You pick the model the first time Nobu starts (Large v3 Turbo is the most accurate; Small and
+You pick the model the first time Nabu starts (Large v3 Turbo is the most accurate; Small and
 Base are lighter for older PCs). Switch any time in Settings > Transcription model. The audio
 is always saved first, so nothing is lost while it works. Put character and place names in
 My dictionary (gear menu) so they are spelled right.
 
 TROUBLESHOOTING
 ---------------
-Run "Debug - show errors.bat" and look at logs\nobu.log. To start the program fresh,
+Run "Debug - show errors.bat" and look at logs\nabu.log. To start the program fresh,
 delete the "runtime" folder - it unpacks again from "setup".
