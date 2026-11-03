@@ -9,8 +9,8 @@ away and becomes see-through) this makes:
   launcher\\nabu.ico             16 - 256 pixels: the icon built into NabuNotes.exe
 and puts the new icon into NabuNotes.exe itself (Windows' resource update; no need to rebuild the launcher).
 Windows remembers icons for a while: if Explorer still shows the old one, it updates on its own.
-(If the launcher is ever rebuilt with Go, make launcher\\rsrc_windows_amd64.syso from nabu.ico first:
- go run github.com/akavel/rsrc -ico nabu.ico -o rsrc_windows_amd64.syso)
+(When the launcher is rebuilt with Go, first remake launcher\\rsrc_windows_amd64.syso from nabu.rc, which uses
+ nabu.ico: windres -i nabu.rc -O coff -F pe-x86-64 -o rsrc_windows_amd64.syso)
 """
 import ctypes
 import io

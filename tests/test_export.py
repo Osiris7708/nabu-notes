@@ -316,3 +316,27 @@ ok("the wake word is 'Nabu' (said naboo) in its usual spellings",
    all(_M.wake_score([w])[0] >= 0.5 for w in ("naboo", "nabu", "nahboo", "gnaboo"))
    and _M.wake_score(["na"])[0] == 0 and _M.wake_score(["nah", "boo"])[0] >= 0.5)
 print("rename from Nobu: all checks passed")
+
+# ---------------------------------------------------------------- one icon everywhere
+_app_icon = Image.open(os.path.join(_root, "app", "nabu_icon.png")).convert("RGBA")
+_ico = Image.open(os.path.join(_root, "launcher", "nabu.ico"))
+def _diff(a, b):
+    a, b = a.convert("RGBA").resize((32, 32)), b.convert("RGBA").resize((32, 32))
+    return sum(abs(x - y) for pa, pb in zip(a.getdata(), b.getdata()) for x, y in zip(pa, pb)) / (32 * 32 * 4)
+_worst = max(_diff(_app_icon, _ico.ico.getimage((s, s))) for s in (48, 64, 128, 256))
+ok("the window icon and every size of the exe's icon are the same picture", _worst < 12, _worst)
+_src = Image.open(os.path.join(_root, "launcher", "nabu_icon_source.png"))
+ok("...and the kept source picture is that picture too", _diff(_app_icon, _src) < 12, _diff(_app_icon, _src))
+print("icon: all checks passed")
+
+# ---------------------------------------------------------------- one icon everywhere
+_app_icon = Image.open(os.path.join(_root, "app", "nabu_icon.png")).convert("RGBA")
+_ico = Image.open(os.path.join(_root, "launcher", "nabu.ico"))
+def _diff(a, b):
+    a, b = a.convert("RGBA").resize((32, 32)), b.convert("RGBA").resize((32, 32))
+    return sum(abs(x - y) for pa, pb in zip(a.getdata(), b.getdata()) for x, y in zip(pa, pb)) / (32 * 32 * 4)
+_worst = max(_diff(_app_icon, _ico.ico.getimage((s, s))) for s in (48, 64, 128, 256))
+ok("the window icon and every size of the exe's icon are the same picture", _worst < 12, _worst)
+_src = Image.open(os.path.join(_root, "launcher", "nabu_icon_source.png"))
+ok("...and the kept source picture is that picture too", _diff(_app_icon, _src) < 12, _diff(_app_icon, _src))
+print("icon: all checks passed")

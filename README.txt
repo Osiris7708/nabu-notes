@@ -1,10 +1,18 @@
-NABU NOTES  (version 5.0.0)
+NABU NOTES  (version 5.0.1)
 ===========================
 
 Say  "Nabu, record this"  and start talking.  ("Nabu" is said "naboo".)
 Say  "Nabu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
+
+NEW IN VERSION 5.0.1
+--------------------
+- New icon: the gold-scrolled "NN" with a microphone, on the window, the taskbar, the tray,
+  every dialog and NabuNotes.exe (and so on your desktop shortcut). If Explorer still shows
+  the old icon for a while, that's Windows' icon memory - it updates on its own.
+- Updating from Nobu Notes (before 5.0)? Copy the new files over your old folder and start
+  NabuNotes.exe - your notes and settings move over by themselves (more in 5.0.0 below).
 
 NEW IN VERSION 5.0.0
 --------------------
