@@ -1,11 +1,10 @@
 THIRD-PARTY NOTICES
 ===================
 
-Nabu Notes' own code (app
-abu_*.py, the launcher, tools and tests) and its icon are under the MIT
-licence (LICENSE). It comes with, or uses, the
-following work by other people. Each keeps its own licence; all of them allow it to be
-shared as part of Nabu Notes. Thank you to everyone who made them.
+Nabu Notes' own code (app\nabu_*.py, the launcher, tools and tests) and its icon are under the
+MIT licence (LICENSE). It comes with, or uses, the following work by other people. Each keeps
+its own licence; all of them allow it to be shared as part of Nabu Notes. Thank you to
+everyone who made them.
 
 Where the licence texts are, in an installed copy:
   runtime\LICENSE_PYTHON.txt ......................... Python and Tcl/Tk
