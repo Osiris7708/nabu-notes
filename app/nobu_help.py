@@ -243,9 +243,20 @@ SECTIONS = [
         ("b", "Nobu installs its fonts into Windows, so Word has them too."),
         ("h", "Adding your own"),
         ("b", "Download a font (.ttf, .otf or a .zip), then Fonts… > “+ Add fonts…”. It works straight away."),
-        ("b", "Paste text in a font you don't have, and Nobu looks for a free copy on Google Fonts and adds it. "
-              "A message says whether it was downloaded. Paid fonts (like Book Antiqua) are never downloaded; "
-              "the text keeps the font's name and shows in a similar font. Turn this off in Settings > Fonts."),
+        ("h", "Pasting text in other fonts"),
+        ("b", "When a paste has a font your last paste didn't, the “Fonts in the pasted text” window opens. It "
+              "lists every font in the paste."),
+        ("b", "For each font, pick what it should change into: a font (or “My note font”) and a size (or “My note "
+              "size”). Click Apply. The text you just pasted changes, and every later paste in that font changes "
+              "by itself."),
+        ("b", "Pasting the same font again (the next chapter, say) doesn't open the window. It opens again only "
+              "after a paste in a different font."),
+        ("b", "Close leaves the text and your choices as they were. Ctrl+Z after Apply brings back the pasted font."),
+        ("b", "Change or remove your choices in Settings > Fonts."),
+        ("b", "A font you don't have: Nobu looks for a free copy on Google Fonts and adds it; the window says "
+              "whether it was downloaded. Paid fonts (like Book Antiqua) are never downloaded; the text shows in a "
+              "similar font. Turn this off in Settings > Fonts."),
+        ("h", "Sharing"),
         ("b", "Check the licence before sharing: “personal use” fonts are left out of Word files and e-books."),
         ("b", "PDF export needs .ttf fonts; .otf fonts are swapped for a standard font in PDFs."),
     ]),

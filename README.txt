@@ -13,12 +13,21 @@ NEW IN VERSION 4.9.5
   own colours - a dark page's black background and white text, or plain black text - are
   left behind, so pasted text no longer comes in highlighted. Real colours and real
   highlights are kept.
+- Choose what pasted fonts change into. When a paste has a font your last paste didn't, the
+  "Fonts in the pasted text" window opens, with a row for every font in the paste (one or
+  several). Pick a font and size for each (or "My note font" / "My note size") and click
+  Apply: the text you just pasted changes, and from then on every paste in that font changes
+  by itself - no window. Pasting chapter after chapter in the same font asks only once; the
+  window comes back only after a paste in a different font, with your choices filled in, so
+  you can change them. Close leaves everything as it was. Your choices are also listed in
+  Settings > Fonts, where you can change or remove them. (Text copied from another Nobu note
+  is never changed.)
 - Fonts you don't have: paste text in a font this computer doesn't have and Nobu looks for a
   free, legal copy on Google Fonts. If there is one, it's downloaded and added to your fonts
-  (and the pasted text shows in it straight away). A message says either way. Paid fonts,
-  like Book Antiqua, are never downloaded - the text keeps the font's name, so it shows
-  correctly on a computer that has it. Only the font's name is sent, never your writing.
-  Turn it off in Settings > Fonts.
+  (and the pasted text shows in it straight away). The font window says either way. Paid
+  fonts, like Book Antiqua, are never downloaded - the text keeps the font's name, so it
+  shows correctly on a computer that has it. Only the font's name is sent, never your
+  writing. Turn it off in Settings > Fonts.
 - Folder names can use any characters, including / : * ? " < > and |.
 - Dragging shows where things will land: the label beside the mouse now has a second line,
   e.g. "Goes into: "The Hollow Crown > Chapters", above "Chapter 3"", "Goes to: Unassigned",

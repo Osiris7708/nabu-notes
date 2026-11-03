@@ -75,6 +75,8 @@ DEFAULTS = {
     "install_fonts": True,          # also install Nobu's fonts into Windows (for Word etc.)
     "import_keep_fonts": True,
     "fetch_fonts": True,            # pasted text in a font you don't have: download it if it's free (Google Fonts)
+    "paste_font_rules": {},         # pasted font (lower case) -> what it changes into (see nobu_pastefonts)
+    "last_paste_fonts": [],         # the fonts of the last paste (a fresh font opens the font window)
     "export_format": "docx",
     "export_dir": "",
     "export_page_numbers": True,

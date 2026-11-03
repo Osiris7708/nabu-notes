@@ -1445,24 +1445,79 @@ def go():
             return shown, ed._drop_caret.winfo_ismapped(), ed._drop_hint.win
         check("...a blue line and the label show while over the page, and go away after",
               step(explorer_over) == ((True, True), False, None))
-        # pasted text in a font this computer doesn't have: look for a free copy, then say so
-        import nobu_fontfetch as FF
-        real_fetch, FF._tried = FF.fetch, {}
+        # pasted fonts: the font window opens only for a fresh font, and the choices made in it stick
+        import nobu_fontfetch as FF, nobu_clip, nobu_pastefonts as PF
+        real_fetch, real_html, FF._tried = FF.fetch, nobu_clip.get_html, {}
         FF.fetch = lambda fam, install=True: ("not_free", "") if fam == "Book Antiqua X" else ("downloaded", fam)
-        INFOS.clear()
-        step(lambda: app.editor.fetch_missing_fonts([{"t": "a", "g": ["ff:Book Antiqua X"]}, {"t": "b", "g": ["ff:Lora Nobu Test"]},
-                                                     {"t": "c", "g": ["ff:Arial"]}]))
+        HTML = {"h": ""}
+        nobu_clip.get_html = lambda: HTML["h"]
+        def para(fam, words):
+            return '<p style="font-family:\'%s\';font-size:12pt">%s</p>' % (fam, words)
+        def paste_fonts(html, text):
+            HTML["h"] = html; app.clip_items = None
+            app.root.clipboard_clear(); app.root.clipboard_append(text)
+            e_ = app.editor; e_.font_win = None
+            e_.text.mark_set("insert", "end-1c"); e_.paste(); app.root.update()
+            w_ = e_.font_win
+            return w_ if (w_ is not None and w_.alive()) else None
+        def tags_of(words):
+            t_ = app.editor.text
+            i_ = t_.search(words, "end", backwards=True)
+            return set(g for it in app.editor._range_items(i_, "%s+%dc" % (i_, len(words))) for g in it.get("g", []))
+        step(lambda: app.cfg.update(last_paste_fonts=[], paste_font_rules={}))
+        fw = step(lambda: paste_fonts(para("Book Antiqua X", "Chapter one words."), "Chapter one words."))
+        check("pasting a fresh font opens the font window, one row per font",
+              fw is not None and step(lambda: list(fw.rows)) == ["book antiqua x"], fw and fw.rows)
         for _ in range(30):
-            if INFOS:
+            if "Not downloaded" in step(lambda: fw.rows["book antiqua x"][1].cget("text")):
                 break
             idle(0.1)
-        check("pasting text in fonts you don't have: one popup says which were downloaded and which weren't",
-              len(INFOS) == 1 and "\u2715  \u201cBook Antiqua X\u201d was not downloaded" in INFOS[0]
-              and "\u2713  \u201cLora Nobu Test\u201d was downloaded" in INFOS[0] and "Arial" not in INFOS[0], INFOS)
-        step(lambda: app.cfg.update(fetch_fonts=False)); INFOS.clear(); FF._tried = {}
-        step(lambda: app.editor.fetch_missing_fonts([{"t": "a", "g": ["ff:Book Antiqua X"]}])); idle(0.4)
-        check("...and Settings can turn it off (nothing is looked up)", INFOS == [], INFOS)
-        step(lambda: app.cfg.update(fetch_fonts=True)); FF.fetch = real_fetch; FF._tried = {}
+        check("...it says whether the font was downloaded (here: not free)",
+              "no free, legal copy" in step(lambda: fw.rows["book antiqua x"][1].cget("text")))
+        step(lambda: (fw.rows["book antiqua x"][2].set("Georgia"), fw.rows["book antiqua x"][3].set("13")))
+        step(lambda: btn(fw.win, "Apply").invoke()); idle(0.2)
+        g1 = step(lambda: tags_of("Chapter one words."))
+        check("Apply changes the text just pasted into the chosen font and size", "ff:Georgia" in g1 and "fs:13" in g1
+              and not step(lambda: fw.alive()), g1)
+        check("...and remembers the choice", (app.cfg.get("paste_font_rules") or {}).get("book antiqua x", {}).get("font") == "Georgia")
+        step(app.editor.undo)
+        check("...one Ctrl+Z puts the pasted font back", "ff:Book Antiqua X" in step(lambda: tags_of("Chapter one words.")))
+        fw2 = step(lambda: paste_fonts(para("Book Antiqua X", "Chapter two words."), "Chapter two words."))
+        g2 = step(lambda: tags_of("Chapter two words."))
+        check("pasting the same font again: no window, and it changes by itself", fw2 is None and "ff:Georgia" in g2
+              and "fs:13" in g2, (fw2, g2))
+        fw3 = step(lambda: paste_fonts(para("Courier New", "Mixed A.") + para("Book Antiqua X", "Mixed B."), "Mixed A.\nMixed B."))
+        check("a paste with two fonts, one of them fresh: the window has a row for each, with the saved choice filled in",
+              fw3 is not None and step(lambda: sorted(fw3.rows)) == ["book antiqua x", "courier new"]
+              and step(lambda: fw3.rows["book antiqua x"][2].get()) == "Georgia", fw3 and fw3.rows)
+        step(lambda: btn(fw3.win, "Close").invoke())
+        ga, gb = step(lambda: tags_of("Mixed A.")), step(lambda: tags_of("Mixed B."))
+        check("...Close changes nothing: each font follows its own choice", "ff:Courier New" in ga and "ff:Georgia" in gb
+              and "courier new" not in (app.cfg.get("paste_font_rules") or {}), (ga, gb))
+        fw4 = step(lambda: paste_fonts(para("Book Antiqua X", "Chapter three."), "Chapter three."))
+        check("a font that was in the last paste doesn't open the window", fw4 is None)
+        check("text copied from a Nobu note is left alone (no window)", step(lambda: (
+            setattr(app, "clip_items", ("Nobu words", [{"t": "Nobu words", "g": ["ff:Fresh Font Z"]}])),
+            app.root.clipboard_clear(), app.root.clipboard_append("Nobu words"), app.editor.paste(),
+            app.editor.font_win is None or not app.editor.font_win.alive())[-1]))
+        # Settings > Fonts lists the choices: change one, remove one
+        step(app.open_settings); sd = app.settings_win
+        check("Settings > Fonts lists what pasted fonts change into", "book antiqua x" in step(lambda: sd.rule_rows))
+        step(lambda: sd.rule_rows["book antiqua x"][1].set(PF.FONT_MINE))
+        step(lambda: btn(sd.win, "Save").invoke()); idle(0.3)
+        check("...changing it there sticks", (app.cfg.get("paste_font_rules") or {}).get("book antiqua x", {}).get("font") == "*")
+        step(app.open_settings); sd = app.settings_win
+        step(lambda: btn(sd.rule_rows["book antiqua x"][1].master, "Remove").invoke())
+        step(lambda: btn(sd.win, "Save").invoke()); idle(0.3)
+        check("...and Remove takes it away", "book antiqua x" not in (app.cfg.get("paste_font_rules") or {}))
+        # fonts you don't have, with the window closed: looked up quietly; Settings can turn the lookup off
+        step(lambda: app.cfg.update(fetch_fonts=False)); FF._tried = {}
+        CALLS = []
+        FF.fetch = lambda fam, install=True: CALLS.append(fam) or ("not_free", "")
+        step(lambda: app.editor._look_up_fonts([{"t": "a", "g": ["ff:Book Antiqua X"]}])); idle(0.4)
+        check("...and Settings can turn the font lookup off (nothing is looked up)", CALLS == [], CALLS)
+        step(lambda: app.cfg.update(fetch_fonts=True, paste_font_rules={}, last_paste_fonts=[]))
+        FF.fetch, nobu_clip.get_html, FF._tried = real_fetch, real_html, {}
         # closed menus don't pile up
         def menus_after_many():
             for _ in range(25):

@@ -395,6 +395,33 @@ class SettingsDialog:
         self.fetch_fonts = tk.BooleanVar(value=cfg.get("fetch_fonts", True) is not False)
         ttk.Checkbutton(outer, text="When I paste text in a font I don't have, download it if there's a free copy "
                         "(Google Fonts)", variable=self.fetch_fonts).pack(anchor="w", pady=2)
+        # what pasted fonts change into (chosen in the "Fonts in the pasted text" window)
+        import nobu_pastefonts as PF
+        ttk.Label(outer, text="Pasted text in these fonts changes into:").pack(anchor="w", pady=(8, 2))
+        self.rule_rows = {}           # pasted font (lower case) -> (name, font box, size box)
+        self.rules_removed = set()
+        rules = cfg.get("paste_font_rules") or {}
+        if not rules:
+            ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
+                "Nothing yet. Paste text in another font and Nobu asks what it should change into; your "
+                "choices show here.")).pack(anchor="w")
+        choices = PF.font_choices(root)
+        for key, rule in sorted(rules.items()):
+            r = row()
+            ttk.Label(r, text=rule.get("name", key), width=22).pack(side="left")
+            fb = ttk.Combobox(r, values=choices, width=26, state="readonly")
+            fb.set(PF.font_label(rule))
+            fb.pack(side="left")
+            sb = ttk.Combobox(r, values=PF.SIZE_CHOICES, width=18)
+            sb.set(PF.size_label(rule))
+            sb.pack(side="left", padx=6)
+
+            def remove(k=key, r=r):
+                r.destroy()
+                self.rule_rows.pop(k, None)
+                self.rules_removed.add(k)
+            ttk.Button(r, text="Remove", command=remove).pack(side="left")
+            self.rule_rows[key] = (rule.get("name", key), fb, sb)
         ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
             "To add your own fonts: Fonts\u2026 (toolbar or gear menu) > \u201c+ Add fonts\u2026\u201d. They work "
             "straight away.")).pack(anchor="w")
@@ -448,6 +475,20 @@ class SettingsDialog:
                 wdg.bind("<MouseWheel>", lambda e: scroll(int(-e.delta / 120)))
                 wdg.bind("<Button-4>", lambda e: scroll(-3))
                 wdg.bind("<Button-5>", lambda e: scroll(3))
+
+    def _paste_rules(self):
+        """The pasted-font choices after Save: the rows here, plus any chosen in a font window meanwhile."""
+        import nobu_pastefonts as PF
+        rules = dict(self.cfg.get("paste_font_rules") or {})
+        for k in self.rules_removed:
+            rules.pop(k, None)
+        for k, (name, fb, sb) in self.rule_rows.items():
+            rule = PF.make_rule(name, fb.get(), sb.get())
+            if rule:
+                rules[k] = rule
+            else:
+                rules.pop(k, None)
+        return rules
 
     def _slider(self, parent, label, var, lo, hi, fmt, on_change=None):
         r = ttk.Frame(parent)
@@ -622,7 +663,7 @@ class SettingsDialog:
             wake_match_threshold=round(float(self.strict.get()), 2),
             accept_bare_phrase=bool(self.bare.get()), cue_sounds=bool(self.cues.get()),
             close_to_tray=bool(self.tray.get()), autostart=bool(self.auto.get()), reopen_notes=bool(self.reopen.get()),
-            fetch_fonts=bool(self.fetch_fonts.get()), transcribe_original=bool(self.orig_sound.get()),
+            fetch_fonts=bool(self.fetch_fonts.get()), paste_font_rules=self._paste_rules(), transcribe_original=bool(self.orig_sound.get()),
             transcribe_model=self.model.get(), detect_model=self.dmodel.get())
         self.orig = {k: self.cfg[k] for k in self.LIVE}
         models_changed = (old[1] != self.cfg["transcribe_model"] or old[2] != self.cfg["detect_model"])

@@ -312,6 +312,7 @@ class NoteEditor:
         self._fr_find = self._fr_entry = None
         self._added_job = self._cut_job = self._fonts_job = None
         self._drop_caret = self._drop_hint = None    # blue line + label while files from Explorer are over the page
+        self.font_win = None           # the "Fonts in the pasted text" window (nobu_pastefonts), while open
         self.meta = {}             # colour label, 'titled' flag ... (kept as they are when saving)
         self.page_marks = []
         self.zoom_mode = cfg.get("zoom") or "Fit width"
@@ -2009,10 +2010,12 @@ class NoteEditor:
         except tk.TclError:
             text = None
         items = None
+        from_nobu = False              # copied from a Nobu note: its fonts are left alone
         if not plain:
             ci = getattr(self.app, "clip_items", None)
             if ci and text is not None and ci[0] == text:
                 items = ci[1]
+                from_nobu = True
             else:
                 h = nobu_clip.get_html()
                 if h:
@@ -2044,43 +2047,111 @@ class NoteEditor:
         if t.tag_ranges("sel"):
             t.delete("sel.first", "sel.last")
         start = t.index("insert")
+        orig = items
+        if not from_nobu:
+            import nobu_pastefonts as PF
+            items = PF.apply_rules(items, self.app.cfg.get("paste_font_rules") or {})
+        t.mark_set("nobu_pa", start)            # the pasted text, in case the font window changes it again
+        t.mark_gravity("nobu_pa", "left")
         self._insert_items(items, "insert")
+        t.mark_set("nobu_pb", "insert")
+        t.mark_gravity("nobu_pb", "left")
         self._autolink(start, t.index("insert"))
         self._finish_insert(start, t.index("insert"))
-        self.fetch_missing_fonts(items)
+        if not from_nobu:
+            self.pasted_fonts(orig, items)
 
-    def fetch_missing_fonts(self, items):
-        """Pasted text in a font this computer doesn't have: look for a free copy online (in the background),
-        then say whether it was downloaded. Settings > Fonts can turn this off."""
-        cfg = getattr(self.app, "cfg", None)
-        if cfg is None or cfg.get("fetch_fonts", True) is False:
+    def pasted_fonts(self, orig, items):
+        """After a paste from another program (orig: as copied, items: as changed by the writer's choices).
+        The fonts of the last paste are remembered; a font that wasn't in it opens the font window.
+        Fonts the computer doesn't have are looked up online (free ones only), unless Settings says not to."""
+        import nobu_fontfetch as FF
+        import nobu_pastefonts as PF
+        cfg = self.app.cfg
+        body = (self.ctx.body or "").lower()
+        fams = [f for f in PF.families_in(orig) if f.lower() != body]
+        win = None
+        if fams:
+            new = PF.fresh(fams, cfg.get("last_paste_fonts") or [])
+            cfg.update(last_paste_fonts=[f.lower() for f in fams])    # emptied and refilled by each paste
+            if new:
+                win = self.font_win = PF.PasteFontsWindow(self, fams, lambda rules: self._repaste_fonts(orig, rules))
+                import nobu_fonts
+                have = {f.lower() for f in nobu_fonts.families(self.root)}
+                rules = cfg.get("paste_font_rules") or {}
+                for f in fams:
+                    done = FF._tried.get(f.lower())
+                    rule = rules.get(f.lower())
+                    win.set_status(f, ("Changed into %s, as you chose before." % PF.describe(rule)) if rule else
+                                   PF.fetch_status(*done) if done else
+                                   "On this computer." if f.lower() in have else
+                                   "Not on this computer - it shows in a similar font.")
+        self._look_up_fonts(items, win)
+
+    def _look_up_fonts(self, items, win=None):
+        """Look for free copies of the fonts in items that this computer doesn't have (in the background).
+        win: the font window, which shows the answers; without it they go to the status bar."""
+        cfg = self.app.cfg
+        if cfg.get("fetch_fonts", True) is False:
             return
         import nobu_fontfetch as FF
         fams = [f for f in FF.missing_families(items, self.root) if f.lower() not in FF._tried]
         if not fams:
             return
         install = cfg.get("install_fonts", True) is not False
-        if hasattr(self.app, "set_status"):
+        if win is not None:
+            for f in fams:
+                win.set_status(f, "Not on this computer - looking for a free copy…")
+        else:
             self.app.set_status("Looking for a free copy of %s…" % ", ".join("“%s”" % f for f in fams))
 
         def work():
             results = [(f,) + tuple(FF.fetch(f, install=install)) for f in fams]
-            self.app.ui(self._fonts_fetched, results)
+            self.app.ui(self._fonts_fetched, results, win)
         import threading
         threading.Thread(target=work, name="font-fetch", daemon=True).start()
 
-    def _fonts_fetched(self, results):
+    def _fonts_fetched(self, results, win=None):
         import nobu_fontfetch as FF
+        import nobu_pastefonts as PF
         if any(r[1] == "downloaded" for r in results):
-            for ed in (self.app.ws.editors() if hasattr(self.app, "ws") else [self]):
+            for ed in self.app.ws.editors():
                 try:
                     ed.refresh_fonts()
                 except Exception:
                     log.exception("refresh fonts")
-        if hasattr(self.app, "set_status"):
-            self.app.set_status("")
-        if self.frame.winfo_exists():
-            T.info(self.frame, "Fonts in the pasted text", FF.message(results))
+        self.app.set_status("")
+        if win is not None and win.alive():
+            for fam, outcome, detail in results:
+                win.set_status(fam, PF.fetch_status(outcome, detail))
+        elif any(r[1] == "downloaded" for r in results):
+            self.app.set_status(FF.message([r for r in results if r[1] == "downloaded"]).replace("\n\n", "   "))
+
+    def _repaste_fonts(self, orig, rules):
+        """The font window's Apply: put the text just pasted in again, changed by the new choices (one undo step)."""
+        import nobu_pastefonts as PF
+        t = self.text
+        try:
+            a, b = t.index("nobu_pa"), t.index("nobu_pb")
+        except tk.TclError:
+            return
+        if t.compare(a, ">=", b):
+            return
+        items = PF.apply_rules(orig, rules)
+        self._push_undo()
+        gone = [n for n in (self.flow.names() if self.flow else []) if t.compare(a, "<=", n) and t.compare(n, "<", b)]
+        t.delete(a, b)
+        for n in gone:
+            self.flow.remove(n)
+        t.mark_set("insert", a)
+        self._insert_items(items, "insert")
+        t.mark_set("nobu_pb", "insert")
+        self._autolink(a, t.index("insert"))
+        self._finish_insert(a, t.index("insert"))
+        mine = {f.lower() for f in PF.families_in(orig)}
+        done = ["%s → %s" % (r["name"], PF.describe(r)) for k, r in rules.items() if k in mine]
+        self.app.set_status(("Pasted text changed: " + "; ".join(done)) if done else "Pasted text kept as it was.")
+        self._look_up_fonts(items)
 
     def refresh_fonts(self):
         """A font was just added to the computer: text already shown in a stand-in font switches to it."""

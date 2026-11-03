@@ -245,3 +245,22 @@ except ValueError:
     _res = True
 ok("...'Unassigned' is still kept for the inbox", _res)
 print("folder names: all checks passed")
+
+# ---------------------------------------------------------------- pasted fonts change into the writer's choice
+import nobu_pastefonts as PF
+_it = [{"t": "One", "g": ["ff:Book Antiqua", "fs:12"]}, {"t": "\n", "g": ["ff:Book Antiqua", "fs:12", "ls:1.62"]},
+       {"t": "Two", "g": ["ff:Arial", "fs:10", "b"]}, {"t": "plain", "g": []}]
+_rules = {"book antiqua": PF.make_rule("Book Antiqua", "Georgia", "13"), "arial": PF.make_rule("Arial", PF.FONT_MINE, PF.SIZE_MINE)}
+_out = PF.apply_rules(_it, _rules)
+ok("a pasted font changes into the chosen font and size (line ends too)",
+   _out[0]["g"] == ["ff:Georgia", "fs:13"] and _out[1]["g"] == ["ff:Georgia", "fs:13", "ls:1.62"], _out)
+ok("'my note font / size' takes the font and size away (the text follows the note)", _out[2]["g"] == ["b"], _out[2])
+ok("text in no particular font is untouched", _out[3] == _it[3])
+ok("a paste's fonts are listed once each, in order", PF.families_in(_it) == ["Book Antiqua", "Arial"])
+ok("fresh fonts: only those not in the last paste",
+   PF.fresh(["Book Antiqua", "Arial"], ["book antiqua"]) == ["Arial"] and PF.fresh(["Book Antiqua"], ["book antiqua", "arial"]) == [])
+ok("'keep font, keep size' is no choice at all", PF.make_rule("X", PF.FONT_KEEP, PF.SIZE_KEEP) is None)
+ok("choices read back the same in the drop-downs",
+   (PF.font_label(_rules["book antiqua"]), PF.size_label(_rules["book antiqua"]), PF.font_label(_rules["arial"]),
+    PF.size_label(_rules["arial"])) == ("Georgia", "13", PF.FONT_MINE, PF.SIZE_MINE))
+print("pasted font choices: all checks passed")
