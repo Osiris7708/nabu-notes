@@ -343,3 +343,11 @@ ok("the window icon and every size of the exe's icon are the same picture", _wor
 _src = Image.open(os.path.join(_root, "launcher", "nabu_icon_source.png"))
 ok("...and the kept source picture is that picture too", _diff(_app_icon, _src) < 12, _diff(_app_icon, _src))
 print("icon: all checks passed")
+
+# ---------------------------------------------------------------- the GitHub front page (README.md)
+import re as _re
+_md = open(os.path.join(_root, "README.md"), encoding="utf-8").read()
+_links = [l for l in _re.findall(r'(?:src="|\]\()([^")#]+)', _md) if not l.startswith("http")]
+ok("README.md: every picture and file it links to exists", _links and all(os.path.exists(os.path.join(_root, l)) for l in _links), _links)
+ok("README.md: download link and the Windows warning", "releases/latest" in _md and "Run anyway" in _md)
+print("front page: all checks passed")
