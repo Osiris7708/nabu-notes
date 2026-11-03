@@ -1,0 +1,42 @@
+name: Idea for a new feature
+description: Suggest something Nabu Notes could do, or do better.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Describe it in your own words - no technical terms needed.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Nabu to do?
+      placeholder: "I'd like to be able to..."
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help you?
+      description: What are you trying to do, and what gets in the way today?
+      placeholder: "When I'm writing a chapter, I have to..."
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How do you picture it working? (optional)
+      description: A button, a menu entry, a voice command, a setting... Sketches or screenshots are welcome.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of Nabu is it about?
+      options:
+        - Voice recording or wake word
+        - Transcription
+        - Writing and formatting
+        - Pictures
+        - Folders and organising
+        - Export or import
+        - Fonts
+        - Something else

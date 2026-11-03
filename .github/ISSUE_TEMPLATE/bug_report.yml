@@ -1,0 +1,72 @@
+name: Something isn't working
+description: Report a bug - something broke, behaved oddly or showed an error.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Plain words are perfect - you don't need to be technical.
+        **Please don't paste anything private** (your notes, recordings or personal details).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Describe what went wrong.
+      placeholder: "When I pasted a chapter, the text came in highlighted..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can it be made to happen again?
+      description: The steps, one per line, if you know them.
+      placeholder: |
+        1. Open a note
+        2. Paste text copied from Google Docs
+        3. ...
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen instead?
+  - type: input
+    id: version
+    attributes:
+      label: Nabu Notes version
+      description: The number at the top of README.txt in your Nabu Notes folder.
+      placeholder: "5.0.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows version
+      options:
+        - Windows 11
+        - Windows 10
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of Nabu?
+      options:
+        - Voice recording or wake word ("Nabu, record this")
+        - Transcription (the words it writes down)
+        - Writing and formatting
+        - Pictures
+        - Folders, sidebar or drag and drop
+        - Export or import (Word, PDF, e-book...)
+        - Fonts
+        - Settings
+        - Starting up or installing
+        - Something else
+  - type: textarea
+    id: log
+    attributes:
+      label: Error details (optional)
+      description: |
+        If Nabu showed an error, or you can, attach or paste the last lines of `logs\nabu.log` from your Nabu Notes folder.
+        Screenshots help too - drag them into this box.
+      render: text
