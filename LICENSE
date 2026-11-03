@@ -19,7 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-This licence covers Nabu Notes' own code (app\nabu_*.py, launcher, tools, tests)
-and its icon. The fonts, thesaurus, Python runtime and libraries that come with
-Nabu Notes have their own licences: see THIRD-PARTY-NOTICES.txt.
