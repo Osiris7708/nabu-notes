@@ -175,6 +175,9 @@ import nabu_config as _C
 rn = publish_release.notes_for(_C.VERSION)
 ok("release notes: this version's 'what's new' from README.txt, with how to install",
    "Nabu-Notes-%s.zip" % _C.VERSION in rn and "NEW IN VERSION" not in rn and len(rn) > 200, rn[:300])
+ok("release notes and README warn that Windows or an antivirus may flag the exe (and what to click)",
+   "Run anyway" in rn and "Run anyway" in open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(R.__file__))),
+                                                             "README.txt"), encoding="utf-8").read())
 ok("release notes: a version with no README section still gets a line", "Nabu Notes 0.0.1." in publish_release.notes_for("0.0.1"))
 print("release notes: all checks passed")
 

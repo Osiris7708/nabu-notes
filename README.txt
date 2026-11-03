@@ -6,6 +6,12 @@ Say  "Nabu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
 
+A WARNING FROM WINDOWS OR YOUR ANTIVIRUS?
+NabuNotes.exe is a small home-made program that isn't "signed" (signing costs money), so
+the first time you open it Windows may say "Windows protected your PC". Click "More info",
+then "Run anyway". Now and then an antivirus wrongly flags it too. That's a false alarm:
+all of Nabu's code is open to read on GitHub, and it never sends your writing anywhere.
+
 NEW IN VERSION 5.0.1
 --------------------
 - New icon: the gold-scrolled "NN" with a microphone, on the window, the taskbar, the tray,

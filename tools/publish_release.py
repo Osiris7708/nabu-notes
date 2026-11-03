@@ -41,7 +41,11 @@ def notes_for(version):
     m = re.search(r"^NEW IN VERSION %s\b[^\n]*\n-+\n(.*?)(?=^NEW IN VERSION |\Z)" % re.escape(version), text, re.M | re.S)
     body = m.group(1).strip() if m else "Nabu Notes %s." % version
     return ("Download **Nabu-Notes-%s.zip** below, unzip it and double-click NabuNotes.exe. Updating? Quit Nabu "
-            "(tray icon > Quit), unzip over the old folder - notes and settings are kept.\n\n```\n%s\n```\n"
+            "(tray icon > Quit), unzip over the old folder - notes and settings are kept.\n\n"
+            "> **Windows or your antivirus may warn about NabuNotes.exe.** It's a small home-made program that "
+            "isn't \"signed\" (signing costs money). If Windows says \"Windows protected your PC\", click **More "
+            "info**, then **Run anyway**. Antivirus warnings about it are false alarms: all of the code is here to "
+            "read.\n\n```\n%s\n```\n"
             % (version, body))
 
 
