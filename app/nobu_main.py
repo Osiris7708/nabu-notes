@@ -607,7 +607,8 @@ class App:
             text="Your recordings, transcripts and notes are made and stored only on this computer, in your "
                  "Nobu Notes folder. Speech recognition runs here, with no account and no cloud. Nobu also blocks "
                  "its own internet access while it runs (other programs on your computer are not affected); "
-                 "the only exception is the one-time download of the speech models, which only downloads.")
+                 "the only exceptions are the one-time download of the speech models, and free fonts for text you "
+                 "paste in a font you don't have (only the font's name is sent; Settings > Fonts can turn it off).")
         self.privacy_lbl.pack(anchor="w", fill="x")
         link = tk.Label(pin, text="How is this checked?", bg=T.PANEL, fg=T.ACCENT, font=T.UI_FONT, cursor="hand2")
         link.pack(anchor="w", pady=(4, 0))
@@ -686,8 +687,9 @@ class App:
             "(speech models in the “models” folder).\n"
             "• Audio is saved in “Recordings” and notes in “Notes”, both inside your Nobu Notes folder.\n"
             "• Nobu has a built-in network guard: while Nobu runs, any attempt by Nobu itself to connect to the "
-            "internet is refused. The only exception is the speech-model download (first start, or changing "
-            "models in Settings).\n"
+            "internet is refused. The only exceptions are the speech-model download (first start, or changing "
+            "models in Settings) and free fonts from Google Fonts for pasted text in a font you don't have (only "
+            "the font's name is sent, never your writing; Settings > Fonts can turn it off).\n"
             "• The guard lives inside Nobu only. It does not touch Windows, your firewall or any other program - "
             "your browser, games and everything else use the internet exactly as before.\n"
             "• Spell check, thesaurus, fonts, import and export all work offline too.\n"
@@ -709,7 +711,7 @@ class App:
         if not notes:
             ttk.Label(self.recent, text="No notes yet.", style="Muted.TLabel").pack(anchor="w")
         for p in notes[:6]:
-            where = "Unassigned" if lib.is_inbox(os.path.dirname(p)) else os.path.basename(os.path.dirname(p))
+            where = "Unassigned" if lib.is_inbox(os.path.dirname(p)) else lib.folder_name(os.path.dirname(p))
             row = tk.Label(self.recent, text="%s    ·  %s" % (lib.title(p), where), anchor="w", bg=T.BG,
                            fg=T.ACCENT, font=T.UI_FONT, cursor="hand2", pady=6, padx=4)
             row.pack(anchor="w", fill="x")
@@ -815,7 +817,7 @@ class App:
             n, inner = lib.count_notes(d)
             desc = "%d note%s" % (n, "" if n == 1 else "s") + (", %d sub-folder%s" % (inner, "" if inner == 1 else "s") if inner else "")
             col = lib.folder_color(d)
-            tv.insert("", "end", iid=d, values=("  Folder", "\u25b8  %s   \u2014  %s" % (os.path.basename(d), desc)),
+            tv.insert("", "end", iid=d, values=("  Folder", "\u25b8  %s   \u2014  %s" % (lib.folder_name(d), desc)),
                       tags=tags(col, () if col else ("folder",)))
             rows["n"] += 1
 
@@ -1489,7 +1491,7 @@ class App:
         ct = self._color_tag(tv, lib.folder_color(folder))
         is_open = folder in opened
         tv.insert(parent_iid, "end", iid=folder, text=" " + ("\u25aa  " if depth == 0 else "\u25b8  ")
-                  + os.path.basename(folder), open=is_open, tags=("folder",) + ((ct,) if ct else ()))
+                  + lib.folder_name(folder), open=is_open, tags=("folder",) + ((ct,) if ct else ()))
         if is_open:
             self._tree_fill(folder, depth, opened)
         elif lib.has_children(folder):
@@ -1671,7 +1673,7 @@ class App:
         if not parent or not os.path.isdir(parent):
             return
         name = T.ask_string(self.root, "New sub-folder", "Name of the new folder inside \u201c%s\u201d\n"
-                            "(e.g. Characters, Locations, Chapter 1, Session notes):" % os.path.basename(parent))
+                            "(e.g. Characters, Locations, Chapter 1, Session notes):" % lib.folder_name(parent))
         if not name:
             return
         try:
@@ -1709,8 +1711,8 @@ class App:
         folder = folder or self.current_project
         if not folder:
             return
-        name = T.ask_string(self.root, "Rename", "New name for \u201c%s\u201d:" % os.path.basename(folder),
-                            os.path.basename(folder))
+        name = T.ask_string(self.root, "Rename", "New name for \u201c%s\u201d:" % lib.folder_name(folder),
+                            lib.folder_name(folder))
         if not name:
             return
         try:
@@ -1729,7 +1731,7 @@ class App:
             return
         n = len(lib.all_notes(folder))
         if not T.confirm(self.root, "Delete", "Move \u201c%s\u201d and everything in it (%d note%s, with their audio) "
-                         "to the Trash?\n\nYou can restore it from Trash." % (os.path.basename(folder), n, "" if n == 1 else "s"),
+                         "to the Trash?\n\nYou can restore it from Trash." % (lib.folder_name(folder), n, "" if n == 1 else "s"),
                          yes="Move to Trash", danger=True):
             return
         for ed in self.ws.editors():
@@ -1794,10 +1796,10 @@ class App:
             if any(self._inside(folder, d) for d in skip):
                 return
             subs = [x for x in lib.subfolders(folder) if not any(self._inside(x, d) for d in skip)]
-            label = ("\u25aa  " if top else "\u25b8  ") + os.path.basename(folder)
+            label = ("\u25aa  " if top else "\u25b8  ") + lib.folder_name(folder)
             if subs:
                 sm = T.menu(menu)
-                sm.add_command(label="Into \u201c%s\u201d itself" % os.path.basename(folder),
+                sm.add_command(label="Into \u201c%s\u201d itself" % lib.folder_name(folder),
                                command=lambda d=folder: self.move_notes(paths, d))
                 sm.add_separator()
                 for sub in subs:
@@ -1828,7 +1830,7 @@ class App:
     def _move_new(self, paths, parent=None):
         if parent:
             name = T.ask_string(self.root, "New sub-folder", "Name of the new folder inside \u201c%s\u201d:"
-                                % os.path.basename(parent))
+                                % lib.folder_name(parent))
         else:
             name = T.ask_string(self.root, "New project", "Name of the book, campaign or project:")
         if not name:
@@ -2332,12 +2334,31 @@ class App:
             from tkinterdnd2 import DND_FILES
             tv.drop_target_register(DND_FILES)
 
-            def drop(ev):
-                files = list(self.root.tk.splitlist(ev.data))
+            from nobu_dragdrop import ExplorerHint
+            hint = ExplorerHint(self.root)
+
+            def where():
                 folder = C.INBOX_DIR if f._inbox else self.current_project
+                if not folder:
+                    return None, "✕  Not here — open a folder first"
+                return folder, "→  Imported as notes into:  %s" % (
+                    "Unassigned" if lib.is_inbox(folder) else "“%s”" % lib.crumbs(folder))
+
+            def over(ev):
+                folder, text = where()
+                hint.show(text, ev.x_root, ev.y_root, ok=bool(folder))
+                return ev.action
+
+            def drop(ev):
+                hint.hide()
+                files = list(self.root.tk.splitlist(ev.data))
+                folder = where()[0]
                 if folder:
                     self.root.after(10, lambda: self.import_files(files, folder))
                 return "copy"
+            tv.dnd_bind("<<DropEnter>>", over)
+            tv.dnd_bind("<<DropPosition>>", over)
+            tv.dnd_bind("<<DropLeave>>", lambda ev: hint.hide())
             tv.dnd_bind("<<Drop>>", drop)
         except Exception:
             pass

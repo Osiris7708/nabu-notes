@@ -24,7 +24,7 @@ def safe_name(s, fallback="Untitled"):
     return (s[:80].strip() or fallback)
 
 
-# Note titles may contain any character. Windows forbids  " / \\ : * ? < > |  in file names, so in the
+# Note titles and folder names may contain any character. Windows forbids  " / \\ : * ? < > |  in file names, so in the
 # file name each one is swapped for a look-alike character, and swapped back wherever the title is shown.
 _TO_FILE = {'"': "\uff02", "/": "\u2215", "\\": "\u29f5", ":": "\ua789", "*": "\uff0a", "?": "\uff1f",
             "<": "\uff1c", ">": "\uff1e", "|": "\uff5c"}
@@ -47,6 +47,20 @@ def note_stem(name, fallback="Untitled"):
     if s.split(".")[0].upper() in _RESERVED:
         s += "\u2060"
     return s
+
+
+def folder_name(path):
+    """A folder's name as the writer typed it (look-alike characters swapped back; see note_stem)."""
+    name = os.path.basename(os.path.normpath(path))
+    if any(c in _FROM_FILE for c in name):
+        return "".join(_FROM_FILE.get(c, c) for c in name)
+    return name
+
+
+def _folder_stem(name):
+    """(name on disk, name as typed) for a new or renamed folder: any symbols are kept, as look-alikes."""
+    clean = re.sub(r"\s+", " ", re.sub(r"[\x00-\x1f\x7f]+", " ", name or "")).strip()[:80].strip()
+    return note_stem(clean, "Untitled"), (clean or "Untitled")
 
 
 def same_title(text, path):
@@ -291,12 +305,12 @@ def crumbs(folder):
     except ValueError:
         return os.path.basename(folder)
     parts = [x for x in re.split(r"[\\/]", rel) if x and x != "."]
-    return " \u25b8 ".join(parts)
+    return " \u25b8 ".join(folder_name(x) for x in parts)
 
 
 def create_folder(parent, name):
-    name = safe_name(name)
-    p = os.path.join(parent, name)
+    stem, name = _folder_stem(name)
+    p = os.path.join(parent, stem)
     if os.path.exists(p):
         raise ValueError("A folder called \u201c%s\u201d already exists there." % name)
     os.makedirs(p)
@@ -333,10 +347,10 @@ def title(path):
 
 
 def create_project(name):
-    name = safe_name(name)
+    stem, name = _folder_stem(name)
     if name.lower() == INBOX_NAME.lower():
         raise ValueError("That name is reserved for the inbox.")
-    p = os.path.join(NOTES_DIR, name)
+    p = os.path.join(NOTES_DIR, stem)
     if os.path.exists(p):
         raise ValueError("A project called “%s” already exists." % name)
     os.makedirs(p)
@@ -344,12 +358,18 @@ def create_project(name):
 
 
 def rename_project(path, new_name):
-    new_name = safe_name(new_name)
-    if new_name.lower() == INBOX_NAME.lower():
+    stem, new_name = _folder_stem(new_name)
+    if new_name.lower() == INBOX_NAME.lower() and os.path.normcase(os.path.dirname(path)) == os.path.normcase(NOTES_DIR):
         raise ValueError("That name is reserved for the inbox.")
-    dest = os.path.join(os.path.dirname(path), new_name)
-    if os.path.normcase(dest) == os.path.normcase(path):
+    dest = os.path.join(os.path.dirname(path), stem)
+    if dest == path:
         return path
+    if os.path.normcase(dest) == os.path.normcase(path):     # only capital letters changed
+        tmp = path + ".renaming"
+        os.rename(path, tmp)
+        os.rename(tmp, dest)
+        _rename_in_order(os.path.dirname(path), os.path.basename(path), os.path.basename(dest))
+        return dest
     if os.path.exists(dest):
         raise ValueError("A project called “%s” already exists." % new_name)
     os.rename(path, dest)
@@ -380,7 +400,7 @@ def to_trash(path, with_audio=True):
     os.makedirs(TRASH_DIR, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     is_dir = os.path.isdir(path)
-    name = os.path.basename(path) if is_dir else title(path)
+    name = folder_name(path) if is_dir else title(path)
     bundle = os.path.join(TRASH_DIR, safe_name("%s %s" % (stamp, name)))
     n = 2
     while os.path.exists(bundle):

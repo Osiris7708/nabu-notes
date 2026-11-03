@@ -194,3 +194,54 @@ open(os.path.join(mdir, "model.bin"), "wb").close()
 open(os.path.join(mdir, NM.MARKER), "w").close()
 ok("an install that already has a model doesn't ask again", not NM.first_start())
 print("speech models: all checks passed")
+
+# ---------------------------------------------------------------- pasting from a page in dark mode (v4.9.5)
+dark = ('<p style="font-family:\'Book Antiqua\';font-size:12pt;color:#ffffff;background:#131313">One para.</p>'
+        '<p style="font-family:\'Book Antiqua\';font-size:12pt;color:#ffffff;background:#131313">Two '
+        '<span style="color:#c00000">red</span> and <span style="background:#ffff00">marked</span>.</p>')
+pit = R.paras_to_items(R.html_to_paras(dark))
+tags = set(g for it in pit for g in it["g"])
+ok("paste: the copied page's own white text and dark background are left behind", not any(
+    g in tags for g in ("fg:#ffffff", "hl:#131313")), sorted(tags))
+ok("paste: real coloured text and a real highlight are kept", "fg:#c00000" in tags and "hl:#ffff00" in tags, sorted(tags))
+nls = [it for it in pit if it["t"] == "\n"]
+ok("paste: each paragraph's line end keeps the font (no font flip every other paragraph)",
+   nls and all("ff:Book Antiqua" in it["g"] and "fs:12" in it["g"] for it in nls), nls)
+ok("page colours: white, black and greys are page colours; red and yellow are not",
+   (R.page_colour("#ffffff", text=True), R.page_colour("#000000", text=True), R.page_colour("#131313"),
+    R.page_colour("#c00000", text=True), R.page_colour("#ffff00"), R.page_colour("#777777", text=True))
+   == (True, True, True, False, False, False))
+print("paste colours: all checks passed")
+
+# ---------------------------------------------------------------- free fonts for pasted text (no internet used here)
+import nobu_fontfetch as FF, nobu_fonts as NF
+_real_fams = NF.families
+NF.families = lambda root: ["Arial", "Georgia"]
+ok("fonts the computer doesn't have are found (each once, any capitals)",
+   FF.missing_families([{"t": "a", "g": ["ff:Lora"]}, {"t": "b", "g": ["ff:arial", "fs:12"]}, {"t": "c", "g": ["ff:Lora"]}], None)
+   == ["Lora"])
+NF.families = _real_fams
+msg = FF.message([("Lora", "downloaded", "Lora"), ("Book Antiqua", "not_free", ""), ("Cinzel", "failed", "timed out")])
+ok("the popup says which were downloaded, which aren't free, and which failed",
+   "“Lora” was downloaded" in msg and "“Book Antiqua” was not downloaded" in msg
+   and "paid font" in msg and "timed out" in msg, msg)
+FF._tried["some font"] = ("not_free", "")
+ok("a font is only looked up once", FF.fetch("Some Font") == ("not_free", ""))
+print("font download: all checks passed")
+
+# ---------------------------------------------------------------- any symbol in folder names
+os.makedirs(lib.NOTES_DIR, exist_ok=True)
+fp = lib.create_project('Act 1/2: "Rise"?')
+ok("a folder name keeps / : \" ? (shown exactly as typed)", lib.folder_name(fp) == 'Act 1/2: "Rise"?' and os.path.isdir(fp), fp)
+fs = lib.create_folder(fp, "Who? <Them> | Us.")
+ok("...sub-folders and the path too", lib.crumbs(fs) == 'Act 1/2: "Rise"? ▸ Who? <Them> | Us.', lib.crumbs(fs))
+fr = lib.rename_project(fs, "a\b*")
+fr2 = lib.rename_project(fr, "A\B*")
+ok("...renaming, even just capital letters", lib.folder_name(fr2) == "A\B*" and os.path.isdir(fr2), fr2)
+ok("...a folder with a dot in its name isn't cut short", lib.folder_name(lib.create_project("Vol. 2")) == "Vol. 2")
+try:
+    lib.create_project("unassigned"); _res = False
+except ValueError:
+    _res = True
+ok("...'Unassigned' is still kept for the inbox", _res)
+print("folder names: all checks passed")

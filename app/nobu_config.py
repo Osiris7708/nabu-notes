@@ -3,7 +3,7 @@ import json
 import os
 import threading
 
-VERSION = "4.9.4"
+VERSION = "4.9.5"
 
 
 def _find_home():
@@ -74,6 +74,7 @@ DEFAULTS = {
     "hotkey_cut": "Ctrl+Alt+X",     # cut a passage by voice in the open note
     "install_fonts": True,          # also install Nobu's fonts into Windows (for Word etc.)
     "import_keep_fonts": True,
+    "fetch_fonts": True,            # pasted text in a font you don't have: download it if it's free (Google Fonts)
     "export_format": "docx",
     "export_dir": "",
     "export_page_numbers": True,

@@ -147,7 +147,7 @@ class ExportDialog:
         if len(paths) == 1 and self.scope.get() == "sel":
             name = lib.title(paths[0])
         elif self.scope.get() == "folder":
-            name = os.path.basename(self.folder)
+            name = lib.folder_name(self.folder)
         else:
             name = "Nobu Notes"
         last_dir = self.app.cfg.get("export_dir") or os.path.join(os.path.expanduser("~"), "Documents")

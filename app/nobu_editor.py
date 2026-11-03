@@ -311,6 +311,7 @@ class NoteEditor:
         self._fr = None            # the Find & replace window, while open
         self._fr_find = self._fr_entry = None
         self._added_job = self._cut_job = self._fonts_job = None
+        self._drop_caret = self._drop_hint = None    # blue line + label while files from Explorer are over the page
         self.meta = {}             # colour label, 'titled' flag ... (kept as they are when saving)
         self.page_marks = []
         self.zoom_mode = cfg.get("zoom") or "Fit width"
@@ -2046,6 +2047,46 @@ class NoteEditor:
         self._insert_items(items, "insert")
         self._autolink(start, t.index("insert"))
         self._finish_insert(start, t.index("insert"))
+        self.fetch_missing_fonts(items)
+
+    def fetch_missing_fonts(self, items):
+        """Pasted text in a font this computer doesn't have: look for a free copy online (in the background),
+        then say whether it was downloaded. Settings > Fonts can turn this off."""
+        cfg = getattr(self.app, "cfg", None)
+        if cfg is None or cfg.get("fetch_fonts", True) is False:
+            return
+        import nobu_fontfetch as FF
+        fams = [f for f in FF.missing_families(items, self.root) if f.lower() not in FF._tried]
+        if not fams:
+            return
+        install = cfg.get("install_fonts", True) is not False
+        if hasattr(self.app, "set_status"):
+            self.app.set_status("Looking for a free copy of %s…" % ", ".join("“%s”" % f for f in fams))
+
+        def work():
+            results = [(f,) + tuple(FF.fetch(f, install=install)) for f in fams]
+            self.app.ui(self._fonts_fetched, results)
+        import threading
+        threading.Thread(target=work, name="font-fetch", daemon=True).start()
+
+    def _fonts_fetched(self, results):
+        import nobu_fontfetch as FF
+        if any(r[1] == "downloaded" for r in results):
+            for ed in (self.app.ws.editors() if hasattr(self.app, "ws") else [self]):
+                try:
+                    ed.refresh_fonts()
+                except Exception:
+                    log.exception("refresh fonts")
+        if hasattr(self.app, "set_status"):
+            self.app.set_status("")
+        if self.frame.winfo_exists():
+            T.info(self.frame, "Fonts in the pasted text", FF.message(results))
+
+    def refresh_fonts(self):
+        """A font was just added to the computer: text already shown in a stand-in font switches to it."""
+        for f in self._fonts.values():
+            f.configure(family=f.cget("family"))
+        self._fill_fonts()
 
     @staticmethod
     def _has_words(items, text):
@@ -3014,11 +3055,53 @@ class NoteEditor:
         try:
             from tkinterdnd2 import DND_FILES
             self.text.drop_target_register(DND_FILES)
+            self.text.dnd_bind("<<DropEnter>>", self._drop_over)
+            self.text.dnd_bind("<<DropPosition>>", self._drop_over)
+            self.text.dnd_bind("<<DropLeave>>", lambda ev: self._drop_hint_off())
             self.text.dnd_bind("<<Drop>>", self._on_drop)
         except Exception:
             log.info("drag-and-drop not available; use the Picture button")
 
+    def drop_hint_text(self, files):
+        """What happens to files from Windows Explorer let go on this page."""
+        pics = [f for f in files if f.lower().endswith(IMG_EXTS)]
+        docs = [f for f in files if not f.lower().endswith(IMG_EXTS)]
+        lines = []
+        if pics or not files:
+            lines.append("→  Picture%s go%s in the text at the blue line" % (("s", "") if len(pics) > 1 else ("", "es")))
+        if docs or not files:
+            folder = os.path.dirname(self.path) if self.path else None
+            if folder:
+                lines.append("→  Documents are imported as notes into:  %s" % (
+                    "Unassigned" if lib.is_inbox(folder) else "“%s”" % lib.crumbs(folder)))
+            elif docs:
+                lines.append("✕  Documents can't go here (this note isn't saved in a folder)")
+        return "\n".join(lines)
+
+    def _drop_over(self, ev):
+        from nobu_dragdrop import ExplorerHint, explorer_files
+        t = self.text
+        try:
+            idx = t.index("@%d,%d" % (ev.x_root - t.winfo_rootx(), ev.y_root - t.winfo_rooty()))
+            bb = t.bbox(idx)
+            if self._drop_caret is None:
+                self._drop_caret = tk.Frame(t, width=3, bg=T.ACCENT)
+                self._drop_hint = ExplorerHint(self.root)
+            if bb:
+                self._drop_caret.place(x=bb[0] - 1, y=bb[1], width=3, height=max(bb[3], 12))
+                self._drop_caret.lift()
+            self._drop_hint.show(self.drop_hint_text(explorer_files(ev, self.root)), ev.x_root, ev.y_root)
+        except tk.TclError:
+            pass
+        return ev.action
+
+    def _drop_hint_off(self):
+        if self._drop_caret is not None:
+            self._drop_caret.place_forget()
+            self._drop_hint.hide()
+
     def _on_drop(self, ev):
+        self._drop_hint_off()
         try:
             files = self.root.tk.splitlist(ev.data)
             x = ev.x_root - self.text.winfo_rootx()

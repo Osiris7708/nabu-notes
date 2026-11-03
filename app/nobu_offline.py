@@ -4,7 +4,9 @@ Your recordings, transcripts and notes never leave this computer. To make sure o
 network connection from inside Nobu is blocked, except:
   * connections to this computer itself (127.0.0.1 - used so a second NobuNotes.exe can bring the
     open window to the front), and
-  * the one-time download of the speech models (Settings / first start), which only downloads.
+  * the one-time download of the speech models (Settings / first start), which only downloads, and
+  * free fonts from Google Fonts, when you paste text in a font you don't have (nobu_fontfetch; only the
+    font's name is sent, never your text - Settings > Fonts can turn it off).
 Blocked attempts are written to logs\\nobu.log as "BLOCKED network connection".
 """
 import ipaddress

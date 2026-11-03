@@ -1,10 +1,30 @@
-NOBU NOTES  (version 4.9.4)
+NOBU NOTES  (version 4.9.5)
 ===========================
 
 Say  "Nobu, record this"  and start talking.  ("Nobu" is said "no-boo".)
 Say  "Nobu, end recording"  (or stay quiet for 8 seconds) to finish.
 Each recording is transcribed into a new note in "Unassigned". File it into a book or
 campaign whenever you like. Everything runs on this computer - no cloud, no account.
+
+NEW IN VERSION 4.9.5
+--------------------
+- Pasting keeps the font. Text pasted from another program now keeps its font and size on
+  every line (before, every other line could fall back to your own font). The copied page's
+  own colours - a dark page's black background and white text, or plain black text - are
+  left behind, so pasted text no longer comes in highlighted. Real colours and real
+  highlights are kept.
+- Fonts you don't have: paste text in a font this computer doesn't have and Nobu looks for a
+  free, legal copy on Google Fonts. If there is one, it's downloaded and added to your fonts
+  (and the pasted text shows in it straight away). A message says either way. Paid fonts,
+  like Book Antiqua, are never downloaded - the text keeps the font's name, so it shows
+  correctly on a computer that has it. Only the font's name is sent, never your writing.
+  Turn it off in Settings > Fonts.
+- Folder names can use any characters, including / : * ? " < > and |.
+- Dragging shows where things will land: the label beside the mouse now has a second line,
+  e.g. "Goes into: "The Hollow Crown > Chapters", above "Chapter 3"", "Goes to: Unassigned",
+  or "Not here - let go to cancel". Files dragged in from File Explorer get a label too:
+  over a note, a blue line shows where a picture will go; over a folder list, it names the
+  folder documents will be imported into.
 
 NEW IN VERSION 4.9.4
 --------------------
@@ -233,8 +253,9 @@ NEW IN VERSION 4.3
   Nobu restarts itself to switch.
 - Private by design: the Home page now says so, and Nobu enforces it - while it runs, Nobu's
   own network connections are blocked (logged in logs\nobu.log). This only affects Nobu;
-  Windows and your other programs are not touched. The only exception is downloading the
-  speech models (first start / changing models), which only downloads.
+  Windows and your other programs are not touched. The only exceptions are downloading the
+  speech models (first start / changing models), which only downloads, and (since 4.9.5) free
+  fonts for pasted text in a font you don't have.
 - Any screen size: the window is fitted to the screen it opens on (no more off-screen or
   too-big windows after changing monitors or resolution), the Home page scrolls when it
   doesn't fit, and every dialog sizes itself to your display scaling.

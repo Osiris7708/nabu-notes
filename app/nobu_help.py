@@ -51,6 +51,7 @@ SECTIONS = [
     ("Books, folders & the sidebar", [
         ("b", "Books & campaigns are the top folders in the sidebar. Click + to make one."),
         ("b", "Right-click a folder > New sub-folder here, to make folders inside it (as many levels as you like)."),
+        ("b", "Folder names can use any characters, including / : ? and quotes."),
         ("b", "Click a folder's name to open it; click it again to close it. The triangle does the same."),
         ("b", "Shift-click selects a range; Ctrl-click adds or removes one. Right-click the selection to colour, "
               "move, export, open or delete them all at once."),
@@ -59,6 +60,8 @@ SECTIONS = [
         ("b", "Drag the dotted strip on the sidebar's right edge to make it wider. Double-click it to fit the "
               "longest name."),
         ("h", "Dragging in the sidebar"),
+        ("b", "The label beside the mouse says where the item will go if you let go there (“Goes into: "
+              "“Book ▸ Chapters”, above “Chapter 3””), or “Not here”."),
         ("b", "Drop onto a folder (it lights up) to put the item inside it."),
         ("b", "Drop on the top or bottom edge of an item (a blue line shows) to place it above or below. Your "
               "order is remembered."),
@@ -228,6 +231,10 @@ SECTIONS = [
         ("b", "Copying text into Word, email or Google Docs keeps formatting and pictures."),
         ("b", "Import documents (button in Unassigned or a folder, ⚙ menu, or drag files onto a list): Word, PDF, "
               "web pages, Markdown, RTF and text become notes. Choose to keep their fonts or use yours."),
+        ("b", "Dragging files in from File Explorer, a label says where they'll go: pictures at the blue line in "
+              "the text, documents into the folder shown."),
+        ("b", "Pasted text keeps its font and size on every line. The copied page's own background (like a dark "
+              "page) and plain white or black text are left behind; real colours and highlights stay."),
     ]),
     ("Fonts", [
         ("b", "72 free fonts come with Nobu. Fonts… (toolbar or ⚙) shows them by style with previews."),
@@ -236,6 +243,9 @@ SECTIONS = [
         ("b", "Nobu installs its fonts into Windows, so Word has them too."),
         ("h", "Adding your own"),
         ("b", "Download a font (.ttf, .otf or a .zip), then Fonts… > “+ Add fonts…”. It works straight away."),
+        ("b", "Paste text in a font you don't have, and Nobu looks for a free copy on Google Fonts and adds it. "
+              "A message says whether it was downloaded. Paid fonts (like Book Antiqua) are never downloaded; "
+              "the text keeps the font's name and shows in a similar font. Turn this off in Settings > Fonts."),
         ("b", "Check the licence before sharing: “personal use” fonts are left out of Word files and e-books."),
         ("b", "PDF export needs .ttf fonts; .otf fonts are swapped for a standard font in PDFs."),
     ]),
@@ -262,8 +272,9 @@ SECTIONS = [
     ]),
     ("Privacy", [
         ("b", "Recordings, text and notes are made and stored only on this computer. No account, no cloud."),
-        ("b", "Nobu blocks itself from the internet while it runs. The only exception: downloading speech "
-              "engines (first start, or when you pick a new one), which only downloads."),
+        ("b", "Nobu blocks itself from the internet while it runs. The only exceptions: downloading speech "
+              "engines (first start, or when you pick a new one), and free fonts for pasted text in a font you "
+              "don't have (only the font's name is sent, never your writing)."),
         ("b", "This block applies to Nobu only. Other programs and Windows are not affected."),
         ("b", "Home > “How is this checked?” shows how many of Nobu's own connection attempts were blocked."),
     ]),

@@ -554,7 +554,7 @@ class Workspace:
                 book = book[:25 - len(here)]
         recent = [p for p in app.recent_notes()
                   if os.path.normcase(p) not in open_now and p not in here and p not in book][:12]
-        groups = (("In this folder", here), ("Elsewhere in \u201c%s\u201d" % os.path.basename(top or ""), book),
+        groups = (("In this folder", here), ("Elsewhere in \u201c%s\u201d" % (lib.folder_name(top) if top else ""), book),
                   ("Recent", recent))
         for title, group in groups:
             if not group:

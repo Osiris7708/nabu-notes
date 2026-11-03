@@ -392,6 +392,9 @@ class SettingsDialog:
         ttk.Label(r, text="Text size", width=22).pack(side="left")
         self.fsize = tk.IntVar(value=int(cfg["font_size"]))
         ttk.Spinbox(r, from_=9, to=28, increment=1, textvariable=self.fsize, width=6).pack(side="left")
+        self.fetch_fonts = tk.BooleanVar(value=cfg.get("fetch_fonts", True) is not False)
+        ttk.Checkbutton(outer, text="When I paste text in a font I don't have, download it if there's a free copy "
+                        "(Google Fonts)", variable=self.fetch_fonts).pack(anchor="w", pady=2)
         ttk.Label(outer, style="Muted.TLabel", wraplength=600, text=(
             "To add your own fonts: Fonts\u2026 (toolbar or gear menu) > \u201c+ Add fonts\u2026\u201d. They work "
             "straight away.")).pack(anchor="w")
@@ -619,7 +622,7 @@ class SettingsDialog:
             wake_match_threshold=round(float(self.strict.get()), 2),
             accept_bare_phrase=bool(self.bare.get()), cue_sounds=bool(self.cues.get()),
             close_to_tray=bool(self.tray.get()), autostart=bool(self.auto.get()), reopen_notes=bool(self.reopen.get()),
-            transcribe_original=bool(self.orig_sound.get()),
+            fetch_fonts=bool(self.fetch_fonts.get()), transcribe_original=bool(self.orig_sound.get()),
             transcribe_model=self.model.get(), detect_model=self.dmodel.get())
         self.orig = {k: self.cfg[k] for k in self.LIVE}
         models_changed = (old[1] != self.cfg["transcribe_model"] or old[2] != self.cfg["detect_model"])

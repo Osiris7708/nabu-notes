@@ -1060,6 +1060,15 @@ def go():
         step(lambda: invoke_label(mv, "▪  The Hollow Crown") if "▪  The Hollow Crown" in labels(mv) else
              mv.nametowidget(mv.entrycget(entry(mv, "▪  The Hollow Crown"), "menu")).invoke(0))
         check("folder menu: Move to", os.path.isdir(os.path.join(book, "Locations")), os.listdir(book))
+        ASK[:] = ['Act 1/2: "Rise"?']; step(lambda: invoke_label(tree_menu(ash), "Rename"))
+        sym = step(lambda: [p for p in lib.projects() if lib.folder_name(p) == 'Act 1/2: "Rise"?'])
+        check("folder names can have any symbol, even / and quotation marks (shown as typed)",
+              len(sym) == 1 and os.path.isdir(sym[0]) and step(lambda: app.tree.exists(sym[0]))
+              and 'Act 1/2: "Rise"?' in step(lambda: app.tree.item(sym[0], "text")), sym)
+        ASK[:] = ["Who? <Them>"]; step(lambda: invoke_label(tree_menu(sym[0]), "New sub-folder here"))
+        check("...sub-folders too, and the path shows them as typed",
+              step(lambda: [lib.crumbs(p) for p in lib.subfolders(sym[0])]) == ['Act 1/2: "Rise"? ▸ Who? <Them>'])
+        ash = sym[0]
         ASK[:] = ["Ashfall Campaign"]; step(lambda: invoke_label(tree_menu(ash), "Rename"))
         ash2 = os.path.join(C.NOTES_DIR, "Ashfall Campaign")
         check("folder menu: Rename", os.path.isdir(ash2))
@@ -1232,7 +1241,7 @@ def go():
         step(lambda: btn(sd.win, "Save").invoke()); idle(0.3)
         cfg = json.load(open(C.CONFIG_PATH))
         keys = ["transcribe_original", "accept_bare_phrase", "cue_sounds", "confirm_cut", "confirm_edit", "close_to_tray",
-                "autostart", "reopen_notes"]
+                "autostart", "reopen_notes", "fetch_fonts"]
         flipped = {k: app.cfg[k] for k in keys}
         check("Save stores every ticked / unticked box", all(flipped[k] == (not M.C.DEFAULTS[k]) for k in keys), flipped)
         check("Save stores the sliders and boxes", (cfg.get("mic_gain_db"), cfg.get("noise_reduction"), cfg.get("wake_match_threshold"),
@@ -1402,12 +1411,58 @@ def go():
             app.dragdrop._press(E(), tv)
             app.dragdrop._motion(E(x_root=rx + 900, y_root=ry), tv)
             had = app.dragdrop.ghost is not None
+            DEST.append(app.dragdrop.dest_lbl.cget("text"))
+            app.dragdrop._show(("place", book, "into"))
+            DEST.append(app.dragdrop.dest_lbl.cget("text"))
+            app.dragdrop._show(None)
+            DEST.append(app.dragdrop.dest_lbl.cget("text"))
             app.root.event_generate("<Escape>"); app.root.update()
             r = app._tree_release(E(x_root=rx + 900, y_root=ry))
             return had, app.dragdrop.ghost is None, r, len(app.ws.editors()), os.path.exists(nb_)
         before = step(lambda: len(app.ws.editors()))
+        DEST = []
         r = step(side_drag_esc)
         check("Esc cancels a drag from the sidebar (nothing opens or moves)", r == (True, True, "break", before, True), r)
+        check("while dragging, the label says where it will end up (or that it can't go there)",
+              len(DEST) == 3 and DEST[0] and "Goes into:" in DEST[1] and lib.folder_name(book) in DEST[1]
+              and "Not here" in DEST[2], DEST)
+        dt = step(lambda: dict((k, app.dragdrop.dest_text(t)[0]) for k, t in
+                               (("inbox", ("inbox",)), ("trash", ("trash",)), ("above", ("place", nb_, "above")))))
+        check("...for Unassigned, the Trash and a spot above a note", "Unassigned" in dt["inbox"] and "Trash" in dt["trash"]
+              and "above \u201c%s\u201d" % lib.title(nb_) in dt["above"] and lib.folder_name(book) in dt["above"], dt)
+        # files dragged in from Windows Explorer get a label too
+        step(lambda: app.open_note(nb_)); idle(0.2)
+        ht = step(lambda: app.editor.drop_hint_text([r"C:\x\a.png", r"C:\x\b.docx"]))
+        check("Explorer drop on a page: says the picture goes at the blue line and the document's folder",
+              "Picture goes" in ht and "imported as notes into" in ht and lib.folder_name(book) in ht, ht)
+        def explorer_over():
+            ed = app.editor; t_ = ed.text
+            ev = type("Ev", (), dict(x_root=t_.winfo_rootx() + 60, y_root=t_.winfo_rooty() + 40, action="copy",
+                                     data="{C:/x/a.png}"))()
+            ed._drop_over(ev); app.root.update()
+            shown = (ed._drop_caret.winfo_ismapped(), ed._drop_hint.win is not None and "Picture" in ed._drop_hint.text)
+            ed._drop_hint_off(); app.root.update()
+            return shown, ed._drop_caret.winfo_ismapped(), ed._drop_hint.win
+        check("...a blue line and the label show while over the page, and go away after",
+              step(explorer_over) == ((True, True), False, None))
+        # pasted text in a font this computer doesn't have: look for a free copy, then say so
+        import nobu_fontfetch as FF
+        real_fetch, FF._tried = FF.fetch, {}
+        FF.fetch = lambda fam, install=True: ("not_free", "") if fam == "Book Antiqua X" else ("downloaded", fam)
+        INFOS.clear()
+        step(lambda: app.editor.fetch_missing_fonts([{"t": "a", "g": ["ff:Book Antiqua X"]}, {"t": "b", "g": ["ff:Lora Nobu Test"]},
+                                                     {"t": "c", "g": ["ff:Arial"]}]))
+        for _ in range(30):
+            if INFOS:
+                break
+            idle(0.1)
+        check("pasting text in fonts you don't have: one popup says which were downloaded and which weren't",
+              len(INFOS) == 1 and "\u2715  \u201cBook Antiqua X\u201d was not downloaded" in INFOS[0]
+              and "\u2713  \u201cLora Nobu Test\u201d was downloaded" in INFOS[0] and "Arial" not in INFOS[0], INFOS)
+        step(lambda: app.cfg.update(fetch_fonts=False)); INFOS.clear(); FF._tried = {}
+        step(lambda: app.editor.fetch_missing_fonts([{"t": "a", "g": ["ff:Book Antiqua X"]}])); idle(0.4)
+        check("...and Settings can turn it off (nothing is looked up)", INFOS == [], INFOS)
+        step(lambda: app.cfg.update(fetch_fonts=True)); FF.fetch = real_fetch; FF._tried = {}
         # closed menus don't pile up
         def menus_after_many():
             for _ in range(25):

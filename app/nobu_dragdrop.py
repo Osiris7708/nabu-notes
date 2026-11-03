@@ -11,6 +11,9 @@ Drag an item (from the sidebar, a folder list or Unassigned) and drop it:
                                new page beside it, the middle (or the tabs) makes it a tab; dropped
                                well outside Nobu's window it opens in its own window. A blue shadow
                                shows where. (A folder dropped there is opened.)
+The label that follows the mouse has a second line saying exactly where it will end up ("Goes into:
+"Book > Chapters", above "Chapter 3"") or that it can't go there. Files dragged in from Windows
+Explorer get the same kind of label (ExplorerHint).
 The order you arrange things in is remembered.
 """
 import logging
@@ -41,6 +44,7 @@ class DragDrop:
         self.hover = (None, 0.0)
         self.last_xy = (None, None)
         self.ghost_lbl = None
+        self.dest_lbl = None       # the ghost's second line: where it will end up
         self.ghost_text = ""
         self._shown = False
         self.cancelled = False     # Esc pressed during this drag: the release does nothing
@@ -101,13 +105,17 @@ class DragDrop:
             g.attributes("-alpha", 0.9)
         except tk.TclError:
             pass
-        names = [os.path.basename(p) if os.path.isdir(p) else lib.title(p) for p in self.items]
+        names = [lib.folder_name(p) if os.path.isdir(p) else lib.title(p) for p in self.items]
         text = names[0] if len(names) == 1 else "%s  (+%d more)" % (names[0], len(names) - 1)
         icon = "▸ " if os.path.isdir(self.items[0]) else ""
         self.ghost_text = icon + text[:60]
         self.ghost_lbl = tk.Label(g, text=self.ghost_text, bg=T.ACCENT_DARK, fg="#ffffff", font=T.UI_FONT,
                                   padx=10, pady=4)
-        self.ghost_lbl.pack()
+        self.ghost_lbl.pack(fill="x")
+        # the second line says exactly where it will end up if let go now
+        self.dest_lbl = tk.Label(g, text="", bg=T.PANEL, fg=T.FG, font=T.UI_BOLD, padx=10, pady=3, anchor="w",
+                                 justify="left")
+        self.dest_lbl.pack(fill="x")
         for w in (self.app.tree, self.app.nav, self.app.inbox._tv, self.app.projview._tv):
             w.configure(cursor="fleur")
         self._prev_esc = self.root.bind("<Escape>")
@@ -125,6 +133,7 @@ class DragDrop:
             self.ghost.destroy()
             self.ghost = None
             self.root.bind("<Escape>", self._prev_esc or "")
+            self.app.set_status("")
         self._unhot()
         try:
             self.app.ws.show_drop(None)
@@ -175,8 +184,11 @@ class DragDrop:
                 elif target and target[0] == "trash":
                     text = "\u267b  Delete:  " + text
                 self.ghost_lbl.configure(text=text)
+                dest, ok = self.dest_text(target)
+                self.dest_lbl.configure(text=dest, fg=T.FG if ok else T.FAINT)
+                self.app.set_status(dest if ok else "")
             except Exception:
-                pass
+                log.exception("drag label")
         if not target:
             return
         kind = target[0]
@@ -199,6 +211,35 @@ class DragDrop:
             self.app.ws.show_drop(target[1], above=self.ghost)
         elif kind == "folder" and target[2] is not None:
             self._hot(*target[2])
+
+    def dest_text(self, target):
+        """(words saying where the dragged items would end up, can they be dropped here)"""
+        def name(p):
+            return lib.folder_name(p) if os.path.isdir(p) else lib.title(p)
+
+        def place(folder):
+            return "Unassigned" if lib.is_inbox(folder) else "“%s”" % lib.crumbs(folder)
+        if not target:
+            return "✕  Not here — let go to cancel (or press Esc)", False
+        kind = target[0]
+        if kind == "inbox":
+            return "→  Goes to:  Unassigned", True
+        if kind == "trash":
+            return "→  Goes to:  the Trash (you can restore it)", True
+        if kind == "folder":
+            return "→  Goes into:  %s" % place(target[1]), True
+        if kind == "open":
+            if all(os.path.isdir(p) for p in self.items):
+                return "→  Opens the folder’s list (nothing is moved)", True
+            return "%s  (nothing is moved)" % self.app.ws.describe(target[1], "").strip(" :"), True
+        _, iid, where = target
+        if where == "into":
+            return "→  Goes into:  %s" % place(iid), True
+        folder = os.path.dirname(iid)
+        side = "above" if where == "above" else "below"
+        if os.path.normcase(folder) == os.path.normcase(os.path.abspath(NOTES_DIR)):
+            return "→  Becomes a book / campaign, %s “%s”" % (side, name(iid)), True
+        return "→  Goes into:  %s,  %s “%s”" % (place(folder), side, name(iid)), True
 
     def _hot(self, w, iid):
         try:
@@ -369,3 +410,42 @@ class DragDrop:
                 else "“%s”" % lib.crumbs(dest)
             app.set_status("Moved %d item%s %s %s." % (moved, "" if moved == 1 else "s",
                                                         "into" if where == "into" else "to", name))
+
+
+class ExplorerHint:
+    """A label beside the mouse while files dragged in from Windows Explorer are over a part of Nobu,
+    saying what will happen to them if let go there (same look as the label of Nobu's own drags)."""
+
+    def __init__(self, root):
+        self.root = root
+        self.win = None
+        self.lbl = None
+        self.text = ""
+
+    def show(self, text, xr, yr, ok=True):
+        if self.win is None or not self.win.winfo_exists():
+            self.win = tk.Toplevel(self.root)
+            self.win.overrideredirect(True)
+            self.win.attributes("-topmost", True)
+            self.lbl = tk.Label(self.win, bg=T.PANEL, font=T.UI_BOLD, padx=10, pady=4, justify="left")
+            self.lbl.pack()
+        self.text = text
+        self.lbl.configure(text=text, fg=T.FG if ok else T.FAINT)
+        self.win.geometry("+%d+%d" % (xr + 18, yr + 16))
+
+    def hide(self):
+        if self.win is not None:
+            try:
+                self.win.destroy()
+            except tk.TclError:
+                pass
+        self.win = None
+        self.text = ""
+
+
+def explorer_files(ev, root):
+    """The files of a drag from Windows Explorer (may be empty while still dragging)."""
+    try:
+        return list(root.tk.splitlist(ev.data or ""))
+    except (tk.TclError, AttributeError, TypeError):
+        return []

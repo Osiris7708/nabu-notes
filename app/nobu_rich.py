@@ -221,6 +221,7 @@ def _par_tags(p):
 def paras_to_items(paras):
     items = []
     num = {}
+    font = []                  # the font of the last paragraph with text (for its line end and empty lines)
     for p in paras:
         if p["type"] == "table":
             items.append({"table": {"rows": p["rows"]}, "g": []})
@@ -253,7 +254,10 @@ def paras_to_items(paras):
                 items.append(it)
             elif r.get("t"):
                 items.append({"t": r["t"], "g": sorted(set(pt + _char_tags(r)))})
-        items.append({"t": "\n", "g": sorted(pt)})
+        texts = [r for r in p.get("runs", []) if r.get("t")]
+        if texts:
+            font = [g for g in _char_tags(texts[-1]) if g.startswith(("ff:", "fs:"))]
+        items.append({"t": "\n", "g": sorted(set(pt + font))})
     return items
 
 
@@ -499,6 +503,21 @@ def _color(v):
     return None
 
 
+def page_colour(hexcol, text=False):
+    """Is this colour just how the copied page looked, not formatting the writer chose? Backgrounds: any
+    white, grey or black (real highlights are colourful). Text: near-white or near-black grey (a page in dark
+    mode, or plain black). Coloured text and coloured highlights are kept."""
+    try:
+        h = hexcol.lstrip("#")
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    except (ValueError, IndexError):
+        return False
+    if max(r, g, b) - min(r, g, b) > 24:          # it has a colour
+        return False
+    lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+    return (lum > 0.8 or lum < 0.2) if text else True
+
+
 def _size_pt(v):
     v = (v or "").strip().lower()
     m = re.match(r"([\d.]+)\s*(pt|px|em|rem|%)?", v)
@@ -572,7 +591,7 @@ class _HTMLToParas(HTMLParser):
         if tag == "font":
             if a.get("face"):
                 f["ff"] = a["face"].split(",")[0].strip(" '\"")
-            if a.get("color") and _color(a["color"]):
+            if a.get("color") and _color(a["color"]) and not page_colour(_color(a["color"]), text=True):
                 f["fg"] = _color(a["color"])
         if st.get("font-weight") in ("bold", "700", "800", "900", "600"):
             f["b"] = True
@@ -597,10 +616,16 @@ class _HTMLToParas(HTMLParser):
             f["fs"] = round(_size_pt(st["font-size"]) * 2) / 2.0
         col = _color(st.get("color"))
         if col:
-            f["fg"] = col
+            if page_colour(col, text=True):     # the source page's own text colour (e.g. white in dark mode)
+                f.pop("fg", None)
+            else:
+                f["fg"] = col
         bg = _color(st.get("background") or st.get("background-color") or st.get("mso-highlight"))
-        if bg and bg != "#ffffff":
-            f["hl"] = bg
+        if bg:
+            if page_colour(bg):                 # the source page's background (dark mode, grey boxes): not a highlight
+                f.pop("hl", None)
+            else:
+                f["hl"] = bg
         if tag not in self.VOID:            # (<br>, <img>... never get a closing tag)
             self.fmt.append((tag, f))
         if tag in ("ul", "ol"):
